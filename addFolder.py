@@ -5,22 +5,19 @@ import math
 import subprocess
 from tkinter import filedialog
 from config import *
+import re
 newDir = ""
    
-def getTrackLength(fullFileName):
+def getTrackLength(fullFileName) -> int:
     duration = 0
     media_info = MediaInfo.parse(fullFileName)
     for track in media_info.tracks:
         duration = max(duration, track.duration)
-        return track.to_data()
-    #return math.floor(duration/1000)
-
-    
-
+    return math.floor(duration/1000)
     
    
     
-def addFolderBox():
+def addFolderBox(albumMode = False):
     newDir = filedialog.askdirectory()
     if newDir == "":
         return
@@ -32,6 +29,7 @@ def addFolderBox():
                 folder = subdir.split(os.sep)[-1]
                 fullFileName = filePath + fileName
                 duration = (getTrackLength(fullFileName))
+                has_album = albumMode
                 try:
                     track = song.split(SPLITTER)[1]
                     artist = song.split(SPLITTER)[0]
@@ -45,7 +43,16 @@ def addFolderBox():
                 except IndexError:
                     album = UNKNOWN_ALBUM
                     albumArtist = UNKNOWN_ALBUM_ARTIST
-                print(getTrackLength(fullFileName))
+                    if albumMode == True:
+                        album = folder
+                if (match := re.search("^\d[0-9]+", track)) == None:
+                    tracknum = 0
+                else:
+                    tracknum = int(match.group())
+                print(song + "||" + str(tracknum))
+                
+                
+                
                 
                 
 

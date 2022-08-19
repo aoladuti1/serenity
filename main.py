@@ -23,7 +23,7 @@ def on_closing():
 
 #x.seek(260)
 
-addFolderBox()
+addFolderBox(True)
 
 
 
