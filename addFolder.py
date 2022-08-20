@@ -4,6 +4,7 @@ import math
 import re
 from tkinter import filedialog
 from config import *
+import requests
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import cred
@@ -19,7 +20,7 @@ def getTrackLength(fullFileName) -> int:
             duration = max(duration, track.duration)
     return math.floor(duration/1000)
 
-# Returns false if it fails to find or attribute art
+# Returns false if it fails to find or assign art
 def DLart(trackOrAlbum, artist, artFile, albumMode) -> bool:
     if os.path.exists(artFile) == True: return True
     auth_manager = SpotifyClientCredentials(
@@ -27,19 +28,27 @@ def DLart(trackOrAlbum, artist, artFile, albumMode) -> bool:
         client_secret=cred.CLIENT_SECRET
     )
     sp = spotipy.Spotify(auth_manager=auth_manager)
-    if albumMode == True:    
-        results = sp.search(q='album:' + trackOrAlbum + ' ' + 'artist:' + artist, type='album', limit=1)
-        print(results)
+    if albumMode == True:
+        try:   
+            results = sp.search(q='album:' + trackOrAlbum + ' ' + 'artist:' + artist, type='album', limit=1)
+        except:
+            return False
         items = results['albums']['items']
     else:
-        results = sp.search(q='artist:' + artist + ' ' + 'track:' + trackOrAlbum, type='track', limit=1)
+        try:
+            results = sp.search(q='artist:' + artist + ' ' + 'track:' + trackOrAlbum, type='track', limit=1)
+        except:
+            return False
         items = results['tracks']['items']
     if len(items) > 0:
         albumOrTrack = items[0]
         if albumMode == True:
-            print(albumOrTrack['name'], albumOrTrack['images'][0]['url'])
+            image_url = albumOrTrack['images'][0]['url']
         else:
-            print(albumOrTrack['name'], albumOrTrack['album']['images'][0]['url'])
+            image_url = albumOrTrack['album']['images'][0]['url']
+        img_data = requests.get(image_url).content
+        with open(artFile, 'wb') as handler:
+            handler.write(img_data)        
         return True
     else:
         return False
@@ -57,7 +66,6 @@ def addFolderBox(albumMode = False):
                 song = fileName.rpartition(".")[0]
                 folderName = subdir.split(os.sep)[-1]
                 fullFileName = filePath + fileName
-                print(fullFileName)
                 duration = (getTrackLength(fullFileName))
                 hasAlbum = albumMode
                 try:
@@ -92,6 +100,8 @@ def addFolderBox(albumMode = False):
                     if os.path.exists(art) == False:
                         if DLart(track, artist, art, hasAlbum) == False:
                             art = DEFAULT_ART
+                
+                    
                
 
 
