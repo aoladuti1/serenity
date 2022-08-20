@@ -53,7 +53,6 @@ def addFolderBox(albumMode = False):
     for subdir, dirs, files in os.walk(newDir):
         for fileName in files:
             if fileName.endswith(SUPPORTED_EXTENSIONS):
-                folderArt = ''
                 filePath = os.path.abspath(subdir) + os.sep #full directory with an appended slash
                 song = fileName.rpartition(".")[0]
                 folderName = subdir.split(os.sep)[-1]
@@ -83,17 +82,16 @@ def addFolderBox(albumMode = False):
                     trackNum = int(match.group())
                     track = song
                     artist = albumArtist
-                #folderArt exists so that later on 
                 if hasAlbum == True:
-                    if folderArt == '':
-                        folderArt = ART_PATH + folderName + ".jpg"
-                        if DLart(album, artist, folderArt, True) == False:
-                            folderArt = DEFAULT_ART
-                    art = folderArt
+                    art = ART_PATH + folderName + ".jpg"
+                    if os.path.exists(art) == False:
+                        if DLart(album, artist, art, hasAlbum) == False:
+                            art = DEFAULT_ART
                 else:
                     art = ART_PATH + song + ".jpg"
-                    if DLart(track, artist, art, False) == False:
-                        art = DEFAULT_ART
+                    if os.path.exists(art) == False:
+                        if DLart(track, artist, art, hasAlbum) == False:
+                            art = DEFAULT_ART
                
 
 
