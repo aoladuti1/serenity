@@ -3,6 +3,7 @@ import sqlite3
 import subprocess
 import os
 import time
+import tracemalloc
 from config import *
 from aplayer import *
 from addFolder import *
@@ -22,8 +23,7 @@ def on_closing():
 
 
 #x.seek(260)
-
-addFolderBox(True)
+addFolderBox(False)
 
 
 

@@ -20,4 +20,7 @@ UNKNOWN_ALBUM = "---"
 UNKNOWN_ALBUM_ARTIST = "---"
 
 #directories
-DIR_PATH = os.path.dirname(os.path.realpath(__file__)) #path to config
+DIR_PATH = os.path.dirname(os.path.realpath(__file__)) + os.sep #path to config w/ slash appended
+ART_PATH = DIR_PATH + "art" + os.sep
+DEFAULT_ART = ART_PATH + "default.jpeg"
+
