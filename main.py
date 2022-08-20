@@ -20,13 +20,7 @@ def on_closing():
     root.destroy()
 
 #x = Aplayer("C:\\Users\\anton\\Music\\02 - Ampersand feat. Shing02.mp3")
-
-
 #x.seek(260)
-addFolderBox(False)
-
-
-
-
+addFolderBox(True,False)
 root.protocol("WM_DELETE_WINDOW", on_closing)
 root.mainloop()

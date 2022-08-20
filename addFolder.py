@@ -8,54 +8,156 @@ import requests
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import cred
+from pathlib import Path
+numgex = re.compile("^\d+") #matches leading digits
 
 def getTrackLength(fullFileName) -> int:
     duration = 0
     media_info = MediaInfo.parse(filename=fullFileName)
     for track in media_info.tracks:
         if track.duration == None:
-            print("Error: File not found (likely online-only)")
+            print("Error: File not found (likely online-only)") #TODO: change to exception
             return -1
         else:
             duration = max(duration, track.duration)
     return math.floor(duration/1000)
 
 # Returns false if it fails to find or assign art
-def DLart(trackOrAlbum, artist, artFile, albumMode) -> bool:
-    if os.path.exists(artFile) == True: return True
+# music is either the track name or album name, dependent on if isAlbum is true
+def dlArt(music, artist, artName, isAlbum):
+    target = ART_PATH + artName + ".jpg" 
+    if os.path.exists(target) == True: return target
+    artFile = DEFAULT_ART
     auth_manager = SpotifyClientCredentials(
         client_id=cred.CLIENT_ID,
         client_secret=cred.CLIENT_SECRET
     )
     sp = spotipy.Spotify(auth_manager=auth_manager)
-    if albumMode == True:
+    if isAlbum == True:
         try:   
-            results = sp.search(q='album:' + trackOrAlbum + ' ' + 'artist:' + artist, type='album', limit=1)
+            results = sp.search(q='album:' + music + ' ' + 'artist:' + artist, type='album', limit=1)
         except:
-            return False
+            return artFile
         items = results['albums']['items']
     else:
         try:
-            results = sp.search(q='artist:' + artist + ' ' + 'track:' + trackOrAlbum, type='track', limit=1)
+            results = sp.search(q='artist:' + artist + ' ' + 'track:' + music, type='track', limit=1)
         except:
-            return False
+            return artFile
         items = results['tracks']['items']
     if len(items) > 0:
         albumOrTrack = items[0]
-        if albumMode == True:
+        if isAlbum == True:
             image_url = albumOrTrack['images'][0]['url']
         else:
             image_url = albumOrTrack['album']['images'][0]['url']
         img_data = requests.get(image_url).content
-        with open(artFile, 'wb') as handler:
-            handler.write(img_data)        
-        return True
-    else:
-        return False
-   
+        try:
+            artFile = target
+            with open(artFile, 'wb') as handler:
+                handler.write(img_data)
+        except:
+            artFile = DEFAULT_ART
+    return artFile
 
+def getTrackInfo(song):
+    """
+    Returns an array of ["", track, trackNum]
+    """
+    trackNum = 0
+    try:       
+        track = song.split(SPLITTER)[-1]
+    except IndexError:
+        track = song
+    if not (match := numgex.search(track)) == None:
+        trackNum = int(match.group())
+    return ["",track, trackNum]    
+
+def getTrackAndArtistInfo(song, folderName):
+    """
+    Returns an array of [artist, track, trackNumber]
+    """
+
+    trackNum = 0
+    try:       
+        track = song.split(SPLITTER)[-1]
+        artist = song.split(SPLITTER)[-2]
+    except IndexError:
+        track = song
+        artist = UNKNOWN_ARTIST
+    if not (match := numgex.search(track)) == None:
+        trackNum = int(match.group())
+    if artist == UNKNOWN_ARTIST:
+        try:
+            artist = folderName.split(SPLITTER)[-2]
+        except:
+            ""
+    if artist[0].isnumeric() == True and trackNum == 0:
+        try:
+            artistAttempt = re.search(r"\S*\s*(.*)\s+" + SPLITTER_CHAR + r"\s+", song).group(1)
+            artist = artistAttempt
+            trackNum = int(numgex.search(song).group())
+        except: ""
+    return [artist, track, trackNum]
+
+def getAlbum(folderName, inAlbumMode):
+    if inAlbumMode == True:
+            return folderName
+    try:
+        album = folderName.split(SPLITTER)[-2]
+    except IndexError:
+        album = UNKNOWN_ALBUM
+    return album    
+
+
+def getSongNoStructure(song, folderName, inAlbumMode):
+    info = getTrackAndArtistInfo(song, folderName)
+    artist = info[0]
+    print(folderName)
+    album = getAlbum(folderName, inAlbumMode)
+    track = info[1]
+    trackNum = info[2]
+    return [artist, album, track, trackNum] 
+
+def getSong(song, filePath, inAlbumMode, tightStructure):
+    """
+    Get the artist and track from a song marked as being in an
+    Artist-Album-Track folder structure. i.e. inside the Artist
+    folder are all the albums, which themselves contain pure audio files like so:
+    C:/Bryson Tiller/The Best Album Ever/The Best Track Ever.mp3
+
+    Parameters:
+
+    ~song: "bryson tiller - dont" for instance
+
+    ~filePath: full path to the folder containing the file
+
+    ~inAlbumMode: if the folder addition is in album mode or not (for corner cases)
+
+    Returns:
     
-def addFolderBox(albumMode = False):
+    array of {artist, album, track, trackNum}
+    """
+    structure = Path(filePath).parents
+    folderName = filePath.split(os.sep)[-2] #filePath has an appended slash so we do -2 instead of -1
+    print(folderName)
+    if tightStructure == False or len(structure) < 2:
+        return getSongNoStructure(song, folderName, inAlbumMode)
+    else:
+        artist = str(structure[0]).rpartition(os.sep)[-1]
+        album = folderName
+        info = getTrackInfo(song)
+        track = info[1]
+        trackNum = info[2]
+        return [artist, album, track, trackNum]
+    
+
+
+# The following assumes the config.SPLITTER variable is " - "
+# Adds folders and subfolders of music
+# track format: 
+# [optional number] 
+def addFolderBox(albumMode = False, tightStructure = False):
     newDir = filedialog.askdirectory()
     if newDir == "":
         return
@@ -66,41 +168,22 @@ def addFolderBox(albumMode = False):
                 song = fileName.rpartition(".")[0]
                 folderName = subdir.split(os.sep)[-1]
                 fullFileName = filePath + fileName
-                duration = (getTrackLength(fullFileName))
-                hasAlbum = albumMode
-                try:
-                    track = song.split(SPLITTER)[1]
-                    artist = song.split(SPLITTER)[0]
-                except IndexError:
-                    track = song
-                    artist = UNKNOWN_ARTIST
-                    song = UNKNOWN_ARTIST + SPLITTER + track
-                try:
-                    album = folderName.split(SPLITTER)[1]
-                    albumArtist = folderName.split(SPLITTER)[0]
-                    hasAlbum = True
-                except IndexError:
-                    album = UNKNOWN_ALBUM
-                    albumArtist = UNKNOWN_ALBUM_ARTIST
-                    if albumMode == True:
-                        album = folderName
-                if (match := re.search("^\d[0-9]+", track)) == None:
-                    trackNum = 0
-                else:
-                    trackNum = int(match.group())
-                    track = song
-                    artist = albumArtist
+                duration = getTrackLength(fullFileName)
+                dataSet = getSong(song, filePath, albumMode, tightStructure)
+                artist, album, track, trackNum = dataSet
+                hasAlbum = album != UNKNOWN_ALBUM
                 if hasAlbum == True:
-                    art = ART_PATH + folderName + ".jpg"
-                    if os.path.exists(art) == False:
-                        if DLart(album, artist, art, hasAlbum) == False:
-                            art = DEFAULT_ART
+                    dlMusic = album
+                    artName = folderName
                 else:
-                    art = ART_PATH + song + ".jpg"
-                    if os.path.exists(art) == False:
-                        if DLart(track, artist, art, hasAlbum) == False:
-                            art = DEFAULT_ART
-                
+                    dlMusic = track
+                    artName = song         
+                art = dlArt(dlMusic, artist, artName, hasAlbum)
+                songobj = (song, artist, album, track, trackNum, duration, art, hits:=0)
+                print(songobj)
+                folderobj = (filePath)
+
+
                     
                
 
