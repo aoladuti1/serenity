@@ -1,20 +1,12 @@
-from asyncio.subprocess import DEVNULL, PIPE
-import pprint
 from pymediainfo import MediaInfo
 import os
 import math
 import re
-import asyncio
-import subprocess
-from get_cover_art import CoverFinder
 from tkinter import filedialog
 from config import *
-import sacad
 import spotipy
-from spotipy.oauth2 import SpotifyOAuth
-import cred 
-newDir = ""
-
+from spotipy.oauth2 import SpotifyClientCredentials
+import cred
 
 def getTrackLength(fullFileName) -> int:
     duration = 0
@@ -30,22 +22,17 @@ def getTrackLength(fullFileName) -> int:
 # Returns false if it fails to find or attribute art
 def DLart(trackOrAlbum, artist, artFile, albumMode) -> bool:
     if os.path.exists(artFile) == True: return True
-    scope = ""
-    sp = spotipy.Spotify(
-        auth_manager=SpotifyOAuth(
-            client_id=cred.CLIENT_ID, 
-            client_secret= cred.CLIENT_SECRET, 
-            redirect_uri=cred.REDIRECT_URL, 
-            scope=scope
-            )
+    auth_manager = SpotifyClientCredentials(
+        client_id=cred.CLIENT_ID,
+        client_secret=cred.CLIENT_SECRET
     )
-    if albumMode == True:
-        
-        results = sp.search(q='album:' + trackOrAlbum + ' ' + 'artist:' + artist, type='album', limit=2)
+    sp = spotipy.Spotify(auth_manager=auth_manager)
+    if albumMode == True:    
+        results = sp.search(q='album:' + trackOrAlbum + ' ' + 'artist:' + artist, type='album', limit=1)
         print(results)
         items = results['albums']['items']
     else:
-        results = sp.search(q='artist:' + artist + ' ' + 'track:' + trackOrAlbum, type='track', limit=2)
+        results = sp.search(q='artist:' + artist + ' ' + 'track:' + trackOrAlbum, type='track', limit=1)
         items = results['tracks']['items']
     if len(items) > 0:
         albumOrTrack = items[0]
