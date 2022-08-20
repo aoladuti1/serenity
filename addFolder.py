@@ -113,7 +113,6 @@ def getAlbum(folderName, inAlbumMode):
 def getSongNoStructure(song, folderName, inAlbumMode):
     info = getTrackAndArtistInfo(song, folderName)
     artist = info[0]
-    print(folderName)
     album = getAlbum(folderName, inAlbumMode)
     track = info[1]
     trackNum = info[2]
@@ -140,7 +139,6 @@ def getSong(song, filePath, inAlbumMode, tightStructure):
     """
     structure = Path(filePath).parents
     folderName = filePath.split(os.sep)[-2] #filePath has an appended slash so we do -2 instead of -1
-    print(folderName)
     if tightStructure == False or len(structure) < 2:
         return getSongNoStructure(song, folderName, inAlbumMode)
     else:
@@ -164,23 +162,28 @@ def addFolderBox(albumMode = False, tightStructure = False):
     for subdir, dirs, files in os.walk(newDir):
         for fileName in files:
             if fileName.endswith(SUPPORTED_EXTENSIONS):
-                filePath = os.path.abspath(subdir) + os.sep #full directory with an appended slash
+                absdir = os.path.abspath(subdir)
+                filePath = absdir + os.sep #full directory with an appended slash
                 song = fileName.rpartition(".")[0]
-                folderName = subdir.split(os.sep)[-1]
+                folderName = absdir.split(os.sep)[-1]
                 fullFileName = filePath + fileName
                 duration = getTrackLength(fullFileName)
                 dataSet = getSong(song, filePath, albumMode, tightStructure)
                 artist, album, track, trackNum = dataSet
                 hasAlbum = album != UNKNOWN_ALBUM
+                try:
+                    parentFolderName = filePath.split(os.sep)[-3]
+                except:
+                    parentFolderName = '' #corner case - defensive programming isn't obsessive... right?
                 if hasAlbum == True:
                     dlMusic = album
-                    artName = folderName
+                    artName = parentFolderName + "-" + folderName
                 else:
                     dlMusic = track
-                    artName = song         
+                    artName = parentFolderName + "-" + folderName + "-" + song 
+                   
                 art = dlArt(dlMusic, artist, artName, hasAlbum)
                 songobj = (song, artist, album, track, trackNum, duration, art, hits:=0)
-                print(songobj)
                 folderobj = (filePath)
 
 
