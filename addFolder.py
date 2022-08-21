@@ -11,20 +11,34 @@ import cred
 from pathlib import Path
 numgex = re.compile("^\d+") #matches leading digits
 
-def getTrackLength(fullFileName) -> int:
-    duration = 0
+def getChannelsDurationAndRates(fullFileName):
+    duration = "0"
+    bitRate = "0"
+    samplingRate = "0"
+    channelCount = "0"
     media_info = MediaInfo.parse(filename=fullFileName)
     for track in media_info.tracks:
-        if track.duration == None:
-            print("Error: File not found (likely online-only)") #TODO: change to exception
-            return -1
-        else:
-            duration = max(duration, track.duration)
-    return math.floor(duration/1000)
+        if track.format == None:
+            raise Exception(
+                """
+                Error: file not accessible, likely an online-only file 
+                whose storage app (such as OneDrive) either
+                isn't running properly on this computer or is offline.
+                It is highly recommended for all library files to be downloaded.
+                Please retry.
+                """
+            )
+        elif track.track_type == "Audio":
+            duration = str(math.floor(track.duration/1000))
+            bitRate = track.other_bit_rate[0]
+            samplingRate = track.other_sampling_rate[0]
+            channelCount = str(track.channel_s)
+            return [duration, bitRate, samplingRate, channelCount] #returning here is an optimization
+    return [duration, bitRate, samplingRate, channelCount]
 
 # Returns false if it fails to find or assign art
 # music is either the track name or album name, dependent on if isAlbum is true
-def dlArt(music, artist, artName, isAlbum):
+def getArt(music, artist, artName, isAlbum):
     target = ART_PATH + artName + ".jpg" 
     if os.path.exists(target) == True: return target
     artFile = DEFAULT_ART
@@ -33,15 +47,19 @@ def dlArt(music, artist, artName, isAlbum):
         client_secret=cred.CLIENT_SECRET
     )
     sp = spotipy.Spotify(auth_manager=auth_manager)
+    if artist == UNKNOWN_ARTIST:
+        artistqtext = ""
+    else:
+        artistqtext = "artist:" + artist
     if isAlbum == True:
-        try:   
-            results = sp.search(q='album:' + music + ' ' + 'artist:' + artist, type='album', limit=1)
+        try:
+            results = sp.search(q='album:' + music + ' ' + artistqtext, type='album', limit=1)
         except:
             return artFile
         items = results['albums']['items']
     else:
         try:
-            results = sp.search(q='artist:' + artist + ' ' + 'track:' + music, type='track', limit=1)
+            results = sp.search(q=artistqtext + ' ' + 'track:' + music, type='track', limit=1)
         except:
             return artFile
         items = results['tracks']['items']
@@ -71,7 +89,7 @@ def getTrackInfo(song):
         track = song
     if not (match := numgex.search(track)) == None:
         trackNum = int(match.group())
-    return ["",track, trackNum]    
+    return ["",track, str(trackNum)]    
 
 def getTrackAndArtistInfo(song, folderName):
     """
@@ -98,7 +116,7 @@ def getTrackAndArtistInfo(song, folderName):
             artist = artistAttempt
             trackNum = int(numgex.search(song).group())
         except: ""
-    return [artist, track, trackNum]
+    return [artist, track, str(trackNum)]
 
 def getAlbum(folderName, inAlbumMode):
     if inAlbumMode == True:
@@ -155,7 +173,7 @@ def getSong(song, filePath, inAlbumMode, tightStructure):
 # Adds folders and subfolders of music
 # track format: 
 # [optional number] 
-def addFolderBox(albumMode = False, tightStructure = False):
+def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
     newDir = filedialog.askdirectory()
     if newDir == "":
         return
@@ -167,7 +185,7 @@ def addFolderBox(albumMode = False, tightStructure = False):
                 song = fileName.rpartition(".")[0]
                 folderName = absdir.split(os.sep)[-1]
                 fullFileName = filePath + fileName
-                duration = getTrackLength(fullFileName)
+                duration, bitRate, samplingRate, channelCount = getChannelsDurationAndRates(fullFileName)
                 dataSet = getSong(song, filePath, albumMode, tightStructure)
                 artist, album, track, trackNum = dataSet
                 hasAlbum = album != UNKNOWN_ALBUM
@@ -175,15 +193,18 @@ def addFolderBox(albumMode = False, tightStructure = False):
                     parentFolderName = filePath.split(os.sep)[-3]
                 except:
                     parentFolderName = '' #corner case - defensive programming isn't obsessive... right?
-                if hasAlbum == True:
-                    dlMusic = album
-                    artName = parentFolderName + "-" + folderName
+                if findArt == True:
+                    if hasAlbum == True:
+                        dlMusic = album
+                        artName = parentFolderName + "-" + folderName
+                    else:
+                        dlMusic = track
+                        artName = parentFolderName + "-" + folderName + "-" + song 
+                    art = getArt(dlMusic, artist, artName, hasAlbum)
                 else:
-                    dlMusic = track
-                    artName = parentFolderName + "-" + folderName + "-" + song 
-                   
-                art = dlArt(dlMusic, artist, artName, hasAlbum)
-                songobj = (song, artist, album, track, trackNum, duration, art, hits:=0)
+                    art = DEFAULT_ART
+                songobj = (song, artist, album, track, trackNum, duration, bitRate, samplingRate, channelCount, art, hits:=0)
+                print(songobj)
                 folderobj = (filePath)
 
 
