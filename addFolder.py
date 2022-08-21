@@ -206,7 +206,6 @@ def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
                     art, 
                     hits:=0
                     )
-                print(songobj)
                 folderobj = (filePath)
 
 
