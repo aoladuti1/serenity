@@ -11,11 +11,7 @@ import cred
 from pathlib import Path
 numgex = re.compile("^\d+") #matches leading digits
 
-def getChannelsDurationAndRates(fullFileName):
-    duration = "0"
-    bitRate = "0"
-    samplingRate = "0"
-    channelCount = "0"
+def getAudioInfo(fullFileName):
     media_info = MediaInfo.parse(filename=fullFileName)
     for track in media_info.tracks:
         if track.format == None:
@@ -33,8 +29,9 @@ def getChannelsDurationAndRates(fullFileName):
             bitRate = track.other_bit_rate[0]
             samplingRate = track.other_sampling_rate[0]
             channelCount = str(track.channel_s)
-            return [duration, bitRate, samplingRate, channelCount] #returning here is an optimization
-    return [duration, bitRate, samplingRate, channelCount]
+            audioFormat = track.other_format[0]
+            return [duration, bitRate, samplingRate, channelCount, audioFormat] #returning here is an optimization
+    return ["0", "0", "0", "0", "0"]
 
 # Returns false if it fails to find or assign art
 # music is either the track name or album name, dependent on if isAlbum is true
@@ -185,7 +182,7 @@ def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
                 song = fileName.rpartition(".")[0]
                 folderName = absdir.split(os.sep)[-1]
                 fullFileName = filePath + fileName
-                duration, bitRate, samplingRate, channelCount = getChannelsDurationAndRates(fullFileName)
+                duration, bitRate, samplingRate, channelCount, audioFormat = getAudioInfo(fullFileName)
                 dataSet = getSong(song, filePath, albumMode, tightStructure)
                 artist, album, track, trackNum = dataSet
                 hasAlbum = album != UNKNOWN_ALBUM
@@ -203,7 +200,12 @@ def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
                     art = getArt(dlMusic, artist, artName, hasAlbum)
                 else:
                     art = DEFAULT_ART
-                songobj = (song, artist, album, track, trackNum, duration, bitRate, samplingRate, channelCount, art, hits:=0)
+                songobj = (
+                    song, artist, album, track, trackNum, duration,
+                    bitRate, samplingRate, channelCount, audioFormat, 
+                    art, 
+                    hits:=0
+                    )
                 print(songobj)
                 folderobj = (filePath)
 
