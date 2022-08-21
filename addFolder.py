@@ -171,10 +171,10 @@ def getSong(song, filePath, inAlbumMode, tightStructure):
 # track format: 
 # [optional number] 
 def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
-    newDir = filedialog.askdirectory()
-    if newDir == "":
+    chosenDir = filedialog.askdirectory()
+    if chosenDir == "":
         return
-    for subdir, dirs, files in os.walk(newDir):
+    for subdir, dirs, files in os.walk(chosenDir):
         for fileName in files:
             if fileName.endswith(SUPPORTED_EXTENSIONS):
                 absdir = os.path.abspath(subdir)
@@ -204,7 +204,7 @@ def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
                     song, artist, album, track, trackNum, duration,
                     bitRate, samplingRate, channelCount, audioFormat, 
                     art, 
-                    hits:=0
+                    listens:=0
                     )
                 folderobj = (filePath)
 
