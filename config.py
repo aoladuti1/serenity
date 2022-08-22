@@ -21,6 +21,7 @@ UNKNOWN_ALBUM_ARTIST = "---"
 
 #directories
 DIR_PATH = os.path.dirname(os.path.realpath(__file__)) + os.sep #path to config w/ slash appended
+DB_PATH = DIR_PATH + "databases" + os.sep
 ART_PATH = DIR_PATH + "art" + os.sep #should change to os.cwd() + "art" + os.sep in future
 DEFAULT_ART = ART_PATH + "default.jpeg"
 
