@@ -1,3 +1,6 @@
 
 cred.py
 art/
+__pycache__/
+databases/
+subprograms/
