@@ -27,11 +27,11 @@ def getAudioInfo(fullFileName):
             )
         elif track.track_type == "Audio":
             duration = str(math.floor(track.duration/1000))
-            bitRate = track.other_bit_rate[0]
-            samplingRate = track.other_sampling_rate[0]
+            bitRateInfo = track.other_bit_rate[0]
+            samplingRateInfo = track.other_sampling_rate[0]
             channelCount = str(track.channel_s)
             audioFormat = track.other_format[0]
-            return [duration, bitRate, samplingRate, channelCount, audioFormat] #returning here is an optimization
+            return [duration, bitRateInfo, samplingRateInfo, channelCount, audioFormat] #returning here is an optimization
     return ["0", "0", "0", "0", "0"]
 
 # Returns false if it fails to find or assign art
@@ -183,7 +183,7 @@ def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
                 song = fileName.rpartition(".")[0]
                 folderName = absdir.split(os.sep)[-1]
                 fullFileName = filePath + fileName
-                duration, bitRate, samplingRate, channelCount, audioFormat = getAudioInfo(fullFileName)
+                duration, bitRateInfo, samplingRateInfo, channelCount, audioFormat = getAudioInfo(fullFileName)
                 dataSet = getSong(song, filePath, albumMode, tightStructure)
                 artist, album, track, trackNum = dataSet
                 hasAlbum = album != UNKNOWN_ALBUM
@@ -201,10 +201,10 @@ def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
                     art = getArt(dlMusic, artist, artName, hasAlbum)
                 else:
                     art = DEFAULT_ART
-                primary_key = filePath + fileName
+                FQFN = filePath + fileName
                 songData = [
-                    primary_key, artist, album, track, trackNum, duration,
-                    bitRate, samplingRate, channelCount, audioFormat, 
+                    FQFN, artist, album, track, trackNum, duration,
+                    bitRateInfo, samplingRateInfo, channelCount, audioFormat, 
                     art, 
                     listens:="0"
                 ]
