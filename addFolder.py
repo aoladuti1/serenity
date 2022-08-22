@@ -200,12 +200,12 @@ def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
                     art = getArt(dlMusic, artist, artName, hasAlbum)
                 else:
                     art = DEFAULT_ART
-                songobj = (
+                songdict = (
                     song, artist, album, track, trackNum, duration,
                     bitRate, samplingRate, channelCount, audioFormat, 
                     art, 
-                    listens:=0
-                    )
+                    listens:="0"
+                )
                 folderobj = (filePath)
 
 
