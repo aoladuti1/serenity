@@ -177,7 +177,7 @@ def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
     for subdir, dirs, files in os.walk(chosenDir):
         for fileName in files:
             if fileName.endswith(SUPPORTED_EXTENSIONS):
-                absdir = os.path.abspath(subdir)
+                absdir = os.path.abspath(subdir) #1 of the only 2 directory variables, alongside subdir, with no slash appended 
                 filePath = absdir + os.sep #full directory with an appended slash
                 song = fileName.rpartition(".")[0]
                 folderName = absdir.split(os.sep)[-1]
