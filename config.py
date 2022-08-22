@@ -25,4 +25,4 @@ ART_PATH = DIR_PATH + "art" + os.sep #should change to os.cwd() + "art" + os.sep
 
 #file paths
 DEFAULT_ART = ART_PATH + "default.jpeg"
-DATABASE = DIR_PATH + "databases" + os.sep + "data.db"
+DATABASE = DIR_PATH + "databases" + os.sep + "data.sqlite"
