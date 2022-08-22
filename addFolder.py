@@ -1,3 +1,4 @@
+from fileinput import filename
 from pymediainfo import MediaInfo
 import os
 import math
@@ -200,8 +201,9 @@ def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
                     art = getArt(dlMusic, artist, artName, hasAlbum)
                 else:
                     art = DEFAULT_ART
+                primary_key = filePath + fileName
                 songdict = (
-                    song, artist, album, track, trackNum, duration,
+                    primary_key, artist, album, track, trackNum, duration,
                     bitRate, samplingRate, channelCount, audioFormat, 
                     art, 
                     listens:="0"
