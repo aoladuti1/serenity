@@ -112,6 +112,7 @@ def getTrackAndArtistInfo(song, folderName):
         try:
             artistAttempt = re.search(r"\S*\s*(.*)\s+" + SPLITTER_CHAR + r"\s+", song).group(1)
             artist = artistAttempt
+            if artist == "": artist = UNKNOWN_ARTIST
             trackNum = int(numgex.search(song).group())
         except: ""
     return [artist, track, str(trackNum)]
@@ -174,7 +175,7 @@ def getSong(song, filePath, inAlbumMode, tightStructure):
 def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
     chosenDir = filedialog.askdirectory()
     if chosenDir == "":
-        return
+        return None
     for subdir, dirs, files in os.walk(chosenDir):
         for fileName in files:
             if fileName.endswith(SUPPORTED_EXTENSIONS):
@@ -208,6 +209,7 @@ def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
                     art, 
                     listens:="0"
                 ]
+                return songData
 
 
                     
