@@ -202,13 +202,12 @@ def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
                 else:
                     art = DEFAULT_ART
                 primary_key = filePath + fileName
-                songdict = (
+                songArr = (
                     primary_key, artist, album, track, trackNum, duration,
                     bitRate, samplingRate, channelCount, audioFormat, 
                     art, 
                     listens:="0"
                 )
-                folderobj = (filePath)
 
 
                     
