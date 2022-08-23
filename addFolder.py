@@ -226,12 +226,20 @@ def addFolderBox(updateDir = False, albumMode = False, tightStructure = False, f
                     art = getArt(dlMusic, artist, artName, hasAlbum)
                 else:
                     art = DEFAULT_ART
-                songData = [
-                    FQFN, artist, album, track, trackNum, duration,
-                    bitRateInfo, samplingRateInfo, channelCount, audioFormat, 
-                    art, 
-                    listens:="0"
-                ]
+                songData = {
+                    "FQFN": FQFN,
+                    "artist": artist, 
+                    "album": album,
+                    "track": track,
+                    "trackNum": trackNum, 
+                    "duration": duration,
+                    "bitRateInfo": bitRateInfo,
+                    "samplingRateInfo": samplingRateInfo, 
+                    "channelCount":channelCount, 
+                    "audioFormat": audioFormat, 
+                    "art": art, 
+                    "listens": 0
+                }
                 if updateDir == True and songRegistered == True:
                     db.updateSong(songData)
                 else:
