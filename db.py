@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 import sqlite3
 from typing import Sequence
 from config import *
@@ -39,11 +40,31 @@ def songRegistered(FQFN):
         ) 
     return cursor.fetchone() != None
 
-def updateSong(songData):
-    print("I AM NOT DEVELOPED YET !!!!```1`11`11111")
+def updateSong(newData: dict):
+    """
+    Updates a song record.
 
+    Parameters:
 
-def addSong(songData: Sequence):
+    newData: a dict containing key-value pairings 
+    in which the key corresponds directly to a column name
+    in Songs. FQFN must be a key.
+    """ 
+    body = ''
+    for key, val in newData.items():
+        body += key + ' = :' + key + ',\n'
+    fullSQL = (
+        "UPDATE Songs SET\n"
+        + body[0:-2] + "\n"
+        + "WHERE FQFN = :FQFN\n"
+    )
+
+    cursor = conn.cursor()
+    cursor.execute(fullSQL, newData)
+    conn.commit()
+    
+
+def addSong(songData: dict):
     """
     Adds a song to the database.
 
@@ -58,7 +79,20 @@ def addSong(songData: Sequence):
     cursor = conn.cursor()
     cursor.execute(
         """
-        INSERT INTO Songs VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+        INSERT INTO Songs VALUES (
+            :FQFN,
+            :artist,
+            :album,
+            :track,
+            :trackNum,
+            :duration,
+            :bitRateInfo,
+            :samplingRateInfo,
+            :channelCount,
+            :audioFormat,
+            :art,
+            :listens
+        )
         """,
         songData
     )
