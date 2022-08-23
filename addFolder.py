@@ -229,7 +229,6 @@ def addFolderBox(updateDir = False, albumMode = False, tightStructure = False, f
                     else:
                         dlMusic = track
                         artName = parentFolderName + "-" + folderName + "-" + song
-                    print(artName)
                     art = getArt(dlMusic, artist, artName, hasAlbum)
                 else:
                     art = DEFAULT_ART

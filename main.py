@@ -13,7 +13,7 @@ def on_closing():
 
 #x = Aplayer("C:\\Users\\anton\\Music\\02 - Ampersand feat. Shing02.mp3")
 #x.seek(260)
-z = addFolderBox()
+z = addFolderBox(updateDir=True)
 
 
 
