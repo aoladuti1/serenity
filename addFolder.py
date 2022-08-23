@@ -216,13 +216,20 @@ def addFolderBox(updateDir = False, albumMode = False, tightStructure = False, f
                     parentFolderName = filePath.split(os.sep)[-3]
                 except:
                     parentFolderName = '' #corner case - defensive programming isn't obsessive... right?
+                if parentFolderName.endswith(':') == True:
+                    parentFolderName = parentFolderName[0:-1]
+                else:
+                    if folderName.endswith(":") == True:
+                        folderName = folderName[0:-1] #for music a little below the a drive
+                        parentFolderName = ''
                 if findArt == True:
                     if hasAlbum == True:
                         dlMusic = album
                         artName = parentFolderName + "-" + folderName
                     else:
                         dlMusic = track
-                        artName = parentFolderName + "-" + folderName + "-" + song 
+                        artName = parentFolderName + "-" + folderName + "-" + song
+                    print(artName)
                     art = getArt(dlMusic, artist, artName, hasAlbum)
                 else:
                     art = DEFAULT_ART
