@@ -1,8 +1,11 @@
+from email.mime import image
 from fileinput import filename
+from turtle import update
 from pymediainfo import MediaInfo
 import os
 import math
 import re
+import db
 from tkinter import filedialog
 from config import *
 import requests
@@ -10,10 +13,11 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import cred
 from pathlib import Path
+
 numgex = re.compile("^\d+") #matches leading digits
 
-def getAudioInfo(fullFileName):
-    media_info = MediaInfo.parse(filename=fullFileName)
+def getAudioInfo(FQFN):
+    media_info = MediaInfo.parse(filename=FQFN)
     for track in media_info.tracks:
         if track.format == None:
             raise Exception(
@@ -26,6 +30,7 @@ def getAudioInfo(fullFileName):
                 """
             )
         elif track.track_type == "Audio":
+            #print(track.to_data()) gives the whole dict
             duration = str(math.floor(track.duration/1000))
             bitRateInfo = track.other_bit_rate[0]
             samplingRateInfo = track.other_sampling_rate[0]
@@ -37,7 +42,7 @@ def getAudioInfo(fullFileName):
 # Returns false if it fails to find or assign art
 # music is either the track name or album name, dependent on if isAlbum is true
 def getArt(music, artist, artName, isAlbum):
-    target = ART_PATH + artName + ".jpg" 
+    target = ART_PATH + artName + ".jpg"
     if os.path.exists(target) == True: return target
     artFile = DEFAULT_ART
     auth_manager = SpotifyClientCredentials(
@@ -45,6 +50,7 @@ def getArt(music, artist, artName, isAlbum):
         client_secret=cred.CLIENT_SECRET
     )
     sp = spotipy.Spotify(auth_manager=auth_manager)
+
     if artist == UNKNOWN_ARTIST:
         artistqtext = ""
     else:
@@ -52,21 +58,36 @@ def getArt(music, artist, artName, isAlbum):
     if isAlbum == True:
         try:
             results = sp.search(q='album:' + music + ' ' + artistqtext, type='album', limit=1)
+            items = results['albums']['items']
         except:
             return artFile
-        items = results['albums']['items']
     else:
         try:
             results = sp.search(q=artistqtext + ' ' + 'track:' + music, type='track', limit=1)
+            items = results['tracks']['items']
         except:
             return artFile
-        items = results['tracks']['items']
+
+    neededArtistArt = False
+    if len(items) == 0:
+        try:
+            results = sp.search(q=artistqtext, type="artist", limit = 1)
+            items = results['artists']['items']
+            if len(items) > 0:
+                target = ART_PATH + artist + ".jpg"
+                neededArtistArt = True
+        except:
+            return artFile             
+
     if len(items) > 0:
-        albumOrTrack = items[0]
-        if isAlbum == True:
-            image_url = albumOrTrack['images'][0]['url']
+        webRip = items[0]
+        if neededArtistArt == False:
+            if isAlbum == True:
+                image_url = webRip['images'][0]['url']
+            else:
+                image_url = webRip['album']['images'][0]['url']
         else:
-            image_url = albumOrTrack['album']['images'][0]['url']
+            image_url = webRip['images'][0]['url']
         img_data = requests.get(image_url).content
         try:
             artFile = target
@@ -171,8 +192,8 @@ def getSong(song, filePath, inAlbumMode, tightStructure):
 # The following assumes the config.SPLITTER variable is " - "
 # Adds folders and subfolders of music
 # track format: 
-# [optional number] 
-def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
+# [optional number][space][artist][space][SPLITTERCHAR][space][track]
+def addFolderBox(updateDir = False, albumMode = False, tightStructure = False, findArt=True):
     chosenDir = filedialog.askdirectory()
     if chosenDir == "":
         return None
@@ -181,10 +202,13 @@ def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
             if fileName.endswith(SUPPORTED_EXTENSIONS):
                 absdir = os.path.abspath(subdir) #1 of the only 2 directory variables, alongside subdir, with no slash appended 
                 filePath = absdir + os.sep #full directory with an appended slash
+                FQFN = filePath + fileName
+                songRegistered = db.songRegistered(FQFN)
+                if updateDir == False and songRegistered == True:
+                    continue
                 song = fileName.rpartition(".")[0]
                 folderName = absdir.split(os.sep)[-1]
-                fullFileName = filePath + fileName
-                duration, bitRateInfo, samplingRateInfo, channelCount, audioFormat = getAudioInfo(fullFileName)
+                duration, bitRateInfo, samplingRateInfo, channelCount, audioFormat = getAudioInfo(FQFN)
                 dataSet = getSong(song, filePath, albumMode, tightStructure)
                 artist, album, track, trackNum = dataSet
                 hasAlbum = album != UNKNOWN_ALBUM
@@ -202,14 +226,16 @@ def addFolderBox(albumMode = False, tightStructure = False, findArt=True):
                     art = getArt(dlMusic, artist, artName, hasAlbum)
                 else:
                     art = DEFAULT_ART
-                FQFN = filePath + fileName
                 songData = [
                     FQFN, artist, album, track, trackNum, duration,
                     bitRateInfo, samplingRateInfo, channelCount, audioFormat, 
                     art, 
                     listens:="0"
                 ]
-                return songData
+                if updateDir == True and songRegistered == True:
+                    db.updateSong(songData)
+                else:
+                    db.addSong(songData)
 
 
                     
