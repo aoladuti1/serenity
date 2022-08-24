@@ -29,7 +29,7 @@ def init():
         
     )
 
-def songRegistered(FQFN):
+def songRegistered(FQFN: str):
     cursor = conn.cursor()
     cursor.execute(
         """
@@ -40,6 +40,31 @@ def songRegistered(FQFN):
         ) 
     return cursor.fetchone() != None
 
+def deleteIfAbsent(FQFN: str) -> bool: 
+    """
+    Deletes music from the database that do not exist
+    based off their primary key FQFN (Fully Qualified Filename)
+
+    Parameters:
+    
+    FQFN: the Fully Qualified Filename of the song in question
+
+    Returns:
+    True if there was a record deleted from the database,
+    and False otherwise
+
+    """
+    cursor = conn.cursor()
+    if os.path.exists(FQFN):
+        return False
+    cursor.execute(
+        "DELETE FROM Songs " +
+        "WHERE FQFN = " + FQFN
+    )
+    conn.commit()
+    return True
+
+
 def updateSong(newData: dict):
     """
     Updates a song record.
@@ -48,7 +73,7 @@ def updateSong(newData: dict):
 
     newData: a dict containing key-value pairings 
     in which the key corresponds directly to a column name
-    in Songs. FQFN must be a key.
+    in Songs. FQFN must be a present key.
     """ 
     body = ''
     for key, val in newData.items():
