@@ -98,7 +98,7 @@ def deleteIf(conditions: dict, negateConditions = False, conjunction: bool = Tru
 
 def deleteIfAbsent(FQFN: str) -> bool: 
     """
-    Deletes music from the database that do not exist
+    Deletes songs from the database that do not exist
     based off their primary key FQFN (Fully Qualified Filename)
 
     Parameters:
@@ -120,6 +120,35 @@ def deleteIfAbsent(FQFN: str) -> bool:
     conn.commit()
     return True
 
+def deleteSong(FQFN: str):
+    """
+    Deletes a song from the database
+    
+    Parameters:
+    
+    path: the fully qualified filename of the song to delete
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM Songs " +
+        "WHERE FQFN = ?", [FQFN]
+    )
+    conn.commit()
+
+def deleteDirectory(path: str):
+    """
+    Deletes a music directory from the database
+    
+    Parameters:
+    
+    path: directory to delete (ensure it ends with os.sep)
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM Directories " +
+        "WHERE directory = ?", [path]
+    )
+    conn.commit()
 
 def updateSong(newData: dict):
     """
@@ -186,7 +215,7 @@ def addDirectory(path: str):
     
     Parameters:
     
-    path: directory to add (ensure it ends with a slash)
+    path: directory to add (ensure it ends with os.sep)
     """
     cursor = conn.cursor()
     cursor.execute("INSERT INTO Directories VALUES (?)", [path])
