@@ -42,7 +42,6 @@ def getAudioInfo(FQFN):
 # Returns false if it fails to find or assign art
 # music is either the track name or album name, dependent on if isAlbum is true
 def getArt(music, artist, artName, isAlbum):
-    print("Finding art for music: " + artist)
     target = ART_PATH + artName + ".jpg"
     if os.path.exists(target) == True: return target
     artFile = DEFAULT_ART
