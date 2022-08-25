@@ -28,9 +28,11 @@ def init():
         """
     )
     cursor.execute(
+        # 0 = false, 1 = true for visible
         """
         CREATE TABLE if not exists Directories (
             directory text,
+            visible integer,
             PRIMARY KEY(directory)
         )
         """
@@ -59,10 +61,10 @@ def directoryRegistered(path: str):
         ) 
     return cursor.fetchone() != None
 
-def deleteIf(conditions: dict, negateConditions = False, conjunction: bool = True):
+def delSongIf(conditions: dict, negateConditions = False, conjunction: bool = True):
     """
     Deletes records from the database of Songs based off a dictionary of conditions.
-    e.g. deleteIf( {'artist' : 'Drake'} ) deletes all rows where Drake is the artist.
+    e.g. delSongIf( {'artist' : 'Drake'} ) deletes all rows where Drake is the artist.
     (equiv. sql: "WHERE artist = 'Drake'").
     The NOT operator puts NOT in front of every boolean operator (AND / OR etc.)
     like in the following example: if negateConditions == True and
@@ -96,9 +98,9 @@ def deleteIf(conditions: dict, negateConditions = False, conjunction: bool = Tru
     cursor.execute("DELETE FROM Songs WHERE " + body, conditions)
     conn.commit()
 
-def deleteIfAbsent(FQFN: str) -> bool: 
+def delSongIfAbsent(FQFN: str) -> bool: 
     """
-    Deletes music from the database that do not exist
+    Deletes songs from the database that do not exist
     based off their primary key FQFN (Fully Qualified Filename)
 
     Parameters:
@@ -119,6 +121,56 @@ def deleteIfAbsent(FQFN: str) -> bool:
     )
     conn.commit()
     return True
+
+def delSong(FQFN: str):
+    """
+    Deletes a song from the database
+    
+    Parameters:
+    
+    path: the fully qualified filename of the song to delete
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM Songs " +
+        "WHERE FQFN = ?", [FQFN]
+    )
+    conn.commit()
+
+def hideDirectory(path: str):
+    """
+    Marks a music directory as invisible to Serenity in the database
+    (visible = 0)
+    
+    Parameters:
+    
+    path: directory to hide (ensure it ends with os.sep)
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE Directories SET\n"
+      + "visible = 0\n"
+      + "WHERE directory = ?", [path]
+    )
+    print(path)
+    conn.commit()
+
+def showDirectory(path: str):
+    """
+    Marks a music directory as visible to Serenity in the database
+    (visible = 1)
+    
+    Parameters:
+    
+    path: directory to make visible (ensure it ends with os.sep)
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE Directories SET\n"
+      + "visible = 1\n"
+      + "WHERE directory = ?", [path]
+    )
+    conn.commit()
 
 
 def updateSong(newData: dict):
@@ -180,16 +232,16 @@ def addSong(songData: dict):
     )
     conn.commit()
 
-def addDirectory(path: str):
+def addDirectory(path: str, visible: bool = True):
     """
     Adds a directory to the database to scan for music
     
     Parameters:
     
-    path: directory to add (ensure it ends with a slash)
+    path: directory to add (ensure it ends with os.sep)
     """
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO Directories VALUES (?)", [path])
+    cursor.execute("INSERT INTO Directories VALUES (?,?)", [path, int(visible)])
     conn.commit()  
 
 
