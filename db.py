@@ -27,8 +27,16 @@ def init():
             PRIMARY KEY(FQFN)
         )
         """
-        
     )
+    cursor.execute(
+        """
+        CREATE TABLE if not exists Directories (
+            directory text,
+            PRIMARY KEY(directory)
+        )
+        """
+    )
+    conn.commit()
 
 def songRegistered(FQFN: str):
     cursor = conn.cursor()
