@@ -59,10 +59,10 @@ def directoryRegistered(path: str):
         ) 
     return cursor.fetchone() != None
 
-def deleteIf(conditions: dict, negateConditions = False, conjunction: bool = True):
+def delSongIf(conditions: dict, negateConditions = False, conjunction: bool = True):
     """
     Deletes records from the database of Songs based off a dictionary of conditions.
-    e.g. deleteIf( {'artist' : 'Drake'} ) deletes all rows where Drake is the artist.
+    e.g. delSongIf( {'artist' : 'Drake'} ) deletes all rows where Drake is the artist.
     (equiv. sql: "WHERE artist = 'Drake'").
     The NOT operator puts NOT in front of every boolean operator (AND / OR etc.)
     like in the following example: if negateConditions == True and
@@ -96,7 +96,7 @@ def deleteIf(conditions: dict, negateConditions = False, conjunction: bool = Tru
     cursor.execute("DELETE FROM Songs WHERE " + body, conditions)
     conn.commit()
 
-def deleteIfAbsent(FQFN: str) -> bool: 
+def delSongIfAbsent(FQFN: str) -> bool: 
     """
     Deletes songs from the database that do not exist
     based off their primary key FQFN (Fully Qualified Filename)
@@ -120,7 +120,7 @@ def deleteIfAbsent(FQFN: str) -> bool:
     conn.commit()
     return True
 
-def deleteSong(FQFN: str):
+def delSong(FQFN: str):
     """
     Deletes a song from the database
     
@@ -135,7 +135,7 @@ def deleteSong(FQFN: str):
     )
     conn.commit()
 
-def deleteDirectory(path: str):
+def delDirectory(path: str):
     """
     Deletes a music directory from the database
     
