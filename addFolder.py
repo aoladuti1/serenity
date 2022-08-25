@@ -247,7 +247,8 @@ def addFolderBox(updateDir = False, albumMode = False, tightStructure = False, f
                     "channelCount":channelCount, 
                     "audioFormat": audioFormat, 
                     "art": art, 
-                    "listens": 0
+                    "listens": 0,
+                    "startingSpeed": 1
                 }
                 if updateDir == True and songRegistered == True:
                     db.updateSong(songData)
