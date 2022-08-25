@@ -11,6 +11,7 @@ class Aplayer:
     instances = 0
     aplayer = None
     startingVolume = 100
+    startingSpeed = 1
 
     # Will open a aplayer.exe
     # args is a list of additional arguments after -slave and before the fully qualified filename
@@ -19,7 +20,9 @@ class Aplayer:
         # the pause/play state stays the same        
         argslist = (
             [Aplayer.MPLAYER_DIR]
-          + ['-slave', '-idle', '-pausing', '2', '-volume', str(Aplayer.startingVolume)] 
+          + [   '-slave', '-idle', '-pausing', '2', 
+                '-volume', str(Aplayer.startingVolume),
+                '-speed', str(Aplayer.startingSpeed)    ] 
           + args 
           + [FQFN]
         )
@@ -30,20 +33,32 @@ class Aplayer:
             stderr=stdout,
             universal_newlines=True, 
             bufsize=1
-            )   
+            )
 
-    def __init__(self, FQFN='', args=[]):
+    def pauseplayInit(self, playing: bool):
+        if playing == True:
+            threading.Thread(target=self.__playpriv).start()
+            self.playing = True
+        else:
+            Aplayer.aplayer.stdin.write('pause\n')
+
+
+    def __init__(self, FQFN='', play: bool=True, args: list=[]):
+        self.FQFN = FQFN
+        self.ctext = ''
         if FQFN == '':
             Aplayer.aplayer = None
             self.playing = False
+            return
+        else:
+            Aplayer.aplayer = self.genProcess(FQFN, args)
+            self.playing = play
         Aplayer.instances += 1
         if Aplayer.instances > 1:
             Aplayer.aplayer.terminate()
-        Aplayer.aplayer = self.genProcess(FQFN, args)
-        self.FQFN = FQFN
-        self.playing = True
-        self.ctext = ''
-        threading.Thread(target=self.__playpriv).start()    
+        self.pauseplayInit(self.playing)
+
+
 
     def terminate():
         Aplayer.aplayer.terminate()
@@ -93,7 +108,7 @@ class Aplayer:
     def seek(self, plusMinusTime):
         self.pwrite("seek " + str(plusMinusTime))
 
-    def setVolume(self, volume):
+    def setVolume(self, volume: int):
         """
         Sets the volume of the current audio (not the starting volume).
 
@@ -102,3 +117,14 @@ class Aplayer:
         volume: the new volume (between 1 and 100)
         """
         self.pwrite('volume ' + str(volume) + ' 1')
+    
+    def loadfile(self, FQFN, play: bool=True):
+        if FQFN == '':
+            return
+        self.FQFN = FQFN
+        if Aplayer.aplayer != None:
+            Aplayer.terminate()
+        Aplayer.aplayer = self.genProcess(FQFN)
+        self.pauseplayInit(play)
+
+        
