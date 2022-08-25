@@ -250,6 +250,8 @@ def addFolderBox(updateDir = False, albumMode = False, tightStructure = False, f
                     "listens": 0,
                     "startingSpeed": 1
                 }
+                if db.directoryRegistered(filePath) == False:
+                    db.addDirectory(filePath)
                 if updateDir == True and songRegistered == True:
                     db.updateSong(songData)
                 else:
