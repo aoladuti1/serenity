@@ -59,7 +59,8 @@ class Aplayer:
         self.pauseplayInit(self.playing)
 
     def terminate():
-        Aplayer.aplayer.terminate()
+        if Aplayer.aplayer != None:
+            Aplayer.aplayer.terminate()
 
     def pwrite(self, text='') -> bool:
         sign = self.signsOfLife()
@@ -76,8 +77,7 @@ class Aplayer:
         while self.signsOfLife():
             self.ctext += Aplayer.aplayer.stdout.readline()
         Aplayer.terminate()
-        return
-             
+        return         
 
     def pauseplay(self):
         self.pwrite('pause')
@@ -97,11 +97,6 @@ class Aplayer:
         if ret == False:
             self.playing = False
         return ret
-  
-    def quit(self):
-        self.playing = False
-        if not self.pwrite('quit'):
-            Aplayer.aplayer.terminate()
  
     def seek(self, plusMinusTime):
         self.pwrite("seek " + str(plusMinusTime))
@@ -131,8 +126,7 @@ class Aplayer:
         if FQFN == '':
             return
         self.FQFN = FQFN
-        if Aplayer.aplayer != None:
-            Aplayer.terminate()
+        Aplayer.terminate()
         Aplayer.aplayer = self.genProcess(FQFN)
         self.pauseplayInit(play)
 

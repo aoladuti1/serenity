@@ -42,7 +42,6 @@ def getAudioInfo(FQFN):
 # Returns false if it fails to find or assign art
 # music is either the track name or album name, dependent on if isAlbum is true
 def getArt(music, artist, artName, isAlbum):
-    print("Finding art for music: " + artist)
     target = ART_PATH + artName + ".jpg"
     if os.path.exists(target) == True: return target
     artFile = DEFAULT_ART
@@ -200,10 +199,10 @@ def addFolderBox(updateDir = False, albumMode = False, tightStructure = False, f
     if chosenDir == "":
         return None
     for subdir, dirs, files in os.walk(chosenDir):
+        absdir = os.path.abspath(subdir) #no appended slash
+        filePath = absdir + os.sep #full directory with an appended slash
         for fileName in files:
             if fileName.endswith(SUPPORTED_EXTENSIONS):
-                absdir = os.path.abspath(subdir) #1 of the only 2 directory variables, alongside subdir, with no slash appended 
-                filePath = absdir + os.sep #full directory with an appended slash
                 FQFN = filePath + fileName
                 songRegistered = db.songRegistered(FQFN)
                 if updateDir == False and songRegistered == True:
@@ -250,6 +249,8 @@ def addFolderBox(updateDir = False, albumMode = False, tightStructure = False, f
                     "listens": 0,
                     "startingSpeed": 1
                 }
+                if db.directoryRegistered(filePath) == False:
+                    db.addDirectory(filePath)
                 if updateDir == True and songRegistered == True:
                     db.updateSong(songData)
                 else:
