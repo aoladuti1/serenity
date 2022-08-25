@@ -58,8 +58,6 @@ class Aplayer:
             Aplayer.aplayer.terminate()
         self.pauseplayInit(self.playing)
 
-
-
     def terminate():
         Aplayer.aplayer.terminate()
 
@@ -117,6 +115,17 @@ class Aplayer:
         volume: the new volume (between 1 and 100)
         """
         self.pwrite('volume ' + str(volume) + ' 1')
+    
+    def setSpeed(self, speed: int):
+        """
+        Sets the volume of the current audio (not the starting volume).
+
+        Parameters:
+        
+        volume: the new volume (between 1 and 100)
+        """
+        self.pwrite('speed_set ' + str(speed) + '\n')
+
     
     def loadfile(self, FQFN, play: bool=True):
         if FQFN == '':
