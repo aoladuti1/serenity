@@ -23,6 +23,7 @@ def init():
             audioFormat text COLLATE NOCASE,
             art text COLLATE NOCASE,
             listens integer,
+            startingSpeed, text
             PRIMARY KEY(FQFN)
         )
         """
@@ -155,6 +156,7 @@ def addSong(songData: dict):
             :audioFormat,
             :art,
             :listens
+            :startingSpeed
         )
         """,
         songData
