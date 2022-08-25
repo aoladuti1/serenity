@@ -48,6 +48,17 @@ def songRegistered(FQFN: str):
         ) 
     return cursor.fetchone() != None
 
+def directoryRegistered(path: str):
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT * FROM Songs 
+        WHERE directory = ?
+        LIMIT 1
+        """, [path]
+        ) 
+    return cursor.fetchone() != None
+
 def deleteIf(conditions: dict, negateConditions = False, conjunction: bool = True):
     """
     Deletes records from the database of Songs based off a dictionary of conditions.

@@ -97,11 +97,6 @@ class Aplayer:
         if ret == False:
             self.playing = False
         return ret
-  
-    def quit(self):
-        self.playing = False
-        if not self.pwrite('quit'):
-            Aplayer.aplayer.terminate()
  
     def seek(self, plusMinusTime):
         self.pwrite("seek " + str(plusMinusTime))
@@ -131,8 +126,7 @@ class Aplayer:
         if FQFN == '':
             return
         self.FQFN = FQFN
-        if Aplayer.aplayer != None:
-            Aplayer.terminate()
+        Aplayer.terminate()
         Aplayer.aplayer = self.genProcess(FQFN)
         self.pauseplayInit(play)
 
