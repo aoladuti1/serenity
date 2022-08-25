@@ -200,10 +200,10 @@ def addFolderBox(updateDir = False, albumMode = False, tightStructure = False, f
     if chosenDir == "":
         return None
     for subdir, dirs, files in os.walk(chosenDir):
+        absdir = os.path.abspath(subdir) #no appended slash
+        filePath = absdir + os.sep #full directory with an appended slash
         for fileName in files:
             if fileName.endswith(SUPPORTED_EXTENSIONS):
-                absdir = os.path.abspath(subdir) #1 of the only 2 directory variables, alongside subdir, with no slash appended 
-                filePath = absdir + os.sep #full directory with an appended slash
                 FQFN = filePath + fileName
                 songRegistered = db.songRegistered(FQFN)
                 if updateDir == False and songRegistered == True:
