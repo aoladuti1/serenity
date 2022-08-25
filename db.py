@@ -52,7 +52,7 @@ def directoryRegistered(path: str):
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT * FROM Songs 
+        SELECT * FROM Directories 
         WHERE directory = ?
         LIMIT 1
         """, [path]
