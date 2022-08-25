@@ -1,4 +1,3 @@
-from multiprocessing.sharedctypes import Value
 import sqlite3
 from typing import Sequence
 from config import *
@@ -169,5 +168,17 @@ def addSong(songData: dict):
         songData
     )
     conn.commit()
+
+def addDirectory(path: str):
+    """
+    Adds a directory to the database to scan for music
+    
+    Parameters:
+    
+    path: directory to add (ensure it ends with a slash)
+    """
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO Directories VALUES (?)", [path])
+    conn.commit()  
 
 
