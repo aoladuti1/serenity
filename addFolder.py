@@ -42,6 +42,7 @@ def getAudioInfo(FQFN):
 # Returns false if it fails to find or assign art
 # music is either the track name or album name, dependent on if isAlbum is true
 def getArt(music, artist, artName, isAlbum):
+    print("Finding art for music: " + artist)
     target = ART_PATH + artName + ".jpg"
     if os.path.exists(target) == True: return target
     artFile = DEFAULT_ART
@@ -63,7 +64,7 @@ def getArt(music, artist, artName, isAlbum):
             return artFile
     else:
         try:
-            results = sp.search(q=artistqtext + ' ' + 'track:' + music, type='track', limit=1)
+            results = sp.search(q=artistqtext + ' ' + 'track:' + music, type='track', limit=2)
             items = results['tracks']['items']
         except:
             return artFile
@@ -71,7 +72,8 @@ def getArt(music, artist, artName, isAlbum):
     neededArtistArt = False
     if len(items) == 0:
         try:
-            results = sp.search(q=artistqtext, type="artist", limit = 1)
+            if artistqtext == "": return artFile
+            results = sp.search(q=artistqtext, type="artist", limit = 3)
             items = results['artists']['items']
             if len(items) > 0:
                 target = ART_PATH + artist + ".jpg"
@@ -212,6 +214,7 @@ def addFolderBox(updateDir = False, albumMode = False, tightStructure = False, f
                 dataSet = getSong(song, filePath, albumMode, tightStructure)
                 artist, album, track, trackNum = dataSet
                 hasAlbum = album != UNKNOWN_ALBUM
+                #from this point on parentFolderName and folderName may not exactly correlate to the file structure!
                 try:
                     parentFolderName = filePath.split(os.sep)[-3]
                 except:
