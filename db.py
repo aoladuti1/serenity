@@ -28,9 +28,11 @@ def init():
         """
     )
     cursor.execute(
+        # 0 = false, 1 = true for visible
         """
         CREATE TABLE if not exists Directories (
             directory text,
+            visible integer,
             PRIMARY KEY(directory)
         )
         """
@@ -135,20 +137,41 @@ def delSong(FQFN: str):
     )
     conn.commit()
 
-def delDirectory(path: str):
+def hideDirectory(path: str):
     """
-    Deletes a music directory from the database
+    Marks a music directory as invisible to Serenity in the database
+    (visible = 0)
     
     Parameters:
     
-    path: directory to delete (ensure it ends with os.sep)
+    path: directory to hide (ensure it ends with os.sep)
     """
     cursor = conn.cursor()
     cursor.execute(
-        "DELETE FROM Directories " +
-        "WHERE directory = ?", [path]
+        "UPDATE Directories SET\n"
+      + "visible = 0\n"
+      + "WHERE directory = ?", [path]
+    )
+    print(path)
+    conn.commit()
+
+def showDirectory(path: str):
+    """
+    Marks a music directory as visible to Serenity in the database
+    (visible = 1)
+    
+    Parameters:
+    
+    path: directory to make visible (ensure it ends with os.sep)
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE Directories SET\n"
+      + "visible = 1\n"
+      + "WHERE directory = ?", [path]
     )
     conn.commit()
+
 
 def updateSong(newData: dict):
     """
@@ -209,7 +232,7 @@ def addSong(songData: dict):
     )
     conn.commit()
 
-def addDirectory(path: str):
+def addDirectory(path: str, visible: bool = True):
     """
     Adds a directory to the database to scan for music
     
@@ -218,7 +241,7 @@ def addDirectory(path: str):
     path: directory to add (ensure it ends with os.sep)
     """
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO Directories VALUES (?)", [path])
+    cursor.execute("INSERT INTO Directories VALUES (?,?)", [path, int(visible)])
     conn.commit()  
 
 
