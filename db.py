@@ -134,8 +134,7 @@ def addSong(songData: dict):
 
     Parameters:
 
-    songData: a string array of the correct format as returned
-    from addFolder.addFolderBox()
+    songData: a dict where each key corresponds to a Song table column
         
     """
     if songData == None:
