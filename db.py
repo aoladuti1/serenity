@@ -1,4 +1,3 @@
-from multiprocessing.sharedctypes import Value
 import sqlite3
 from typing import Sequence
 from config import *
@@ -23,11 +22,20 @@ def init():
             audioFormat text COLLATE NOCASE,
             art text COLLATE NOCASE,
             listens integer,
+            startingSpeed integer,
             PRIMARY KEY(FQFN)
         )
         """
-        
     )
+    cursor.execute(
+        """
+        CREATE TABLE if not exists Directories (
+            directory text,
+            PRIMARY KEY(directory)
+        )
+        """
+    )
+    conn.commit()
 
 def songRegistered(FQFN: str):
     cursor = conn.cursor()
@@ -133,8 +141,7 @@ def addSong(songData: dict):
 
     Parameters:
 
-    songData: a string array of the correct format as returned
-    from addFolder.addFolderBox()
+    songData: a dict where each key corresponds to a Song table column
         
     """
     if songData == None:
@@ -154,11 +161,24 @@ def addSong(songData: dict):
             :channelCount,
             :audioFormat,
             :art,
-            :listens
+            :listens,
+            :startingSpeed
         )
         """,
         songData
     )
     conn.commit()
+
+def addDirectory(path: str):
+    """
+    Adds a directory to the database to scan for music
+    
+    Parameters:
+    
+    path: directory to add (ensure it ends with a slash)
+    """
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO Directories VALUES (?)", [path])
+    conn.commit()  
 
 
