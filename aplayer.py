@@ -114,7 +114,7 @@ class Aplayer:
         
         volume: the new volume (between 1 and 100)
         """
-        self.pwrite('volume ' + str(volume) + ' 1')
+        self.pwrite('volume ' + str(volume) + ' 1\n')
     
     def setSpeed(self, speed: int):
         """
