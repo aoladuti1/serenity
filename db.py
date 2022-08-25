@@ -11,17 +11,17 @@ def init():
     cursor.execute(
         """
         CREATE TABLE if not exists Songs (
-            FQFN text,
-            artist text,
-            album text,
-            track text,
+            FQFN text COLLATE NOCASE,
+            artist text COLLATE NOCASE,
+            album text COLLATE NOCASE,
+            track text COLLATE NOCASE,
             trackNum integer,
             duration integer,
-            bitRateInfo text,
-            samplingRateInfo text,
+            bitRateInfo text COLLATE NOCASE,
+            samplingRateInfo text COLLATE NOCASE,
             channelCount integer,
-            audioFormat text,
-            art text,
+            audioFormat text COLLATE NOCASE,
+            art text COLLATE NOCASE,
             listens integer,
             PRIMARY KEY(FQFN)
         )
