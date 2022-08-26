@@ -65,6 +65,22 @@ def directoryRegistered(path: str):
         ) 
     return cursor.fetchone() != None
 
+def getArtists() -> list[tuple[str]]:
+    """
+    Returns:
+        a list of 1 dimensional tuples, each
+        containing the name of a registered artist, or
+        an empty list if there are no registered artists
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+    """
+    SELECT artist from Songs
+    GROUP BY artist
+    """
+    )
+    return cursor.fetchall()
+
 def delSongIf(conditions: dict, negateConditions = False, conjunction: bool = True):
     """
     Deletes records from the database of Songs based off a dictionary of conditions.
