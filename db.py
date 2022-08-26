@@ -2,6 +2,10 @@ import sqlite3
 from typing import Sequence
 from config import *
 
+def executeAndCommit(string: str, bindings: Sequence = []):
+    conn.cursor().execute(string, bindings)
+    conn.commit()
+
 
 def init():
     global conn
@@ -61,6 +65,78 @@ def directoryRegistered(path: str):
         ) 
     return cursor.fetchone() != None
 
+def getArtists() -> list[tuple[str]]:
+    """
+    Returns:
+        a list of 1 dimensional tuples, each
+        containing the name of a registered artist, or
+        an empty list if there are no registered artists
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+    """
+    SELECT artist from Songs
+    GROUP BY artist
+    """
+    )
+    return cursor.fetchall()
+
+def getAlbumsByArtist(artist: str) -> list[tuple[str]]:
+    """
+    Returns:
+        a list of 1 dimensional tuples, each
+        containing the name of a registered artist, or
+        an empty list if there are no registered artists
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+    """
+    SELECT album from Songs
+    WHERE artist = ?
+    GROUP BY album
+    """,
+    [artist]
+    )
+    return cursor.fetchall()
+
+def getSongsByArtist(artist: str) -> list[tuple[str]]:
+    """
+    Returns:
+        a list of 1 dimensional tuples, each
+        containing the FQFN of a registered song
+        by the specified artist, or
+        an empty list if there are no registered songs
+        by the artist
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+    """
+    SELECT FQFN from Songs
+    WHERE artist = ?
+    """,
+    [artist]
+    )
+    return cursor.fetchall()
+
+def getSongsByAlbum(album: str) -> list[tuple[str]]:
+    """
+    Returns:
+        a list of 1 dimensional tuples, each
+        containing the FQFN of a registered song
+        in the specified album, or
+        an empty list if there are no registered songs
+        in the album
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+    """
+    SELECT FQFN from Songs
+    WHERE artist = ?
+    """,
+    [album]
+    )
+    return cursor.fetchall()
+
 def delSongIf(conditions: dict, negateConditions = False, conjunction: bool = True):
     """
     Deletes records from the database of Songs based off a dictionary of conditions.
@@ -94,9 +170,7 @@ def delSongIf(conditions: dict, negateConditions = False, conjunction: bool = Tr
     for key, val in conditions.items():
         body += negationText + key + ' = :' + key + spacedAndOr
     body = body[0:walk]
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM Songs WHERE " + body, conditions)
-    conn.commit()
+    executeAndCommit("DELETE FROM Songs WHERE " + body, conditions)
 
 def delSongIfAbsent(FQFN: str) -> bool: 
     """
@@ -112,14 +186,12 @@ def delSongIfAbsent(FQFN: str) -> bool:
     and False otherwise
 
     """
-    cursor = conn.cursor()
     if os.path.exists(FQFN) == True:
         return False
-    cursor.execute(
+    executeAndCommit(
         "DELETE FROM Songs " +
         "WHERE FQFN = ?", [FQFN]
     )
-    conn.commit()
     return True
 
 def delSong(FQFN: str):
@@ -130,12 +202,10 @@ def delSong(FQFN: str):
     
     path: the fully qualified filename of the song to delete
     """
-    cursor = conn.cursor()
-    cursor.execute(
+    executeAndCommit(
         "DELETE FROM Songs " +
         "WHERE FQFN = ?", [FQFN]
     )
-    conn.commit()
 
 def hideDirectory(path: str):
     """
@@ -146,14 +216,11 @@ def hideDirectory(path: str):
     
     path: directory to hide (ensure it ends with os.sep)
     """
-    cursor = conn.cursor()
-    cursor.execute(
+    executeAndCommit(
         "UPDATE Directories SET\n"
       + "visible = 0\n"
       + "WHERE directory = ?", [path]
     )
-    print(path)
-    conn.commit()
 
 def showDirectory(path: str):
     """
@@ -164,13 +231,11 @@ def showDirectory(path: str):
     
     path: directory to make visible (ensure it ends with os.sep)
     """
-    cursor = conn.cursor()
-    cursor.execute(
+    executeAndCommit(
         "UPDATE Directories SET\n"
       + "visible = 1\n"
       + "WHERE directory = ?", [path]
     )
-    conn.commit()
 
 
 def updateSong(newData: dict):
@@ -192,10 +257,8 @@ def updateSong(newData: dict):
         + body + "\n"
         + "WHERE FQFN = :FQFN\n"
     )
+    executeAndCommit(fullSQL, newData)
 
-    cursor = conn.cursor()
-    cursor.execute(fullSQL, newData)
-    conn.commit()
     
 
 def addSong(songData: dict):
@@ -209,8 +272,7 @@ def addSong(songData: dict):
     """
     if songData == None:
         return
-    cursor = conn.cursor()
-    cursor.execute(
+    executeAndCommit(
         """
         INSERT INTO Songs VALUES (
             :FQFN,
@@ -230,7 +292,6 @@ def addSong(songData: dict):
         """,
         songData
     )
-    conn.commit()
 
 def addDirectory(path: str, visible: bool = True):
     """
@@ -240,8 +301,9 @@ def addDirectory(path: str, visible: bool = True):
     
     path: directory to add (ensure it ends with os.sep)
     """
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO Directories VALUES (?,?)", [path, int(visible)])
-    conn.commit()  
+    executeAndCommit(
+        "INSERT INTO Directories VALUES (?,?)", 
+        [path, int(visible)]
+    ) 
 
 
