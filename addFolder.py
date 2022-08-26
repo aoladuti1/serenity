@@ -270,9 +270,9 @@ def addFiles(FQFNs: list[str], foldersAreAlbums = False, AAT = False,
     An AAT folder structure means that inside each Artist
     folder are all their Album folders, which themselves 
     contain audio files (with no exceptions).
-    If you chose "The Best Song ever.mp3" as a file
+    If you chose 'The Best Song ever.mp3' as a file
     and set AAT = True, it may have the following fully-qualified filename:
-    C:\Music\Bryson Tiller\The Best Album Ever\The Best Song Ever.mp3
+    'C:\Music\Bryson Tiller\The Best Album Ever\The Best Song Ever.mp3'
 
         Note: if AAT == True then foldersAreAlbums will be set to False.
         AAT takes precedence.
@@ -298,10 +298,8 @@ def addFiles(FQFNs: list[str], foldersAreAlbums = False, AAT = False,
             the Artist-Album-Track structure
         findArt (bool): if True, will attempt to find \
             album/track/artist art (in that order of priority) \
-            on Spotify. Failing this, or if the argument is False \
+            on Spotify. Failing this, or if findArt == False \
             default Serenity art is selected.
-        includeSubfolders (bool): if True, subfolders of the chosen \
-            directory are scanned with the same arguments
         
     """
     for fqfn in FQFNs:
@@ -315,22 +313,24 @@ def addFiles(FQFNs: list[str], foldersAreAlbums = False, AAT = False,
             foldersAreAlbums=foldersAreAlbums,
             AAT=AAT,
             findArt=findArt
-        ) #may invert var foldersAreAlbums!
+        ) # may invert var foldersAreAlbums - see doc
         if songData==None: return
         updateDB(filePath, songData)        
     
 def addFolder(directory: str, foldersAreAlbums = False, AAT = False, 
               findArt=True, includeSubfolders=True):
     """Adds audio files and their directories to the database.
+    Argument FQFNs is intended to be an alias of the return value
+    for tkinter.filedialog.askdirectory().
     AAT stands for Artist-Album-Track folder structure.
     An AAT folder structure means that inside each Artist
     folder are all their Album folders, which themselves 
     contain audio files (with no exceptions). 
-    The chosen folder is also believed to be at the highest level -
-    that is to say it only directly contains folders with artist names.
-    If you chose C:\Music as a folder and set AAT = True, one well-placed 
-    song below it may have the fully qualified filename:
-    C:\Music\Bryson Tiller\The Best Album Ever\The Best Song Ever.mp3
+    The chosen folder must contain only Artist folders as 
+    immediate subdirectories.
+    E.g. If you chose 'C:\Music' as a folder and set AAT = True, one well-placed 
+    song below it may have the following fully qualified filename:
+    'C:\Music\Bryson Tiller\The Best Album Ever\The Best Song Ever.mp3'
 
         Note: if AAT == True then foldersAreAlbums will be set to False.
         AAT takes precedence.
@@ -346,12 +346,11 @@ def addFolder(directory: str, foldersAreAlbums = False, AAT = False,
     AAT == True nor foldersAreAlbums == True:
         <artist> - <album>
     
-    
     Args: 
-        directory (str): the chosen starting directory (no slash appended)
+        directory (str): the chosen root directory (no slash appended)
         foldersAreAlbums (bool): if true, then the name of the \
-            immediate folder each music file is contained within \
-            is assumed to be its album/body of music
+            immediate folder containing each music file \
+            is assumed to be the name of its associated album
         AAT (bool): if True, the chosen folder is believed to follow \
             the Artist-Album-Track structure
         findArt (bool): if True, will attempt to find \
@@ -360,22 +359,16 @@ def addFolder(directory: str, foldersAreAlbums = False, AAT = False,
             default Serenity art is selected.
         includeSubfolders (bool): if True, subfolders of the chosen \
             directory are scanned with the same arguments
-        
-    Returns:
-        dict: a dictionary containing all song data, where the keys \
-            correspond to a Song table column in the database, or None \
-            if the file is already present in the database
     """
     if directory == "": return
-    if AAT == True: foldersAreAlbums = False
     for dir, subdirs, files in os.walk(directory):
-        absdir = os.path.abspath(dir) #no appended slash
-        filePath = absdir + os.sep #full directory with an appended slash
+        absdir = os.path.abspath(dir) # no appended slash
+        filePath = absdir + os.sep # full directory with an appended slash
         for fileName in files: 
             songData = __fileProcessing(
                 filePath, fileName, foldersAreAlbums, AAT,
                 findArt
-            )
+            ) # may invert var foldersAreAlbums - see doc
             if songData == None: continue
             updateDB(filePath, songData)
         if includeSubfolders == False: break
