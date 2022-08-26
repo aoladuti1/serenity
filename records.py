@@ -320,7 +320,7 @@ def addFiles(FQFNs: list[str], foldersAreAlbums = False, AAT = False,
 def addFolder(directory: str, foldersAreAlbums = False, AAT = False, 
               findArt=True, includeSubfolders=True):
     """Adds audio files and their directories to the database.
-    Argument FQFNs is intended to be an alias of the return value
+    Argument directory is intended to be an alias of the return value
     for tkinter.filedialog.askdirectory().
     AAT stands for Artist-Album-Track folder structure.
     An AAT folder structure means that inside each Artist
