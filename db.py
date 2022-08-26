@@ -81,6 +81,62 @@ def getArtists() -> list[tuple[str]]:
     )
     return cursor.fetchall()
 
+def getAlbumsByArtist(artist: str) -> list[tuple[str]]:
+    """
+    Returns:
+        a list of 1 dimensional tuples, each
+        containing the name of a registered artist, or
+        an empty list if there are no registered artists
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+    """
+    SELECT album from Songs
+    WHERE artist = ?
+    GROUP BY album
+    """,
+    [artist]
+    )
+    return cursor.fetchall()
+
+def getSongsByArtist(artist: str) -> list[tuple[str]]:
+    """
+    Returns:
+        a list of 1 dimensional tuples, each
+        containing the FQFN of a registered song
+        by the specified artist, or
+        an empty list if there are no registered songs
+        by the artist
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+    """
+    SELECT FQFN from Songs
+    WHERE artist = ?
+    """,
+    [artist]
+    )
+    return cursor.fetchall()
+
+def getSongsByAlbum(album: str) -> list[tuple[str]]:
+    """
+    Returns:
+        a list of 1 dimensional tuples, each
+        containing the FQFN of a registered song
+        in the specified album, or
+        an empty list if there are no registered songs
+        in the album
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+    """
+    SELECT FQFN from Songs
+    WHERE artist = ?
+    """,
+    [album]
+    )
+    return cursor.fetchall()
+
 def delSongIf(conditions: dict, negateConditions = False, conjunction: bool = True):
     """
     Deletes records from the database of Songs based off a dictionary of conditions.
