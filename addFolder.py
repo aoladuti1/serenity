@@ -203,14 +203,20 @@ def getParentAndFolderNames(filePath):
 def updateDB(filePath, songData):
     if db.directoryRegistered(filePath) == False:
         db.addDirectory(filePath)
-    else:
-        db.addSong(songData)
+    db.addSong(songData)
 
+# Used by addFiles() and addFolders() -- see their docs
+# note that filePath must have a slash (os.sep) appended
+# Returns:
+#     dict: a dictionary containing all song data, where the keys
+#         correspond to a Song table column in the database, or None 
+#         if the file is already present in the database
 def __fileProcessing(
         filePath: str, fileName: str,
         foldersAreAlbums: bool, AAT: bool,
         findArt: bool, 
     ) -> dict:
+    if AAT == True: foldersAreAlbums = False
     if fileName.endswith(SUPPORTED_EXTENSIONS):
         FQFN = filePath + fileName
         if db.songRegistered(FQFN) == True:
@@ -254,10 +260,68 @@ def __fileProcessing(
         }
         return songData
 
+
+def addFiles(FQFNs: list[str], foldersAreAlbums = False, AAT = False,
+            findArt = True):
+    """Adds audio files and their data to the database.
+    Argument FQFNs is intended to be an alias of
+    the return value of tkinter.filedialog.askopenfilenames().
+    AAT stands for Artist-Album-Track folder structure.
+    An AAT folder structure means that inside each Artist
+    folder are all their Album folders, which themselves 
+    contain audio files (with no exceptions).
+    If you chose "The Best Song ever.mp3" as a file
+    and set AAT = True, it may have the following fully-qualified filename:
+    C:\Music\Bryson Tiller\The Best Album Ever\The Best Song Ever.mp3
+
+        Note: if AAT == True then foldersAreAlbums will be set to False.
+        AAT takes precedence.
+
+    Audio files themselves should have the following filename format:
+        [track number] artist name - <track name>\n OR
+        [track number] - <track name>\n OR
+        <track name>\n
+    Where <> = required and [] = optional\n
+        (note these assume that '-' is the designated config.SPLITTERCHAR")
+
+    Album folders must have the following naming format if NEITHER argument
+    AAT == True nor foldersAreAlbums == True:
+        <artist> - <album>
+    
+    
+    Args: 
+        FQFNs (list[str]): all fully qualified filenames to add
+        foldersAreAlbums (bool): if true, then the name of the \
+            immediate folder each music file is contained within \
+            is assumed to be its album/body of music
+        AAT (bool): if True, the chosen folder is believed to follow \
+            the Artist-Album-Track structure
+        findArt (bool): if True, will attempt to find \
+            album/track/artist art (in that order of priority) \
+            on Spotify. Failing this, or if the argument is False \
+            default Serenity art is selected.
+        includeSubfolders (bool): if True, subfolders of the chosen \
+            directory are scanned with the same arguments
+        
+    """
+    for fqfn in FQFNs:
+        FQFN = os.path.abspath(fqfn)
+        pathAndName = FQFN.rpartition(os.sep)
+        filePath=pathAndName[0] + os.sep
+        fileName=pathAndName[2]
+        songData = __fileProcessing(
+            filePath=filePath,
+            fileName=fileName,
+            foldersAreAlbums=foldersAreAlbums,
+            AAT=AAT,
+            findArt=findArt
+        ) #may invert var foldersAreAlbums!
+        if songData==None: return
+        updateDB(filePath, songData)        
+    
 def addFolder(directory: str, foldersAreAlbums = False, AAT = False, 
               findArt=True, includeSubfolders=True):
-    """
-    Adds audio files and their directories to the database.
+    """Adds audio files and their directories to the database.
     AAT stands for Artist-Album-Track folder structure.
     An AAT folder structure means that inside each Artist
     folder are all their Album folders, which themselves 
@@ -268,8 +332,8 @@ def addFolder(directory: str, foldersAreAlbums = False, AAT = False,
     song below it may have the fully qualified filename:
     C:\Music\Bryson Tiller\The Best Album Ever\The Best Song Ever.mp3
 
-    Note: if AAT == True then foldersAreAlbums will be set to False.
-    AAT takes precedence.
+        Note: if AAT == True then foldersAreAlbums will be set to False.
+        AAT takes precedence.
 
     Audio files themselves should have the following naming format:
         [track number] artist name - <track name>\n OR
