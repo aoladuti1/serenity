@@ -2,6 +2,13 @@ import sqlite3
 from typing import Sequence
 from config import *
 
+
+SONG_COLUMNS = (
+    'FQFN', 'artist', 'album', 'track', 'trackNum', 'duration',
+    'bitRateInfo', 'samplingRateInfo', 'channelCount', 'audioFormat', 'art'
+    'listens', 'startingSpeed'
+)
+
 def executeAndCommit(string: str, bindings: Sequence = []):
     conn.cursor().execute(string, bindings)
     conn.commit()
@@ -118,12 +125,12 @@ def getSongsByArtist(artist: str) -> list[tuple[str]]:
     )
     return cursor.fetchall()
 
-def getSongsByAlbum(album: str) -> list[tuple[str]]:
+def getSongsByAlbum(album: str) -> list[dict]:
     """
     Returns:
-        a list of 1 dimensional tuples, each
-        containing the FQFN of a registered song
-        in the specified album, or
+        a list of dicts, each
+        containing a column and value key-value pairing
+        for a registered song in the specified album, or
         an empty list if there are no registered songs
         in the album
     """
@@ -135,7 +142,14 @@ def getSongsByAlbum(album: str) -> list[tuple[str]]:
     """,
     [album]
     )
-    return cursor.fetchall()
+    fetch = cursor.fetchall()
+    fetchLen = len(fetch)
+    ret = [{} for _ in range(fetchLen)]
+    for i in range(fetchLen):
+        for j in range(len(SONG_COLUMNS)):
+            ret[i][SONG_COLUMNS[j]] = fetch[i][j]
+    print(ret)
+    return ret
 
 def delSongIf(conditions: dict, negateConditions = False, conjunction: bool = True):
     """
@@ -236,6 +250,7 @@ def showDirectory(path: str):
       + "visible = 1\n"
       + "WHERE directory = ?", [path]
     )
+
 
 def updateSong(newData: dict):
     """
