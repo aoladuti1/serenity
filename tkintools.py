@@ -9,7 +9,7 @@ class LabelButton(Label):
                 defaultBG = None, defaultFG = None,
                 **kw
                 ):
-        Label.__init__(self,master=master,**kw)
+        Label.__init__(self,master=master,**kw)   
         self.clickFunc = clickFunc
         self.defaultBG = self["background"]
         self.defaultFG = self["foreground"]
@@ -21,6 +21,7 @@ class LabelButton(Label):
         self.activeFG = activeFG
         self.clickBG = clickBG
         self.clickFG = clickFG
+        self['background'] = defaultBG
         self.bind("<Enter>", self.on_enter)
         self.bind("<Leave>", self.on_leave)
         self.bind("<Button-1>", self.on_click)
