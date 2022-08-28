@@ -7,6 +7,8 @@ from config import *
 from aplayer import *
 import records
 import db
+import tkintools
+from themes.user import *
 
 from tkinter import *
 import ttkbootstrap as ttk
@@ -25,7 +27,6 @@ default_family = 'Cascadia Code Light'
 default_font.configure(family=default_family, size = 14)
     # the following line stops annoying highlight lines on button click
 style.configure('TButton', focuscolor=style.configure('TButton')['background'])
-style.configure('Sel.TButton', foreground='black')
 
 width = root.winfo_screenwidth()
 height = root.winfo_screenheight()
@@ -35,6 +36,7 @@ root.rowconfigure(2,weight=1)
 root.columnconfigure(0, weight=1)
 root.columnconfigure(1, weight=1)
 root.title("serenity")
+
 
 ddd=ttk.Label(root, text="serenity", bootstyle='primary')
 ddd.configure(font=(default_family,50, ITALIC), background='#000000')
@@ -48,6 +50,10 @@ style.configure('TFrame', background='#000000')
 ttk.Label(sf, text='<---').grid(column=0, row=0, sticky=W)
 ttk.Label(root, text="HEY").grid(sticky = 'nsew', column=1, row=2)
 
+def printx(x):
+    print(x)
+
+
 global i
 i = 1
 
@@ -58,7 +64,7 @@ def colour(y: Event):
     global selcount
     clickedWidget = y.widget
     if selcount < 1:
-        clickedWidget.config(background = style.lookup('TButton','background'))
+        clickedWidget.config(background = '#1a1836')
         if selwidget != None:
             selwidget.config(background = style.lookup('TLabel','background'))
         selwidget = clickedWidget
@@ -72,16 +78,29 @@ def colour(y: Event):
         selcount = 0
         selwidget = None
         clickedWidget.config(background = style.lookup('TLabel','background'))
-def c(e):
-    e.widget['foreground'] = '#000000'
+
 for x in range(10):
     lb = ttk.Label(sf,text="Bryson Tiller - lonely christmaddddddddddds",bootstyle='info')
-    lb.grid(column=0, row=i, rowspan=1, sticky=W, padx=5, ipadx=700)
+    lb.grid(column=0, row=i, rowspan=1, sticky=NW, ipadx=700, pady=0)
     lb.configure(background='#000000')
     lb.bind('<Button-1>', colour)
-    y = Button(sf, text='play', pady=2, background='black')
-    y.bind('<Enter>', lambda e: c(e))
-    y.grid(column=1, row=i,rowspan=1, pady=4, padx=(7,20), sticky=E)
+    bframe = Frame(sf)
+    bframe.grid(column=1, row=i,rowspan=1, ipady=0, padx=(9,20), pady=(0,6), sticky=NE)
+    bframe['highlightcolor']= '#00ffff'
+    bframe['highlightbackground'] = '#00ffff'
+    bframe['highlightthickness'] = 1
+    y = tkintools.LabelButton(
+        bframe, 
+        activeBG='#0b3740',
+        activeFG=USER_THEMES['serenity']['colors']['info'],
+        clickBG='blue',
+        clickFG='red',
+        defaultBG=USER_THEMES['serenity']['colors']['dark'],
+        defaultFG=USER_THEMES['serenity']['colors']['primary'],
+        text='play', padx=0, pady=0, height=1)
+    y['background'] = '#000000'
+    y['activebackground'] = '#ffffff'
+    y.grid(ipady=1, sticky=N)
     i += 1
 
 
