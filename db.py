@@ -2,6 +2,13 @@ import sqlite3
 from typing import Sequence
 from config import *
 
+
+SONG_COLUMNS = (
+    'FQFN', 'artist', 'album', 'track', 'trackNum', 'duration',
+    'bitRateInfo', 'samplingRateInfo', 'channelCount', 'audioFormat', 'art'
+    'listens', 'startingSpeed'
+)
+
 def executeAndCommit(string: str, bindings: Sequence = []):
     conn.cursor().execute(string, bindings)
     conn.commit()
@@ -99,43 +106,62 @@ def getAlbumsByArtist(artist: str) -> list[tuple[str]]:
     )
     return cursor.fetchall()
 
-def getSongsByArtist(artist: str) -> list[tuple[str]]:
+def __genSongDicts(fetchedRows: list):
+    """Takes a list of Song tuples returned by 
+    sqlite3.connection.cursor.fetchall()
+    and converts it into a list of dicts
+
+    Returns:
+        a list of dicts, each
+        containing a column name and value key-value pairing
+        for a registered song
+    """
+    fetchLen = len(fetchedRows)
+    ret = [{} for _ in range(fetchLen)]
+    for i in range(fetchLen):
+        for j in range(len(SONG_COLUMNS)):
+            ret[i][SONG_COLUMNS[j]] = fetchedRows[i][j]    
+    return ret
+
+def getSongsByArtist(artist: str) -> list[dict]:
     """
     Returns:
-        a list of 1 dimensional tuples, each
-        containing the FQFN of a registered song
-        by the specified artist, or
+        a list of dicts, each
+        containing a column name and value key-value pairing
+        for a registered song by the specified artist, or
         an empty list if there are no registered songs
-        by the artist
+        by that artist
     """
     cursor = conn.cursor()
     cursor.execute(
-    """
-    SELECT FQFN from Songs
-    WHERE artist = ?
-    """,
-    [artist]
+        """
+        SELECT * from Songs
+        WHERE artist = ?
+        """,
+        [artist]
     )
-    return cursor.fetchall()
+    fetch = cursor.fetchall()
+    return __genSongDicts(fetch)
 
-def getSongsByAlbum(album: str) -> list[tuple[str]]:
+def getSongsByAlbum(album: str) -> list[dict]:
     """
     Returns:
-        a list of 1 dimensional tuples, each
-        containing the FQFN of a registered song
-        in the specified album, or
+        a list of dicts, each
+        containing a column name and value key-value pairing
+        for a registered song in the specified album, or
         an empty list if there are no registered songs
         in the album
     """
     cursor = conn.cursor()
     cursor.execute(
     """
-    SELECT FQFN from Songs
-    WHERE artist = ?
+    SELECT * from Songs
+    WHERE album = ?
     """,
     [album]
     )
-    return cursor.fetchall()
+    fetch = cursor.fetchall()
+    return __genSongDicts(fetch)
 
 def delSongIf(conditions: dict, negateConditions = False, conjunction: bool = True):
     """
@@ -258,8 +284,6 @@ def updateSong(newData: dict):
         + "WHERE FQFN = :FQFN\n"
     )
     executeAndCommit(fullSQL, newData)
-
-    
 
 def addSong(songData: dict):
     """
