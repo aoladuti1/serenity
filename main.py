@@ -79,13 +79,13 @@ def colour(y: Event):
         selwidget = None
         clickedWidget.config(background = style.lookup('TLabel','background'))
 
-for x in range(10):
-    lb = ttk.Label(sf,text="Bryson Tiller - lonely christmaddddddddddds",bootstyle='info')
-    lb.grid(column=0, row=i, rowspan=1, sticky=NW, ipadx=700, pady=0)
+for x in range(150):
+    lb = ttk.Label(sf,text="b tiller - want u around",bootstyle='info')
+    lb.grid(column=0, row=i, rowspan=1, sticky=NW, ipadx=700)
     lb.configure(background='#000000')
     lb.bind('<Button-1>', colour)
     bframe = Frame(sf)
-    bframe.grid(column=1, row=i,rowspan=1, ipady=0, padx=(9,20), pady=(0,6), sticky=NE)
+    bframe.grid(column=1, row=i,rowspan=1, ipady=0, padx=(9,20), pady=(0,9), sticky=E)
     bframe['highlightcolor']= '#00ffff'
     bframe['highlightbackground'] = '#00ffff'
     bframe['highlightthickness'] = 1
@@ -97,10 +97,8 @@ for x in range(10):
         clickFG='red',
         defaultBG=USER_THEMES['serenity']['colors']['dark'],
         defaultFG=USER_THEMES['serenity']['colors']['primary'],
-        text='play', padx=0, pady=0, height=1)
-    y['background'] = '#000000'
-    y['activebackground'] = '#ffffff'
-    y.grid(ipady=1, sticky=N)
+        text='play', padx=3, pady=0, height=1)
+    y.grid()
     i += 1
 
 
