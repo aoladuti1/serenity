@@ -37,4 +37,5 @@ class LabelButton(Label):
 
     def on_click(self, e):
         self['background'] = self.clickBG
+        self['foreground'] = self.clickFG
         if self.clickFunc != None: self.clickFunc()
