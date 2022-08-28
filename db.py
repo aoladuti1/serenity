@@ -123,24 +123,25 @@ def __genSongDicts(fetchedRows: list):
             ret[i][SONG_COLUMNS[j]] = fetchedRows[i][j]    
     return ret
 
-def getSongsByArtist(artist: str) -> list[tuple[str]]:
+def getSongsByArtist(artist: str) -> list[dict]:
     """
     Returns:
-        a list of 1 dimensional tuples, each
-        containing the FQFN of a registered song
-        by the specified artist, or
+        a list of dicts, each
+        containing a column name and value key-value pairing
+        for a registered song by the specified artist, or
         an empty list if there are no registered songs
-        by the artist
+        by that artist
     """
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT FQFN from Songs
+        SELECT * from Songs
         WHERE artist = ?
         """,
         [artist]
     )
-    return cursor.fetchall()
+    fetch = cursor.fetchall()
+    return __genSongDicts(fetch)
 
 def getSongsByAlbum(album: str) -> list[dict]:
     """
