@@ -106,6 +106,23 @@ def getAlbumsByArtist(artist: str) -> list[tuple[str]]:
     )
     return cursor.fetchall()
 
+def __genSongDicts(fetchedRows: list):
+    """Takes a list of Song tuples returned by 
+    sqlite3.connection.cursor.fetchall()
+    and converts it into a list of dicts
+
+    Returns:
+        a list of dicts, each
+        containing a column name and value key-value pairing
+        for a registered song
+    """
+    fetchLen = len(fetchedRows)
+    ret = [{} for _ in range(fetchLen)]
+    for i in range(fetchLen):
+        for j in range(len(SONG_COLUMNS)):
+            ret[i][SONG_COLUMNS[j]] = fetchedRows[i][j]    
+    return ret
+
 def getSongsByArtist(artist: str) -> list[tuple[str]]:
     """
     Returns:
@@ -117,11 +134,11 @@ def getSongsByArtist(artist: str) -> list[tuple[str]]:
     """
     cursor = conn.cursor()
     cursor.execute(
-    """
-    SELECT FQFN from Songs
-    WHERE artist = ?
-    """,
-    [artist]
+        """
+        SELECT FQFN from Songs
+        WHERE artist = ?
+        """,
+        [artist]
     )
     return cursor.fetchall()
 
@@ -129,7 +146,7 @@ def getSongsByAlbum(album: str) -> list[dict]:
     """
     Returns:
         a list of dicts, each
-        containing a column and value key-value pairing
+        containing a column name and value key-value pairing
         for a registered song in the specified album, or
         an empty list if there are no registered songs
         in the album
@@ -143,13 +160,7 @@ def getSongsByAlbum(album: str) -> list[dict]:
     [album]
     )
     fetch = cursor.fetchall()
-    fetchLen = len(fetch)
-    ret = [{} for _ in range(fetchLen)]
-    for i in range(fetchLen):
-        for j in range(len(SONG_COLUMNS)):
-            ret[i][SONG_COLUMNS[j]] = fetch[i][j]
-    print(ret)
-    return ret
+    return __genSongDicts(fetch)
 
 def delSongIf(conditions: dict, negateConditions = False, conjunction: bool = True):
     """
