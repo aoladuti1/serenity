@@ -130,8 +130,8 @@ def getSongsByAlbum(album: str) -> list[tuple[str]]:
     cursor = conn.cursor()
     cursor.execute(
     """
-    SELECT FQFN from Songs
-    WHERE artist = ?
+    SELECT * from Songs
+    WHERE album = ?
     """,
     [album]
     )
@@ -237,7 +237,6 @@ def showDirectory(path: str):
       + "WHERE directory = ?", [path]
     )
 
-
 def updateSong(newData: dict):
     """
     Updates a song record.
@@ -258,8 +257,6 @@ def updateSong(newData: dict):
         + "WHERE FQFN = :FQFN\n"
     )
     executeAndCommit(fullSQL, newData)
-
-    
 
 def addSong(songData: dict):
     """
