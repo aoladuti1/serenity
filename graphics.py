@@ -1,8 +1,12 @@
+import copy
+import threading
+import time
 from tkinter.font import ITALIC
 from tkinter import *
-from turtle import width
 import ttkbootstrap as ttk
+from aplayer import Aplayer
 import tkintools
+import db
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledFrame
 from config import *
@@ -11,7 +15,6 @@ class LeftPane:
     def __init__(self, root: ttk.Window, background=COLOUR_DICT['dark']):
         self.root = root
         self.background = background
-        self.width = 700
         self.frame = None
         self.browser = None
         self.header = None
@@ -19,6 +22,14 @@ class LeftPane:
         self.controls = None
         self.selCount = 0
         self.selWidget = None
+        self.fetchedArtists = None
+        self.fetchedAlbums = None
+        self.fetchedSongs = None
+        self.chosenArtist = None
+        self.chosenAlbum = None
+        self.chosenSong = None
+        self.sSkipBuffer = []
+        
 
     def drawAll(self):
         self.drawFrame()
@@ -29,12 +40,12 @@ class LeftPane:
         self.drawSubheader()
         self.drawControls()
         self.drawBrowser()
-        self.populateBrowser()
+        self.loadArtists()
 
     def drawFrame(self):
-        self.frame = Frame(self.root, height=self.root.winfo_height(), width=self.width)
+        self.frame = Frame(self.root, height=self.root.winfo_height(), width=LEFT_PANE_WIDTH)
         self.frame.grid(column = 0, row=0, sticky='nsw', columnspan=1)
-        self.frame.rowconfigure(3, weight=1) #browser is stretchy!
+        self.frame.rowconfigure(3, weight=1) # browser is stretchy!
         self.frame.configure(background=self.background)
     
     def drawHeader(self):
@@ -49,56 +60,117 @@ class LeftPane:
         self.subheader = ttk.Label(self.frame, text="Your library")
         self.subheader.configure(background=self.background)
         self.subheader.grid(column=0, row=1, sticky=W)
-
+    
     def drawControls(self):
-        self.controls = ttk.Label(self.frame, text='--->')
+        self.controls = Frame(self.frame)
+        self.controls.grid()
         self.controls.configure(background=self.background)
-        self.controls.grid(column=0, row=2)
+        skip = tkintools.LabelButton(
+            self.controls, 
+            onEnterFunc=self.wrapInSquares, 
+            clickFunc=lambda e, t=10: Aplayer().seek(t),
+            text='++>')
+        skip.bind('<Button-1>', )
+        skip.grid()
     
     def drawBrowser(self):
         self.browser = ScrolledFrame(
             self.frame, autohide=True,
             height=self.root.winfo_screenheight(),
-            width=self.width
+            width=LEFT_PANE_WIDTH
         )
         self.browser.columnconfigure(0, weight=1)
         self.browser.columnconfigure(1, weight=0)
         self.browser.grid(row=3, sticky = NW)
 
-    def populateBrowser(self):
-        for x in range(150):
-            songLabel = ttk.Label(
-                self.browser,
-                text="bryson tiller - intro (difference)",
-                bootstyle='info',
-                width=self.width #makes the highlight bar go fully across
-            )
-            songLabel.grid(
-                column=0, row=x, rowspan=1, sticky=NW
-            )
-            songLabel.configure(background = self.background)
-            songLabel.bind('<Button-1>', self.select)
-            buttonFrame = Frame(self.browser)
-            buttonFrame.configure(
-                highlightcolor=COLOUR_DICT['primary'],
-                highlightbackground = COLOUR_DICT['primary'],
-                highlightthickness = 1
-            )            
-            buttonFrame.grid(
-                column=1, row=x, rowspan=1, ipady=0, 
-                padx=(20,20), pady=(0,9), sticky=E
-            )
-            button = tkintools.LabelButton(
-                buttonFrame, 
-                activeBG=ACTIVE_BUTTON_BG_HEX,
-                activeFG=COLOUR_DICT['info'],
-                clickBG=CLICK_BUTTON_BG_HEX,
-                clickFG=COLOUR_DICT['dark'],
-                defaultBG=COLOUR_DICT['dark'],
-                defaultFG=COLOUR_DICT['primary'],
-                text='play', padx=3, pady=0
-            )
-            button.grid()
+    def getDur(self):
+        return self.songDur
+
+    def genBrowserButton(self, row: int, text: str = 'play', clickFunc = None):
+        buttonFrame = Frame(self.browser)
+        buttonFrame.configure(
+            highlightcolor=COLOUR_DICT['primary'],
+            highlightbackground = COLOUR_DICT['primary'],
+            highlightthickness = 1
+        )            
+        buttonFrame.grid(
+            column=1, row=row, rowspan=1, ipady=0, 
+            padx=(20,20), pady=(0,9), sticky=E
+        )
+        button = tkintools.LabelButton(
+            buttonFrame, text=text, padx=3, pady=0
+        )
+        button.bind('<Button-1>', clickFunc)
+        button.grid()
+        return buttonFrame
+    
+    def genBrowserLabel(self, row: int, text: str, dblClickFunc = None):
+        browserLabel = ttk.Label(
+            self.browser,
+            text=text,
+            bootstyle='info',
+            width=LEFT_PANE_WIDTH #makes the highlight bar go fully across
+        )
+        browserLabel.grid(
+            column=0, row=row, rowspan=1, sticky=NW
+        )
+        browserLabel.configure(background = self.background)
+        browserLabel.bind('<Button-1>', self.select)
+        browserLabel.bind('<Double-Button-1>', dblClickFunc)
+        return browserLabel    
+
+    def wrapInSquares(self, e: Event):
+        text = e.widget.cget('text')
+        e.widget.configure(text= '[' + text + ']')
+
+    def __killAndLoadAlbums(self, e: Event):
+        for widget in self.browser.winfo_children():
+            if widget == e.widget:
+                self.chosenArtist = e.widget.cget('text')
+        self.browser.grid_remove()
+        self.drawBrowser()
+        self.loadAlbums()
+
+    def __killAndLoadSongs(self, e: Event):
+        for widget in self.browser.winfo_children():
+            if widget == e.widget:
+                self.chosenAlbum = e.widget.cget('text')
+        self.browser.grid_remove()
+        self.drawBrowser()
+        self.loadSongs()
+
+    def loadArtists(self):
+        if self.fetchedArtists == None:
+            self.fetchedArtists = db.getArtists()
+        i = 0
+        for tuple in self.fetchedArtists:
+            name = tuple[0]     
+            self.genBrowserLabel(i, name, self.__killAndLoadAlbums)
+            self.genBrowserButton(i)
+            i += 1
+    
+    def loadAlbums(self):
+        self.fetchedAlbums = db.getAlbumsByArtist(self.chosenArtist)
+        i = 0
+        for tuple in self.fetchedAlbums:
+            name = tuple[0]     
+            browserLabel = self.genBrowserLabel(i, name, self.__killAndLoadSongs)
+            buttonFrame = self.genBrowserButton(i)
+            i += 1        
+    
+    def loadSongs(self):
+        if self.fetchedSongs == None:
+            self.fetchedSongs = db.getSongsByAlbum(self.chosenAlbum)
+        i = 0
+        for song in self.fetchedSongs:
+            name = song['track']  
+            self.genBrowserLabel(i, name)
+            self.genBrowserButton(i, clickFunc=lambda e, arg=song : self.playTrack(e, arg))
+            i += 1
+
+    def playTrack(self, e: Event, songDict: dict):
+        self.chosenSong = songDict
+        Aplayer(songDict, play=True)
 
     def select(self, e: Event):
         clickedWidget = e.widget
