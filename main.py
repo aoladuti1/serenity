@@ -1,15 +1,15 @@
+
 from config import *
 from aplayer import *
 import records
 import db
 from graphics import LeftPane
-from themes.user import *
 from tkinter import *
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
 db.init() 
-jukebox = Aplayer()
+
 root = ttk.Window(themename=THEME_NAME)
 
 configureStyle()
