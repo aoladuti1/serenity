@@ -68,13 +68,16 @@ class LeftPane:
         skip = tkintools.LabelButton(
             self.controls, 
             onEnterFunc=self.wrapSquares, 
-            clickFunc=lambda t=10: threading.Thread(
-                target=self.controlHandler, 
-                args=(Aplayer.seek(t),)
-                ).start(),
+            clickFunc=lambda t=10: self.controlThreader(Aplayer.seek(t)),
             text='++>')
         skip.bind('<Button-1>', )
         skip.grid()
+
+    def controlThreader(self, function):
+        threading.Thread(
+                target=self.controlHandler, 
+                args=(function,)
+                ).start()
 
     def controlHandler(self, function):
         time.sleep(0.1)
@@ -179,7 +182,7 @@ class LeftPane:
 
     def playTrack(self, e: Event, songDict: dict):
         self.chosenSong = songDict
-        Aplayer(songDict, play=True)
+        Aplayer.init(songDict, play=True)
 
     def select(self, e: Event):
         clickedWidget = e.widget
