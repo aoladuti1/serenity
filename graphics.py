@@ -29,7 +29,6 @@ class LeftPane:
         self.chosenArtist = None
         self.chosenAlbum = None
         self.chosenSong = None
-        self.sSkipBuffer = []
         
 
     def drawAll(self):
@@ -68,7 +67,7 @@ class LeftPane:
         self.controls.configure(background=self.background)
         skip = tkintools.LabelButton(
             self.controls, 
-            onEnterFunc=self.wrapInSquares, 
+            onEnterFunc=self.wrapSquares, 
             clickFunc=lambda t=10: threading.Thread(
                 target=self.controlHandler, 
                 args=(Aplayer.seek(t),)
@@ -81,8 +80,6 @@ class LeftPane:
         time.sleep(0.1)
         if (function != None):
             function()
-        
-
     
     def drawBrowser(self):
         self.browser = ScrolledFrame(
@@ -130,9 +127,10 @@ class LeftPane:
         browserLabel.bind('<Double-Button-1>', dblClickFunc)
         return browserLabel    
 
-    def wrapInSquares(self, e: Event):
+    def wrapSquares(self, e: Event):
         text = e.widget.cget('text')
         e.widget.configure(text= '[' + text + ']')
+    
 
     def __killAndLoadAlbums(self, e: Event):
         for widget in self.browser.winfo_children():
