@@ -1,3 +1,4 @@
+from concurrent.futures import thread
 import copy
 import threading
 import time
@@ -68,10 +69,20 @@ class LeftPane:
         skip = tkintools.LabelButton(
             self.controls, 
             onEnterFunc=self.wrapInSquares, 
-            clickFunc=lambda e, t=10: Aplayer().seek(t),
+            clickFunc=lambda t=10: threading.Thread(
+                target=self.controlHandler, 
+                args=(Aplayer.seek(t),)
+                ).start(),
             text='++>')
         skip.bind('<Button-1>', )
         skip.grid()
+
+    def controlHandler(self, function):
+        time.sleep(0.1)
+        if (function != None):
+            function()
+        
+
     
     def drawBrowser(self):
         self.browser = ScrolledFrame(
