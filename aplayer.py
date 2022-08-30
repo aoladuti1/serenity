@@ -81,10 +81,10 @@ class Aplayer:
         It must be threaded. pauseplay() wraps it in a thread.
         """
         while (self.ctext != ''):
-            time.sleep(0.001)
             self.ctext = Aplayer.aplayer.stdout.readline()
             if self.ctext.startswith('A:'):
                 Aplayer.pos = floor(float(self.ctext.split()[1]))
+        Aplayer.pos = Aplayer.song['duration']
         return         
 
     def pauseplay(self):
@@ -104,7 +104,7 @@ class Aplayer:
             self.playing = False
         return ret
 
-    def seek(self, plusMinusTime):
+    def seek(plusMinusTime):
         timeLeft = Aplayer.song['duration'] - Aplayer.pos
         if plusMinusTime > timeLeft:
             plusMinusTime = timeLeft
@@ -113,7 +113,7 @@ class Aplayer:
         if startTime >= Aplayer.song['duration'] or startTime < 0:
             Aplayer.terminate()
             return
-        Aplayer(Aplayer.song, play=self.playing, args=['-ss', str(startTime)])
+        Aplayer.aplayer.stdin.write('seek ' + str(startTime) + ' 2\n')
 
     def setVolume(self, volume: int):
         """
