@@ -68,7 +68,7 @@ class LeftPane:
         skip = tkintools.LabelButton(
             self.controls, 
             onEnterFunc=self.wrapSquares, 
-            clickFunc=lambda t=10: self.controlThreader(Aplayer.seek(t)),
+            clickFunc=lambda t=10, type="+": self.controlThreader(Aplayer.seek(seconds=t,type=type)),
             text='++>')
         skip.bind('<Button-1>', )
         skip.grid()
@@ -80,7 +80,7 @@ class LeftPane:
                 ).start()
 
     def controlHandler(self, function):
-        time.sleep(0.1)
+        time.sleep(0.07)
         if (function != None):
             function()
     
@@ -109,9 +109,8 @@ class LeftPane:
             padx=(20,20), pady=(0,9), sticky=E
         )
         button = tkintools.LabelButton(
-            buttonFrame, text=text, padx=3, pady=0
+            buttonFrame, text=text, padx=3, pady=0, clickFunc=clickFunc
         )
-        button.bind('<Button-1>', clickFunc)
         button.grid()
         return buttonFrame
     
@@ -172,17 +171,13 @@ class LeftPane:
     
     def loadSongs(self):
         if self.fetchedSongs == None:
-            self.fetchedSongs = db.getSongsByAlbum(self.chosenAlbum)
+            self.fetchedSongs = db.getSongsByAlbum(self.chosenAlbum, self.chosenArtist)
         i = 0
         for song in self.fetchedSongs:
             name = song['track']  
             self.genBrowserLabel(i, name)
-            self.genBrowserButton(i, clickFunc=lambda e, arg=song : self.playTrack(e, arg))
+            self.genBrowserButton(i, clickFunc= lambda skipOnLoad=False, song=song: self.controlThreader(Aplayer.play(song, skipOnLoad)))
             i += 1
-
-    def playTrack(self, e: Event, songDict: dict):
-        self.chosenSong = songDict
-        Aplayer.init(songDict, play=True)
 
     def select(self, e: Event):
         clickedWidget = e.widget
