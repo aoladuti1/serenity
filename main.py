@@ -23,7 +23,7 @@ ttk.Label(root, text="hi gang",
         ).grid(sticky='nsew',column=1, row=0)
 
 def on_closing():
-    Aplayer.terminate()
+    Aplayer.kill()
     root.destroy()
 
 root.update()
