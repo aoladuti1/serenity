@@ -2,8 +2,10 @@ from concurrent.futures import thread
 import copy
 import threading
 import time
-from tkinter.font import ITALIC
+from tkinter.font import BOLD, ITALIC
 from tkinter import *
+from turtle import back, width
+from typing import Callable, Optional
 import ttkbootstrap as ttk
 from aplayer import Aplayer
 import tkintools
@@ -12,6 +14,14 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledFrame
 from config import *
 
+
+ARTISTS='artists'
+ALBUMS='albums'
+TRACKS='tracks'
+DEFAULT_SUBHEADER='Your library'
+SUBHEADER_TEXT_MAX_WIDTH = 42
+
+
 class LeftPane:
     def __init__(self, root: ttk.Window, background=COLOUR_DICT['dark']):
         self.root = root
@@ -19,17 +29,19 @@ class LeftPane:
         self.frame = None
         self.browser = None
         self.header = None
+        self.subbar = None
         self.subheader = None
         self.controls = None
+        self.backButton = None
         self.selCount = 0
         self.selWidget = None
         self.fetchedArtists = None
         self.fetchedAlbums = None
         self.fetchedSongs = None
-        self.chosenArtist = None
-        self.chosenAlbum = None
-        self.chosenSong = None
-        
+        self.chosenArtist = None # should never be NoneType after init
+        self.chosenAlbum = None # should never be NoneType after init
+        self.chosenSong = None # should never be NoneType after init
+        self.currentPage = ARTISTS
 
     def drawAll(self):
         self.drawFrame()
@@ -47,6 +59,7 @@ class LeftPane:
         self.frame.grid(column = 0, row=0, sticky='nsw', columnspan=1)
         self.frame.rowconfigure(3, weight=1) # browser is stretchy!
         self.frame.configure(background=self.background)
+        self.frame.grid_propagate(False)
     
     def drawHeader(self):
         self.header = ttk.Label(self.frame, text="serenity", bootstyle='primary')
@@ -57,25 +70,48 @@ class LeftPane:
         self.header.grid(column=0, row=0, sticky=W)
     
     def drawSubheader(self):
-        self.subheader = ttk.Label(self.frame, text="Your library")
-        self.subheader.configure(background=self.background)
-        self.subheader.grid(column=0, row=1, sticky=W)
-    
+        self.subbar = Frame(self.frame, width=LEFT_PANE_WIDTH)
+        self.subheader = ttk.Label(
+            self.subbar,text=DEFAULT_SUBHEADER, 
+            width=SUBHEADER_TEXT_MAX_WIDTH, background=self.background,
+            font=(DEFAULT_FONT_FAMILY,12)
+        )
+        self.backButton = tkintools.LabelButton(
+            self.subbar,
+            clickFG=COLOUR_DICT['info'],
+            clickBG=COLOUR_DICT['dark'],
+            clickFunc= self.goBack,
+            text='---',
+            font=(DEFAULT_FONT_FAMILY,12, BOLD)
+        )
+        self.subbar.configure(background=self.background)
+        self.subbar.columnconfigure(1, weight=0)        
+        self.subbar.grid(row=1, sticky=W)
+        self.subheader.grid(column=0, row=0, sticky=W)
+        self.backButton.grid(row=0, column=1, padx=20, sticky=E)
+
     def drawControls(self):
         self.controls = Frame(self.frame)
-        self.controls.grid()
+        self.controls.grid(row=2, pady=5)
         self.controls.configure(background=self.background)
-        skip = tkintools.LabelButton(
-            self.controls, 
+        seek = self.genControlButton(
+            clickFunc=lambda t=10, type="+": self.controlThreader(Aplayer.seek(seconds=t,type=type)),
+            text='++>'   
+        )
+        seek.grid(column=1, sticky=S)
+
+    def genControlButton(self, text: str, clickFunc: Callable):
+        return tkintools.LabelButton(
+            self.controls,
             onEnterFunc=self.wrapSquares,
             onLeaveFunc=self.unwrapSquares, 
             clickFG=COLOUR_DICT['info'],
             clickBG=COLOUR_DICT['dark'],
-            clickFunc=lambda t=10, type="+": self.controlThreader(Aplayer.seek(seconds=t,type=type)),
+            clickFunc=clickFunc,
             buttonReleaseFunc=lambda e: self.controlRelease(e),
-            text='++>'
+            text=text,
+            font=(DEFAULT_FONT_FAMILY,12, BOLD)
         )
-        skip.grid()
 
     def controlThreader(self, function):
         threading.Thread(
@@ -100,10 +136,7 @@ class LeftPane:
         )
         self.browser.columnconfigure(0, weight=1)
         self.browser.columnconfigure(1, weight=0)
-        self.browser.grid(row=3, sticky = NW)
-
-    def getDur(self):
-        return self.songDur
+        self.browser.grid(row=3, sticky = NW, columnspan=1)
 
     def genBrowserButton(self, row: int, text: str = 'play', clickFunc = None):
         buttonFrame = Frame(self.browser)
@@ -144,26 +177,55 @@ class LeftPane:
     def unwrapSquares(self, e: Event):
         text = e.widget.cget('text')
         if text.startswith('['):
-            e.widget.configure(text=text[1:-1])        
+            e.widget.configure(text=text[1:-1])
+        
+    def updateSubheader(self):
+        if self.currentPage == ARTISTS:
+            text=DEFAULT_SUBHEADER
+        elif self.currentPage == ALBUMS:
+            text=">> {}".format(self.chosenArtist)
+        elif self.currentPage == TRACKS:
+            text=">> {}\{}".format(self.chosenArtist, self.chosenAlbum)
+        if len(text) > SUBHEADER_TEXT_MAX_WIDTH:
+            text = text[0:SUBHEADER_TEXT_MAX_WIDTH-3] + '...'
+        self.subheader.configure(text=text)
+
+
+    def goBack(self):
+        if self.currentPage == TRACKS:
+            self.__killAndLoadAlbums() 
+        elif self.currentPage == ALBUMS:
+            self.__killAndLoadArtists()   
     
 
-    def __killAndLoadAlbums(self, e: Event):
-        for widget in self.browser.winfo_children():
-            if widget == e.widget:
-                self.chosenArtist = e.widget.cget('text')
+    def __killAndLoadAlbums(self, e: Event = None):
+        if e != None:
+            for widget in self.browser.winfo_children():
+                if widget == e.widget:
+                    self.chosenArtist = e.widget.cget('text')
         self.browser.grid_remove()
         self.drawBrowser()
         self.loadAlbums()
 
-    def __killAndLoadSongs(self, e: Event):
-        for widget in self.browser.winfo_children():
-            if widget == e.widget:
-                self.chosenAlbum = e.widget.cget('text')
+    def __killAndloadTracks(self, e: Event = None):
+        if e != None:
+            for widget in self.browser.winfo_children():
+                if widget == e.widget:
+                    self.chosenAlbum = e.widget.cget('text')
         self.browser.grid_remove()
         self.drawBrowser()
-        self.loadSongs()
+        self.loadTracks()
+    
+    def __killAndLoadArtists(self, e: Event = None):
+        self.browser.grid_remove()
+        self.drawBrowser()
+        self.loadArtists()
+
 
     def loadArtists(self):
+        self.backButton.configure(text="---")
+        self.currentPage = ARTISTS
+        self.updateSubheader()
         if self.fetchedArtists == None:
             self.fetchedArtists = db.getArtists()
         i = 0
@@ -174,23 +236,35 @@ class LeftPane:
             i += 1
     
     def loadAlbums(self):
+        self.backButton.configure(text="<--")
+        self.currentPage = ALBUMS
         self.fetchedAlbums = db.getAlbumsByArtist(self.chosenArtist)
+        self.updateSubheader()
         i = 0
         for tuple in self.fetchedAlbums:
             name = tuple[0]     
-            browserLabel = self.genBrowserLabel(i, name, self.__killAndLoadSongs)
+            browserLabel = self.genBrowserLabel(i, name, self.__killAndloadTracks)
             buttonFrame = self.genBrowserButton(i)
             i += 1        
     
-    def loadSongs(self):
-        if self.fetchedSongs == None:
-            self.fetchedSongs = db.getSongsByAlbum(self.chosenAlbum, self.chosenArtist)
+    def loadTracks(self):
+        self.currentPage = TRACKS
+        self.fetchedSongs = db.getSongsByAlbum(self.chosenAlbum, self.chosenArtist)
+        self.updateSubheader()
         i = 0
         for song in self.fetchedSongs:
             name = song['track']  
             self.genBrowserLabel(i, name)
-            self.genBrowserButton(i, clickFunc= lambda skipOnLoad=False, song=song: self.controlThreader(Aplayer.play(song, skipOnLoad)))
+            self.genBrowserButton(i, clickFunc=lambda song=song: self.playTrack(song=song))
             i += 1
+    
+    def playTrack(self, song):
+        self.chosenSong = song
+        self.controlThreader(
+            lambda song=song, skipOnLoad=True: 
+                Aplayer.play(song, skipOnLoad)
+        )
+
 
     def select(self, e: Event):
         clickedWidget = e.widget
