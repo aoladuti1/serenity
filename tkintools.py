@@ -57,7 +57,7 @@ class LabelButton(Label):
             self.onEnterFunc = self.default_on_enter
         if onLeaveFunc == None:
             self.onLeaveFunc = self.default_on_leave
-        if buttonReleaseFunc==None:
+        if buttonReleaseFunc == None:
             self.buttonReleaseFunc = self.onLeaveFunc
         self['background'] = defaultBG
         self['foreground'] = defaultFG

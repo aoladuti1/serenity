@@ -18,9 +18,10 @@ configureRoot(root)
 
 leftPane = LeftPane(root)
 leftPane.drawAll()
-ttk.Label(root, text="hi gang", 
-        font=(DEFAULT_FONT_FAMILY,100)
-        ).grid(sticky='nsew',column=1, row=0)
+ttk.Label(
+    root, text="hi gang", 
+    font=(DEFAULT_FONT_FAMILY,100)
+    ).grid(sticky='nsew',column=1, row=0)
 
 def on_closing():
     Aplayer.kill()
