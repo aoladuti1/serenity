@@ -1,107 +1,183 @@
-
-from asyncio.subprocess import PIPE
-from glob import glob
+from math import floor
+import os
+import shlex
 import subprocess
 from sys import stdout
-import time
 import threading
+import time
+from unittest import skip
+from wsgiref.util import application_uri
+
+def genShellString(string):
+    return "\"" + string.replace("\\", "\\\\") + "\""
 
 class Aplayer:
     MPLAYER_DIR = 'C:\\Users\\anton\\Downloads\\mplayer-svn-38151-x86_64\\mplayer.exe'
-    instances = 0
     aplayer = None
     startingVolume = 100
     startingSpeed = 1
+    procInstances = 0
+    songs = []
+    songIndex = 0
+    posText = ''
+    pos = 0
+    appendSong = False
+    songRunning = False
+    errorStop = False
+    args = []
 
     # Will open a aplayer.exe
     # args is a list of additional arguments after -slave and before the fully qualified filename
-    def genProcess(self, FQFN, args=[]):
+    def __genProcess(FQFN, args=[]):
         # -pausing 2 means that no matter what command is passed through the PIPE, 
-        # the pause/play state stays the same        
+        # the pause/play state stays the same
+        Aplayer.kill()        
         argslist = (
             [Aplayer.MPLAYER_DIR]
-          + [   '-slave', '-idle', '-pausing', '2', 
+          + [   '-slave', '-pausing', '2', '-idle', '-v',
                 '-volume', str(Aplayer.startingVolume),
                 '-speed', str(Aplayer.startingSpeed)    ] 
           + args 
           + [FQFN]
         )
+        Aplayer.procInstances += 1
         return subprocess.Popen(
             argslist, 
             stdout=subprocess.PIPE, 
             stdin=subprocess.PIPE,
-            stderr=stdout,
-            universal_newlines=True, 
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
             bufsize=1
             )
 
-    def pauseplayInit(self, playing: bool):
-        if playing == True:
-            threading.Thread(target=self.__playpriv).start()
-            self.playing = True
-        else:
-            Aplayer.aplayer.stdin.write('pause\n')
-
-
-    def __init__(self, FQFN='', play: bool=True, args: list=[]):
-        self.FQFN = FQFN
-        self.ctext = ''
-        if FQFN == '':
-            Aplayer.aplayer = None
-            self.playing = False
-            return
-        else:
-            Aplayer.aplayer = self.genProcess(FQFN, args)
-            self.playing = play
-        Aplayer.instances += 1
-        if Aplayer.instances > 1:
+    def kill():
+        if Aplayer.aplayer == None: return
+        while Aplayer.procInstances > 0:
             Aplayer.aplayer.terminate()
-        self.pauseplayInit(self.playing)
+            Aplayer.procInstances -= 1
+        Aplayer.songRunning=False
 
-    def terminate():
-        if Aplayer.aplayer != None:
-            Aplayer.aplayer.terminate()
+    def getSong() -> dict:
+        return Aplayer.songs[Aplayer.songIndex]
 
-    def pwrite(self, text='') -> bool:
-        sign = self.signsOfLife()
-        if sign:
-            Aplayer.aplayer.stdin.write(text + "\n")
-        return sign
+    def __loadFile(songDict: dict, skipOnLoad = False, args: list=[], init=False):
+        Aplayer.songs.append(songDict)
+        Aplayer.args = args
+        Aplayer.songs[len(Aplayer.songs) - 1] = songDict
+        song = songDict
+        if init == True:
+            Aplayer.ctext = '_'
+            Aplayer.aplayer = Aplayer.__genProcess(songDict['FQFN'], args)
+            Aplayer.playing = True
+            threading.Thread(target=Aplayer.__playpriv).start()
+            print("GEN")  
+        else:
+            Aplayer.pwrite(
+                "loadfile " 
+                + genShellString(songDict['FQFN']) + " 2"
+            )
+        if skipOnLoad == True: 
+            Aplayer.next()     
+
+    def next():
+        Aplayer.aplayer.stdin.write('pt_step 1 1\n')
+        Aplayer.pos = 0
+    
+    def prev():
+        Aplayer.aplayer.stdin.write('pt_step -1 1\n')
+        Aplayer.pos = 0
         
+    def play(songDict: dict, skipOnLoad = False, args: list=[]):
+        isInit = Aplayer.aplayer == None
+        if isInit == True:
+            print("init")
+            skipOnLoad = False
+        Aplayer.__loadFile(songDict, skipOnLoad, args, init=isInit)
 
-    def __playpriv(self):
+
+    def pwrite(text=''):
+        ret = Aplayer.signsOfLife()
+        if ret == True:
+            Aplayer.aplayer.stdin.write(r"{}".format(text) + "\n") 
+        return ret
+
+    def __playpriv():
         """
         This function will ensure the playing audio keeps going normally.
-        It must be threaded. pauseplay() wraps it in a thread.
+        It must be threaded.
         """
-        while self.signsOfLife():
-            self.ctext += Aplayer.aplayer.stdout.readline()
-        Aplayer.terminate()
-        return         
+        Aplayer.songRunning = True
+        firstRun = True
+        while (Aplayer.ctext != ''):
+            Aplayer.ctext = Aplayer.aplayer.stdout.readline()
+            print(str(Aplayer.songIndex))
+            if Aplayer.ctext.startswith('ds_fill') == True or Aplayer.errorStop==True:
 
-    def pauseplay(self):
-        self.pwrite('pause')
-        if self.playing == True:
-            self.playing = False
+                while Aplayer.aplayer.stdout.readline().startswith("ao_") == False: pass
+                print(str(Aplayer.songIndex) + " --- " + str(len(Aplayer.songs)))
+                if Aplayer.songIndex + 1 >= len(Aplayer.songs) and Aplayer.errorStop==False: #only / last song
+                    Aplayer.aplayer.stdin.write('stop\n')                   
+                    print("OOOO")
+                    Aplayer.errorStop = True
+                else:
+                    if firstRun == True:
+                        firstRun = False 
+                    else:
+                        Aplayer.songIndex += 1
+                    Aplayer.aplayer = Aplayer.__genProcess(Aplayer.getSong()['FQFN'])
+                    while Aplayer.aplayer.stdout.readline().startswith("Play") == False: ""
+                    print("AAAA")
+                    print("P")
+   
+                    Aplayer.songRunning = True
+                    Aplayer.playing = True
+                    Aplayer.errorStop = False
+            elif Aplayer.ctext.startswith('Play'):
+                print("P")
+                if firstRun == True:
+                    firstRun = False 
+                else:
+                    Aplayer.songIndex += 1
+                Aplayer.songRunning = True
+                Aplayer.playing = True
+            elif Aplayer.ctext.startswith('A:'):
+                Aplayer.pos = floor(float(Aplayer.ctext.split()[1]))
+            elif Aplayer.ctext.startswith('EOF'):
+                print("E")
+                Aplayer.songRunning = False
+                Aplayer.playing = False
+        print("KICK")
+        
+
+    def signsOfLife() -> bool:
+        if Aplayer.aplayer == None:
+            return False
+        elif Aplayer.aplayer.poll() != None:
+            return False 
         else:
-            self.playing = True
-            t1 = threading.Thread(target=self.__playpriv)
-            t1.start()    
+            ret = Aplayer.songRunning
+            if ret == False:
+                if Aplayer.aplayer.poll() == None: return True
+                Aplayer.playing = False
+            return ret
 
-    def clearctext(self):
-        self.ctext = ''
+    def seek(seconds, type=""):
+        print(str(Aplayer.songIndex))
+        if Aplayer.signsOfLife() == False: return
+        duration = Aplayer.songs[Aplayer.songIndex]['duration']
+        print("Dur" + str(Aplayer.getSong()['duration']) +" pos:" + str(Aplayer.pos))
+        if type == "+":
+            seekString = str(seconds)
+        elif type == "-":
+            seekString = type + str(seconds)
+        else:
+            if seconds < 0:
+                seekString = '0 2'
+            else:
+                seekString = str(seconds) + ' 2'
+        Aplayer.pwrite('seek ' + seekString)
 
-    def signsOfLife(self) -> bool:
-        time.sleep(0.01)
-        ret = Aplayer.aplayer.poll() == None
-        if ret == False:
-            self.playing = False
-        return ret
- 
-    def seek(self, plusMinusTime):
-        self.pwrite("seek " + str(plusMinusTime))
-
-    def setVolume(self, volume: int):
+    def setVolume(volume: int):
         """
         Sets the volume of the current audio (not the starting volume).
 
@@ -109,9 +185,9 @@ class Aplayer:
         
         volume: the new volume (between 1 and 100)
         """
-        self.pwrite('volume ' + str(volume) + ' 1\n')
+        Aplayer.pwrite('volume ' + str(volume) + ' 1\n')
     
-    def setSpeed(self, speed: int):
+    def setSpeed(speed: int):
         """
         Sets the volume of the current audio (not the starting volume).
 
@@ -119,15 +195,7 @@ class Aplayer:
         
         volume: the new volume (between 1 and 100)
         """
-        self.pwrite('speed_set ' + str(speed) + '\n')
+        Aplayer.pwrite('speed_set ' + str(speed) + '\n')
 
-    
-    def loadfile(self, FQFN, play: bool=True):
-        if FQFN == '':
-            return
-        self.FQFN = FQFN
-        Aplayer.terminate()
-        Aplayer.aplayer = self.genProcess(FQFN)
-        self.pauseplayInit(play)
 
         

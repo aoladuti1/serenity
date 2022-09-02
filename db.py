@@ -3,6 +3,17 @@ from typing import Sequence
 from config import *
 
 
+SONG_COLUMNS = (
+    'FQFN', 'artist', 'album', 'track', 'trackNum', 'duration',
+    'bitRateInfo', 'samplingRateInfo', 'channelCount', 'audioFormat', 'art'
+    'listens', 'startingSpeed'
+)
+
+def executeAndCommit(string: str, bindings: Sequence = []):
+    conn.cursor().execute(string, bindings)
+    conn.commit()
+
+
 def init():
     global conn
     conn = sqlite3.connect(DATABASE)
@@ -28,9 +39,11 @@ def init():
         """
     )
     cursor.execute(
+        # 0 = false, 1 = true for visible
         """
         CREATE TABLE if not exists Directories (
             directory text,
+            visible integer,
             PRIMARY KEY(directory)
         )
         """
@@ -48,10 +61,112 @@ def songRegistered(FQFN: str):
         ) 
     return cursor.fetchone() != None
 
-def deleteIf(conditions: dict, negateConditions = False, conjunction: bool = True):
+def directoryRegistered(path: str):
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT * FROM Directories 
+        WHERE directory = ?
+        LIMIT 1
+        """, [path]
+        ) 
+    return cursor.fetchone() != None
+
+def getArtists() -> list[tuple[str]]:
+    """
+    Returns:
+        a list of 1 dimensional tuples, each
+        containing the name of a registered artist, or
+        an empty list if there are no registered artists
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+    """
+    SELECT artist from Songs
+    GROUP BY artist
+    """
+    )
+    return cursor.fetchall()
+
+def getAlbumsByArtist(artist: str) -> list[tuple[str]]:
+    """
+    Returns:
+        a list of 1 dimensional tuples, each
+        containing the name of a registered artist, or
+        an empty list if there are no registered artists
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+    """
+    SELECT album from Songs
+    WHERE artist = ?
+    GROUP BY album
+    """,
+    [artist]
+    )
+    return cursor.fetchall()
+
+def __genSongDicts(fetchedRows: list):
+    """Takes a list of Song tuples returned by 
+    sqlite3.connection.cursor.fetchall()
+    and converts it into a list of dicts
+
+    Returns:
+        a list of dicts, each
+        containing a column name and value key-value pairing
+        for a registered song
+    """
+    fetchLen = len(fetchedRows)
+    ret = [{} for _ in range(fetchLen)]
+    for i in range(fetchLen):
+        for j in range(len(SONG_COLUMNS)):
+            ret[i][SONG_COLUMNS[j]] = fetchedRows[i][j]    
+    return ret
+
+def getSongsByArtist(artist: str) -> list[dict]:
+    """
+    Returns:
+        a list of dicts, each
+        containing a column name and value key-value pairing
+        for a registered song by the specified artist, or
+        an empty list if there are no registered songs
+        by that artist
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT * from Songs
+        WHERE artist = ?
+        """,
+        [artist]
+    )
+    fetch = cursor.fetchall()
+    return __genSongDicts(fetch)
+
+def getSongsByAlbum(album: str, artist: str) -> list[dict]:
+    """
+    Returns:
+        a list of dicts, each
+        containing a column name and value key-value pairing
+        for a registered song in the specified album, or
+        an empty list if there are no registered songs
+        in the album
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+    """
+    SELECT * from Songs
+    WHERE album = ? AND artist = ?
+    """,
+    [album,artist]
+    )
+    fetch = cursor.fetchall()
+    return __genSongDicts(fetch)
+
+def delSongIf(conditions: dict, negateConditions = False, conjunction: bool = True):
     """
     Deletes records from the database of Songs based off a dictionary of conditions.
-    e.g. deleteIf( {'artist' : 'Drake'} ) deletes all rows where Drake is the artist.
+    e.g. delSongIf( {'artist' : 'Drake'} ) deletes all rows where Drake is the artist.
     (equiv. sql: "WHERE artist = 'Drake'").
     The NOT operator puts NOT in front of every boolean operator (AND / OR etc.)
     like in the following example: if negateConditions == True and
@@ -81,13 +196,11 @@ def deleteIf(conditions: dict, negateConditions = False, conjunction: bool = Tru
     for key, val in conditions.items():
         body += negationText + key + ' = :' + key + spacedAndOr
     body = body[0:walk]
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM Songs WHERE " + body, conditions)
-    conn.commit()
+    executeAndCommit("DELETE FROM Songs WHERE " + body, conditions)
 
-def deleteIfAbsent(FQFN: str) -> bool: 
+def delSongIfAbsent(FQFN: str) -> bool: 
     """
-    Deletes music from the database that do not exist
+    Deletes songs from the database that do not exist
     based off their primary key FQFN (Fully Qualified Filename)
 
     Parameters:
@@ -99,15 +212,56 @@ def deleteIfAbsent(FQFN: str) -> bool:
     and False otherwise
 
     """
-    cursor = conn.cursor()
     if os.path.exists(FQFN) == True:
         return False
-    cursor.execute(
+    executeAndCommit(
         "DELETE FROM Songs " +
         "WHERE FQFN = ?", [FQFN]
     )
-    conn.commit()
     return True
+
+def delSong(FQFN: str):
+    """
+    Deletes a song from the database
+    
+    Parameters:
+    
+    path: the fully qualified filename of the song to delete
+    """
+    executeAndCommit(
+        "DELETE FROM Songs " +
+        "WHERE FQFN = ?", [FQFN]
+    )
+
+def hideDirectory(path: str):
+    """
+    Marks a music directory as invisible to Serenity in the database
+    (visible = 0)
+    
+    Parameters:
+    
+    path: directory to hide (ensure it ends with os.sep)
+    """
+    executeAndCommit(
+        "UPDATE Directories SET\n"
+      + "visible = 0\n"
+      + "WHERE directory = ?", [path]
+    )
+
+def showDirectory(path: str):
+    """
+    Marks a music directory as visible to Serenity in the database
+    (visible = 1)
+    
+    Parameters:
+    
+    path: directory to make visible (ensure it ends with os.sep)
+    """
+    executeAndCommit(
+        "UPDATE Directories SET\n"
+      + "visible = 1\n"
+      + "WHERE directory = ?", [path]
+    )
 
 
 def updateSong(newData: dict):
@@ -129,11 +283,7 @@ def updateSong(newData: dict):
         + body + "\n"
         + "WHERE FQFN = :FQFN\n"
     )
-
-    cursor = conn.cursor()
-    cursor.execute(fullSQL, newData)
-    conn.commit()
-    
+    executeAndCommit(fullSQL, newData)
 
 def addSong(songData: dict):
     """
@@ -146,8 +296,7 @@ def addSong(songData: dict):
     """
     if songData == None:
         return
-    cursor = conn.cursor()
-    cursor.execute(
+    executeAndCommit(
         """
         INSERT INTO Songs VALUES (
             :FQFN,
@@ -167,18 +316,18 @@ def addSong(songData: dict):
         """,
         songData
     )
-    conn.commit()
 
-def addDirectory(path: str):
+def addDirectory(path: str, visible: bool = True):
     """
     Adds a directory to the database to scan for music
     
     Parameters:
     
-    path: directory to add (ensure it ends with a slash)
+    path: directory to add (ensure it ends with os.sep)
     """
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO Directories VALUES (?)", [path])
-    conn.commit()  
+    executeAndCommit(
+        "INSERT INTO Directories VALUES (?,?)", 
+        [path, int(visible)]
+    ) 
 
 
