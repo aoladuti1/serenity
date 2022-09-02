@@ -50,7 +50,8 @@ def configureStyle():
 
 def configureFont():
     DEFAULT_FONT = ttk.font.nametofont("TkDefaultFont")
-    DEFAULT_FONT.configure(family=DEFAULT_FONT_FAMILY, size = 14)
+    DEFAULT_FONT_SIZE = 14
+    DEFAULT_FONT.configure(family=DEFAULT_FONT_FAMILY, size = DEFAULT_FONT_SIZE)
     
 def configureRoot(root: ttk.Window):
     width = root.winfo_screenwidth()
