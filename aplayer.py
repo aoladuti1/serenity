@@ -17,6 +17,7 @@ class Aplayer:
     startingVolume = 100
     startingSpeed = 1
     procInstances = 0
+    playing=False
     songs = []
     songIndex = 0
     posText = ''
@@ -70,7 +71,6 @@ class Aplayer:
             Aplayer.aplayer = Aplayer.__genProcess(songDict['FQFN'], args)
             Aplayer.playing = True
             threading.Thread(target=Aplayer.__playpriv).start()
-            print("GEN")  
         else:
             Aplayer.pwrite(
                 "loadfile " 
@@ -90,10 +90,13 @@ class Aplayer:
     def play(songDict: dict, skipOnLoad = False, args: list=[]):
         isInit = Aplayer.aplayer == None
         if isInit == True:
-            print("init")
             skipOnLoad = False
         Aplayer.__loadFile(songDict, skipOnLoad, args, init=isInit)
 
+    def pauseplay():
+        if Aplayer.songRunning == True:
+            Aplayer.playing = not Aplayer.playing
+            Aplayer.pwrite('pause')
 
     def pwrite(text=''):
         ret = Aplayer.signsOfLife()
@@ -110,14 +113,10 @@ class Aplayer:
         firstRun = True
         while (Aplayer.ctext != ''):
             Aplayer.ctext = Aplayer.aplayer.stdout.readline()
-            print(str(Aplayer.songIndex))
             if Aplayer.ctext.startswith('ds_fill') == True or Aplayer.errorStop==True:
-
                 while Aplayer.aplayer.stdout.readline().startswith("ao_") == False: pass
-                print(str(Aplayer.songIndex) + " --- " + str(len(Aplayer.songs)))
                 if Aplayer.songIndex + 1 >= len(Aplayer.songs) and Aplayer.errorStop==False: #only / last song
                     Aplayer.aplayer.stdin.write('stop\n')                   
-                    print("OOOO")
                     Aplayer.errorStop = True
                 else:
                     if firstRun == True:
@@ -126,14 +125,10 @@ class Aplayer:
                         Aplayer.songIndex += 1
                     Aplayer.aplayer = Aplayer.__genProcess(Aplayer.getSong()['FQFN'])
                     while Aplayer.aplayer.stdout.readline().startswith("Play") == False: ""
-                    print("AAAA")
-                    print("P")
-   
                     Aplayer.songRunning = True
                     Aplayer.playing = True
                     Aplayer.errorStop = False
             elif Aplayer.ctext.startswith('Play'):
-                print("P")
                 if firstRun == True:
                     firstRun = False 
                 else:
@@ -143,11 +138,8 @@ class Aplayer:
             elif Aplayer.ctext.startswith('A:'):
                 Aplayer.pos = floor(float(Aplayer.ctext.split()[1]))
             elif Aplayer.ctext.startswith('EOF'):
-                print("E")
                 Aplayer.songRunning = False
                 Aplayer.playing = False
-        print("KICK")
-        
 
     def signsOfLife() -> bool:
         if Aplayer.aplayer == None:
@@ -162,10 +154,7 @@ class Aplayer:
             return ret
 
     def seek(seconds, type=""):
-        print(str(Aplayer.songIndex))
         if Aplayer.signsOfLife() == False: return
-        duration = Aplayer.songs[Aplayer.songIndex]['duration']
-        print("Dur" + str(Aplayer.getSong()['duration']) +" pos:" + str(Aplayer.pos))
         if type == "+":
             seekString = str(seconds)
         elif type == "-":
