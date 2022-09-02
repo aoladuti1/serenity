@@ -67,10 +67,14 @@ class LeftPane:
         self.controls.configure(background=self.background)
         skip = tkintools.LabelButton(
             self.controls, 
-            onEnterFunc=self.wrapSquares, 
+            onEnterFunc=self.wrapSquares,
+            onLeaveFunc=self.unwrapSquares, 
+            clickFG=COLOUR_DICT['info'],
+            clickBG=COLOUR_DICT['dark'],
             clickFunc=lambda t=10, type="+": self.controlThreader(Aplayer.seek(seconds=t,type=type)),
-            text='++>')
-        skip.bind('<Button-1>', )
+            buttonReleaseFunc=lambda e: self.controlRelease(e),
+            text='++>'
+        )
         skip.grid()
 
     def controlThreader(self, function):
@@ -83,6 +87,10 @@ class LeftPane:
         time.sleep(0.07)
         if (function != None):
             function()
+
+    def controlRelease(self, e: Event):
+        e.widget.configure(foreground=COLOUR_DICT['primary'])
+        self.unwrapSquares(e)
     
     def drawBrowser(self):
         self.browser = ScrolledFrame(
@@ -125,13 +133,18 @@ class LeftPane:
             column=0, row=row, rowspan=1, sticky=NW
         )
         browserLabel.configure(background = self.background)
-        browserLabel.bind('<Button-1>', self.select)
+        browserLabel.bind('<Button-1>', lambda e: self.select(e))
         browserLabel.bind('<Double-Button-1>', dblClickFunc)
         return browserLabel    
 
     def wrapSquares(self, e: Event):
         text = e.widget.cget('text')
         e.widget.configure(text= '[' + text + ']')
+    
+    def unwrapSquares(self, e: Event):
+        text = e.widget.cget('text')
+        if text.startswith('['):
+            e.widget.configure(text=text[1:-1])        
     
 
     def __killAndLoadAlbums(self, e: Event):
