@@ -107,8 +107,9 @@ class LeftPane:
         padx = 7
         pause.grid(column=0, row=0, sticky=S, padx=padx)
         seek.grid(column=1, row=0, sticky=S, padx=padx)
-        threading.Thread(target=self.monitorPlaystate, daemon=True).start()
         self.pauseButton = pause
+        threading.Thread(target=self.monitorPlaystate, daemon=True).start()
+        
 
     def monitorPlaystate(self):
         while True:
