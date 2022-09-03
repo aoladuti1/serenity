@@ -10,8 +10,7 @@ class Aplayer:
     aplayer = None
     ctext='_'
     volume = 100
-    procSpeed = 1.0
-    appSpeed = 1.0
+    speed = 1.0
     procInstances = 0 # to ensure everything is kill()ed
     playing=False
     songs = []
@@ -28,13 +27,11 @@ class Aplayer:
         # -pausing 2 means that no matter what command is passed through the PIPE, 
         # the pause/play state stays the same
         Aplayer.kill()
-        if Aplayer.appSpeed == 1.0: # will not override app speed if it isn't 1
-            Aplayer.procSpeed = Aplayer.getSong()['startingSpeed']
         argslist = (
             [Aplayer.MPLAYER_DIR]
           + [   '-slave', '-pausing', '2', '-idle', '-v',
                 '-volume', str(Aplayer.volume),
-                '-speed', str(Aplayer.procSpeed)    ] 
+                '-speed', str(Aplayer.speed)    ] 
           + args 
           + [FQFN]
         )
@@ -81,11 +78,13 @@ class Aplayer:
             )     
 
     def next():
+        Aplayer.setSpeed(Aplayer.speed)
         Aplayer.pwrite('pt_step 1 1')
         Aplayer.pos = 0
     
     def prev():
-        Aplayer.aplayer.stdin.write('pt_step -1 1\n')
+        Aplayer.setSpeed(Aplayer.speed)
+        Aplayer.pwrite('pt_step -1 1\n')
         Aplayer.pos = 0
         
     def play(songDict: dict, queue = False, args: list=[]):
@@ -99,7 +98,17 @@ class Aplayer:
             Aplayer.playing = not Aplayer.playing
             Aplayer.pwrite('pause')
 
-    def pwrite(text=''):
+    def pwrite(text: str) -> bool:
+        """Writes raw string inputs to the mplayer subprocess,
+        after calling Aplayer.signsOfLife() to ensure the process
+        is writable.
+
+        Args:
+            text (str): the input to pass
+
+        Returns:
+            bool: returns the result of Aplayer.signsOfLife()
+        """
         ret = Aplayer.signsOfLife()
         if ret == True:
             Aplayer.aplayer.stdin.write(r"{}".format(text) + "\n") 
@@ -175,22 +184,24 @@ class Aplayer:
 
     def setVolume(volume: int):
         """
-        Sets the volume of the current audio (not the starting volume).
+        Sets the volume of the audio
 
         Parameters:
         
         volume: the new volume (between 1 and 100)
         """
+        Aplayer.volume = volume
         Aplayer.pwrite('volume ' + str(volume) + ' 1\n')
     
-    def setSpeed(speed: int):
+    def setSpeed(speed: float):
         """
-        Sets the volume of the current audio (not the starting volume).
+        Sets the speed of the audio
 
         Parameters:
         
-        volume: the new volume (between 1 and 100)
+        speed: the new speed multiplier (e.g. speed = 1.5 means 1.5x speed)
         """
+        Aplayer.speed = speed
         Aplayer.pwrite('speed_set ' + str(speed) + '\n')
 
 
