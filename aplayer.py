@@ -15,8 +15,8 @@ class Aplayer:
     playing=False
     songs = []
     songIndex = 0
+    firstRun = True
     pos = 0
-    exactPos = 0.0
     songRunning = False
     switchToSilence = False
     errorStop = False
@@ -80,15 +80,20 @@ class Aplayer:
             )     
 
     def next():
-        Aplayer.setSpeed(2)
-        Aplayer.pwrite('pt_step 1 1')
+
+        if Aplayer.pwrite('pt_step 1 1') == True:
+            Aplayer.setSpeed(Aplayer.speed)
         Aplayer.switchToSilence = len(Aplayer.songs) - Aplayer.songIndex <= 1
         Aplayer.pos = 0
     
     def prev():
-        Aplayer.setSpeed(Aplayer.speed)
-        Aplayer.pwrite('pt_step -1 1')
         Aplayer.switchToSilence = Aplayer.songIndex <= 0
+        if Aplayer.signsOfLife() == True:
+            if Aplayer.songIndex >= 1:
+                Aplayer.songIndex -= 1
+            Aplayer.firstRun = True
+            Aplayer.play(Aplayer.getSong())
+            Aplayer.setSpeed(Aplayer.speed)
         Aplayer.pos = 0
         
     def play(songDict: dict, queue = False, args: list=[]):
@@ -124,7 +129,6 @@ class Aplayer:
         It must be threaded, and only called once, ever.
         """
         Aplayer.songRunning = True
-        firstRun = True
         while (Aplayer.ctext != ''):
             Aplayer.ctext = Aplayer.aplayer.stdout.readline()
             if Aplayer.ctext.startswith('ds_fill') == True or Aplayer.errorStop==True:
@@ -135,8 +139,8 @@ class Aplayer:
                     Aplayer.errorStop = True
                 else:
                     # this branch is run EVERY time a song changes
-                    if firstRun == True:
-                        firstRun = False 
+                    if Aplayer.firstRun == True:
+                        Aplayer.firstRun = False 
                     elif Aplayer.queuing == True:
                         Aplayer.songIndex += 1
                     Aplayer.aplayer = Aplayer.__genProcess(Aplayer.getSong()['FQFN'], Aplayer.args)
@@ -144,9 +148,10 @@ class Aplayer:
                     Aplayer.songRunning = True
                     Aplayer.playing = True
                     Aplayer.errorStop = False
-            elif Aplayer.ctext.startswith('Play'):           
-                if firstRun == True:
-                    firstRun = False 
+            elif Aplayer.ctext.startswith('Play'):
+                Aplayer.setSpeed(Aplayer.speed)         
+                if Aplayer.firstRun == True:
+                    Aplayer.firstRun = False 
                 elif Aplayer.queuing == True:
                     Aplayer.songIndex += 1
                 Aplayer.songRunning = True
@@ -155,7 +160,7 @@ class Aplayer:
                 else:
                     Aplayer.playing = True
             elif Aplayer.ctext.startswith('A:'):
-                Aplayer.exactPos = float(Aplayer.ctext.split()[1])
+                exactPos = float(Aplayer.ctext.split()[1]) # class var in future
                 Aplayer.pos = floor(Aplayer.exactPos)
             elif Aplayer.ctext.startswith('EOF'):
                 Aplayer.songRunning = False
