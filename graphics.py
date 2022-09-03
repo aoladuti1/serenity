@@ -277,8 +277,8 @@ class LeftPane:
     def playTrack(self, song):
         self.chosenSong = song
         self.controlThreader(
-            lambda song=song, skipOnLoad=True: 
-                Aplayer.play(song, skipOnLoad)
+            lambda song=song, queue=True: 
+                Aplayer.play(song, queue)
         )
 
 
