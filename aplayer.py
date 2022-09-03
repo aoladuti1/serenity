@@ -10,14 +10,15 @@ class Aplayer:
     aplayer = None
     ctext='_'
     volume = 100
-    procSpeed = 1.0
-    appSpeed = 1.0
+    speed = 1.0
     procInstances = 0 # to ensure everything is kill()ed
     playing=False
     songs = []
     songIndex = 0
+    firstRun = True
     pos = 0
     songRunning = False
+    switchToSilence = False
     errorStop = False
     args = []
     queuing = False
@@ -28,13 +29,11 @@ class Aplayer:
         # -pausing 2 means that no matter what command is passed through the PIPE, 
         # the pause/play state stays the same
         Aplayer.kill()
-        if Aplayer.appSpeed == 1.0: # will not override app speed if it isn't 1
-            Aplayer.procSpeed = Aplayer.getSong()['startingSpeed']
         argslist = (
             [Aplayer.MPLAYER_DIR]
           + [   '-slave', '-pausing', '2', '-idle', '-v',
                 '-volume', str(Aplayer.volume),
-                '-speed', str(Aplayer.procSpeed)    ] 
+                '-speed', str(Aplayer.speed)    ] 
           + args 
           + [FQFN]
         )
@@ -81,11 +80,20 @@ class Aplayer:
             )     
 
     def next():
-        Aplayer.pwrite('pt_step 1 1')
+
+        if Aplayer.pwrite('pt_step 1 1') == True:
+            Aplayer.setSpeed(Aplayer.speed)
+        Aplayer.switchToSilence = len(Aplayer.songs) - Aplayer.songIndex <= 1
         Aplayer.pos = 0
     
     def prev():
-        Aplayer.aplayer.stdin.write('pt_step -1 1\n')
+        Aplayer.switchToSilence = Aplayer.songIndex <= 0
+        if Aplayer.signsOfLife() == True:
+            if Aplayer.songIndex >= 1:
+                Aplayer.songIndex -= 1
+            Aplayer.firstRun = True
+            Aplayer.play(Aplayer.getSong())
+            Aplayer.setSpeed(Aplayer.speed)
         Aplayer.pos = 0
         
     def play(songDict: dict, queue = False, args: list=[]):
@@ -99,7 +107,17 @@ class Aplayer:
             Aplayer.playing = not Aplayer.playing
             Aplayer.pwrite('pause')
 
-    def pwrite(text=''):
+    def pwrite(text: str) -> bool:
+        """Writes raw string inputs to the mplayer subprocess,
+        after calling Aplayer.signsOfLife() to ensure the process
+        is writable.
+
+        Args:
+            text (str): the input to pass
+
+        Returns:
+            bool: returns the result of Aplayer.signsOfLife()
+        """
         ret = Aplayer.signsOfLife()
         if ret == True:
             Aplayer.aplayer.stdin.write(r"{}".format(text) + "\n") 
@@ -111,18 +129,18 @@ class Aplayer:
         It must be threaded, and only called once, ever.
         """
         Aplayer.songRunning = True
-        firstRun = True
         while (Aplayer.ctext != ''):
             Aplayer.ctext = Aplayer.aplayer.stdout.readline()
             if Aplayer.ctext.startswith('ds_fill') == True or Aplayer.errorStop==True:
                 while Aplayer.aplayer.stdout.readline().startswith("ao_") == False: pass
                 if Aplayer.songIndex + 1 >= len(Aplayer.songs) and Aplayer.errorStop==False: #only / last song
+                    Aplayer.playing = False
                     Aplayer.aplayer.stdin.write('stop\n')
                     Aplayer.errorStop = True
                 else:
                     # this branch is run EVERY time a song changes
-                    if firstRun == True:
-                        firstRun = False 
+                    if Aplayer.firstRun == True:
+                        Aplayer.firstRun = False 
                     elif Aplayer.queuing == True:
                         Aplayer.songIndex += 1
                     Aplayer.aplayer = Aplayer.__genProcess(Aplayer.getSong()['FQFN'], Aplayer.args)
@@ -130,15 +148,20 @@ class Aplayer:
                     Aplayer.songRunning = True
                     Aplayer.playing = True
                     Aplayer.errorStop = False
-            elif Aplayer.ctext.startswith('Play'):           
-                if firstRun == True:
-                    firstRun = False 
+            elif Aplayer.ctext.startswith('Play'):
+                Aplayer.setSpeed(Aplayer.speed)         
+                if Aplayer.firstRun == True:
+                    Aplayer.firstRun = False 
                 elif Aplayer.queuing == True:
                     Aplayer.songIndex += 1
                 Aplayer.songRunning = True
-                Aplayer.playing = True
+                if Aplayer.switchToSilence == True and Aplayer.playing == False:
+                    Aplayer.switchToSilence = False
+                else:
+                    Aplayer.playing = True
             elif Aplayer.ctext.startswith('A:'):
-                Aplayer.pos = floor(float(Aplayer.ctext.split()[1]))
+                exactPos = float(Aplayer.ctext.split()[1]) # class var in future
+                Aplayer.pos = floor(Aplayer.exactPos)
             elif Aplayer.ctext.startswith('EOF'):
                 Aplayer.songRunning = False
                 Aplayer.playing = False
@@ -175,23 +198,25 @@ class Aplayer:
 
     def setVolume(volume: int):
         """
-        Sets the volume of the current audio (not the starting volume).
+        Sets the volume of the audio
 
         Parameters:
         
         volume: the new volume (between 1 and 100)
         """
-        Aplayer.pwrite('volume ' + str(volume) + ' 1\n')
+        Aplayer.volume = volume
+        Aplayer.pwrite('volume ' + str(volume) + ' 1')
     
-    def setSpeed(speed: int):
+    def setSpeed(speed: float):
         """
-        Sets the volume of the current audio (not the starting volume).
+        Sets the speed of the audio
 
         Parameters:
         
-        volume: the new volume (between 1 and 100)
+        speed: the new speed multiplier (e.g. speed = 1.5 means 1.5x speed)
         """
-        Aplayer.pwrite('speed_set ' + str(speed) + '\n')
+        Aplayer.speed = speed
+        Aplayer.pwrite('speed_set ' + str(speed))
 
 
         
