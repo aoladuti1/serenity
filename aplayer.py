@@ -16,7 +16,9 @@ class Aplayer:
     songs = []
     songIndex = 0
     pos = 0
+    exactPos = 0.0
     songRunning = False
+    switchToSilence = False
     errorStop = False
     args = []
     queuing = False
@@ -78,13 +80,15 @@ class Aplayer:
             )     
 
     def next():
-        Aplayer.setSpeed(Aplayer.speed)
+        Aplayer.setSpeed(2)
         Aplayer.pwrite('pt_step 1 1')
+        Aplayer.switchToSilence = len(Aplayer.songs) - Aplayer.songIndex <= 1
         Aplayer.pos = 0
     
     def prev():
         Aplayer.setSpeed(Aplayer.speed)
-        Aplayer.pwrite('pt_step -1 1\n')
+        Aplayer.pwrite('pt_step -1 1')
+        Aplayer.switchToSilence = Aplayer.songIndex > 0
         Aplayer.pos = 0
         
     def play(songDict: dict, queue = False, args: list=[]):
@@ -126,6 +130,7 @@ class Aplayer:
             if Aplayer.ctext.startswith('ds_fill') == True or Aplayer.errorStop==True:
                 while Aplayer.aplayer.stdout.readline().startswith("ao_") == False: pass
                 if Aplayer.songIndex + 1 >= len(Aplayer.songs) and Aplayer.errorStop==False: #only / last song
+                    Aplayer.playing = False
                     Aplayer.aplayer.stdin.write('stop\n')
                     Aplayer.errorStop = True
                 else:
@@ -145,9 +150,13 @@ class Aplayer:
                 elif Aplayer.queuing == True:
                     Aplayer.songIndex += 1
                 Aplayer.songRunning = True
-                Aplayer.playing = True
+                if Aplayer.switchToSilence == True and Aplayer.playing == False:
+                    Aplayer.switchToSilence = False
+                else:
+                    Aplayer.playing = True
             elif Aplayer.ctext.startswith('A:'):
-                Aplayer.pos = floor(float(Aplayer.ctext.split()[1]))
+                Aplayer.exactPos = float(Aplayer.ctext.split()[1])
+                Aplayer.pos = floor(Aplayer.exactPos)
             elif Aplayer.ctext.startswith('EOF'):
                 Aplayer.songRunning = False
                 Aplayer.playing = False
@@ -191,7 +200,7 @@ class Aplayer:
         volume: the new volume (between 1 and 100)
         """
         Aplayer.volume = volume
-        Aplayer.pwrite('volume ' + str(volume) + ' 1\n')
+        Aplayer.pwrite('volume ' + str(volume) + ' 1')
     
     def setSpeed(speed: float):
         """
@@ -202,7 +211,7 @@ class Aplayer:
         speed: the new speed multiplier (e.g. speed = 1.5 means 1.5x speed)
         """
         Aplayer.speed = speed
-        Aplayer.pwrite('speed_set ' + str(speed) + '\n')
+        Aplayer.pwrite('speed_set ' + str(speed))
 
 
         
