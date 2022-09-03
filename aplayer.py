@@ -88,7 +88,7 @@ class Aplayer:
     def prev():
         Aplayer.setSpeed(Aplayer.speed)
         Aplayer.pwrite('pt_step -1 1')
-        Aplayer.switchToSilence = Aplayer.songIndex > 0
+        Aplayer.switchToSilence = Aplayer.songIndex <= 0
         Aplayer.pos = 0
         
     def play(songDict: dict, queue = False, args: list=[]):
