@@ -20,6 +20,7 @@ ALBUMS='albums'
 TRACKS='tracks'
 DEFAULT_SUBHEADER='Your library'
 SUBHEADER_TEXT_MAX_WIDTH = 42
+PAUSE_LABELS=['|>','||']
 
 
 class LeftPane:
@@ -33,6 +34,7 @@ class LeftPane:
         self.subheader = None
         self.controls = None
         self.backButton = None
+        self.pauseButton = None
         self.selCount = 0
         self.selWidget = None
         self.fetchedArtists = None
@@ -74,7 +76,7 @@ class LeftPane:
         self.subheader = ttk.Label(
             self.subbar,text=DEFAULT_SUBHEADER, 
             width=SUBHEADER_TEXT_MAX_WIDTH, background=self.background,
-            font=(DEFAULT_FONT_FAMILY,12)
+            font=(DEFAULT_FONT_FAMILY,    12)
         )
         self.backButton = tkintools.LabelButton(
             self.subbar,
@@ -98,7 +100,21 @@ class LeftPane:
             clickFunc=lambda t=10, type="+": self.controlThreader(Aplayer.seek(seconds=t,type=type)),
             text='++>'   
         )
-        seek.grid(column=1, sticky=S)
+        pause = self.genControlButton(
+            clickFunc=lambda: self.controlThreader(Aplayer.pauseplay),
+            text='|>'
+        )
+        padx = 7
+        pause.grid(column=0, row=0, sticky=S, padx=padx)
+        seek.grid(column=1, row=0, sticky=S, padx=padx)
+        self.pauseButton = pause
+        threading.Thread(target=self.monitorPlaystate, daemon=True).start()
+        
+
+    def monitorPlaystate(self):
+        while True:
+            self.pauseButton.configure(text=PAUSE_LABELS[int(Aplayer.playing)])
+            time.sleep(1)
 
     def genControlButton(self, text: str, clickFunc: Callable):
         return tkintools.LabelButton(
@@ -261,8 +277,8 @@ class LeftPane:
     def playTrack(self, song):
         self.chosenSong = song
         self.controlThreader(
-            lambda song=song, skipOnLoad=True: 
-                Aplayer.play(song, skipOnLoad)
+            lambda song=song, queue=True: 
+                Aplayer.play(song, queue)
         )
 
 

@@ -256,7 +256,7 @@ def __fileProcessing(
             "audioFormat": audioFormat, 
             "art": art, 
             "listens": 0,
-            "startingSpeed": 1        
+            "startingSpeed": 1.0        
         }
         return songData
 

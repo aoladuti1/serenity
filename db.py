@@ -5,7 +5,7 @@ from config import *
 
 SONG_COLUMNS = (
     'FQFN', 'artist', 'album', 'track', 'trackNum', 'duration',
-    'bitRateInfo', 'samplingRateInfo', 'channelCount', 'audioFormat', 'art'
+    'bitRateInfo', 'samplingRateInfo', 'channelCount', 'audioFormat', 'art',
     'listens', 'startingSpeed'
 )
 
@@ -33,7 +33,7 @@ def init():
             audioFormat text COLLATE NOCASE,
             art text COLLATE NOCASE,
             listens integer,
-            startingSpeed integer,
+            startingSpeed REAL,
             PRIMARY KEY(FQFN)
         )
         """
