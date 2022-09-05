@@ -1,6 +1,7 @@
 from math import floor
 import subprocess
 import threading
+from turtle import position
 
 def genShellString(string):
     return "\"" + string.replace("\\", "\\\\") + "\""
@@ -161,7 +162,7 @@ class Aplayer:
                     Aplayer.playing = True
             elif Aplayer.ctext.startswith('A:'):
                 exactPos = float(Aplayer.ctext.split()[1]) # class var in future
-                Aplayer.pos = floor(Aplayer.exactPos)
+                Aplayer.pos = floor(exactPos)
             elif Aplayer.ctext.startswith('EOF'):
                 Aplayer.songRunning = False
                 Aplayer.playing = False
@@ -188,7 +189,11 @@ class Aplayer:
         if type == "+":
             seekString = str(seconds)
         elif type == "-":
-            seekString = type + str(seconds)
+            if Aplayer.pos == 0 and Aplayer.songIndex > 0:
+                Aplayer.prev()
+                return
+            else:
+                seekString = type + str(seconds)
         else:
             if seconds < 0:
                 seekString = '0 2'
