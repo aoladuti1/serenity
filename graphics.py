@@ -113,7 +113,9 @@ class LeftPane:
 
     def monitorPlaystate(self):
         while True:
-            self.pauseButton.configure(text=PAUSE_LABELS[int(Aplayer.playing)])
+            try:
+                self.pauseButton.configure(text=PAUSE_LABELS[int(Aplayer.playing)])
+            except: pass #tkinter complains about the threading but i don't care
             time.sleep(1)
 
     def genControlButton(self, text: str, clickFunc: Callable):
