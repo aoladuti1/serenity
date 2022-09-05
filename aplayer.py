@@ -136,6 +136,7 @@ class Aplayer:
                 while Aplayer.aplayer.stdout.readline().startswith("ao_") == False: pass
                 if Aplayer.songIndex + 1 >= len(Aplayer.songs) and Aplayer.errorStop==False: #only / last song
                     Aplayer.playing = False
+                    Aplayer.songRunning = False
                     Aplayer.aplayer.stdin.write('stop\n')
                     Aplayer.errorStop = True
                 else:
