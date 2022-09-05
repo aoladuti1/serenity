@@ -107,8 +107,9 @@ class LeftPane:
         padx = 7
         pause.grid(column=0, row=0, sticky=S, padx=padx)
         seek.grid(column=1, row=0, sticky=S, padx=padx)
-        threading.Thread(target=self.monitorPlaystate, daemon=True).start()
         self.pauseButton = pause
+        threading.Thread(target=self.monitorPlaystate, daemon=True).start()
+        
 
     def monitorPlaystate(self):
         while True:
@@ -276,8 +277,8 @@ class LeftPane:
     def playTrack(self, song):
         self.chosenSong = song
         self.controlThreader(
-            lambda song=song, skipOnLoad=True: 
-                Aplayer.play(song, skipOnLoad)
+            lambda song=song, queue=True: 
+                Aplayer.play(song, queue)
         )
 
 
