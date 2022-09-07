@@ -7,8 +7,6 @@ import threading
 import time
 
 LEN_LIST = -69
-
-
 def shuffle(list: list, fromIndex = 0, toIndex = LEN_LIST):
     if toIndex == LEN_LIST: toIndex = len(list)
     for i in range(toIndex - 1, fromIndex, -1):
@@ -19,6 +17,9 @@ def shuffle(list: list, fromIndex = 0, toIndex = LEN_LIST):
 
 class Aplayer:
     MPLAYER_DIR = 'C:\\Users\\anton\\Downloads\\mplayer-svn-38151-x86_64\\mplayer.exe'
+    TRACK = 'track'
+    QUEUE = 'queue'
+    VOID = ''
     aplayer = None
     ctext='_'
     volume = 100
@@ -29,15 +30,16 @@ class Aplayer:
     pos = 0
     songRunning = False
     queuing = False
-    repeatTrack = False
-    repeatQueue = False
     genNow = False
-    skipLock = False
+    repeatMode = VOID
+    __skipLock = False
     __shuffleSignal = False
     __firstRun = True
     __args = []
     __manualSwitch = False
     __forceStop = False
+    __repeatIndex = 0
+    __modes = [VOID, TRACK, QUEUE]
 
 
     # Will open a aplayer.exe
@@ -74,7 +76,7 @@ class Aplayer:
     def getSong() -> dict:
         return Aplayer.songs[Aplayer.songIndex]
 
-    def __loadFile(songDict: dict, queue = False, __args: list=[], init=False):
+    def __loadFile(songDict: dict, queue = False, args: list=[], init=False):
         if queue == False:
             Aplayer.songs = [songDict]
             Aplayer.songIndex = 0
@@ -82,30 +84,29 @@ class Aplayer:
             Aplayer.songs.append(songDict)
             Aplayer.songs[len(Aplayer.songs) - 1] = songDict
         Aplayer.queuing = queue
-        Aplayer.__args = __args
+        Aplayer.__args = args
         if init == True:
-            Aplayer.aplayer = Aplayer.__genProcess(songDict['FQFN'], __args)
+            Aplayer.aplayer = Aplayer.__genProcess(songDict['FQFN'], args)
             Aplayer.playing = True
             threading.Thread(target=Aplayer.__playpriv).start()
         elif queue == False:
             Aplayer.__forceStop = True
             Aplayer.__manualSwitch = True
         elif Aplayer.songRunning == False:
-            print("n")
             Aplayer.genNow = True
 
     # only call if signsOfLife() is True
     def __prepNext():
-        Aplayer.skipLock = True
+        Aplayer.__skipLock = True
         if not Aplayer.songIndex >= len(Aplayer.songs) - 1:
             Aplayer.songIndex += 1
             Aplayer.genNow = True
         else:
             print("X")
-            Aplayer.genNow = Aplayer.repeatTrack
+            Aplayer.genNow = Aplayer.repeatMode == Aplayer.TRACK
 
     def next(muteBeforeNext: bool = True):
-        if Aplayer.skipLock == True: return
+        if Aplayer.__skipLock == True: return
         if Aplayer.signsOfLife() == True:
             Aplayer.__prepNext()
             Aplayer.__manualSwitch = True
@@ -153,11 +154,16 @@ class Aplayer:
             Aplayer.aplayer.stdin.write(r"{}".format(text) + "\n") 
         return ret
 
+    def __toNextSong():
+        return  ((not Aplayer.songIndex >= len(Aplayer.songs)-1
+                or Aplayer.repeatMode == Aplayer.QUEUE) 
+                and not Aplayer.repeatMode == Aplayer.TRACK)
+
     def __handleOutput():
         if Aplayer.songRunning == True:
             Aplayer.ctext = Aplayer.aplayer.stdout.readline()
         if Aplayer.ctext.startswith('ds_fill') == True or Aplayer.__forceStop==True or not Aplayer.songRunning:
-            if not Aplayer.genNow: Aplayer.genNow = Aplayer.repeatTrack
+            if not Aplayer.genNow: Aplayer.genNow = Aplayer.repeatMode == Aplayer.TRACK
             if Aplayer.__manualSwitch == True:
                 pass
             elif Aplayer.songRunning == True:
@@ -165,8 +171,11 @@ class Aplayer:
             Aplayer.songRunning = False
             Aplayer.playing = False
             # this branch is run EVERY time a song changes
-            if not Aplayer.songIndex >= len(Aplayer.songs)-1 and Aplayer.repeatTrack == False: # we are going to next song
-                if Aplayer.__manualSwitch == False: # song ended naturally
+            if (Aplayer.__toNextSong() == True):
+                # we are going to next song
+                if Aplayer.songIndex >= len(Aplayer.songs) - 1: # means repeatMode is QUEUE
+                    Aplayer.songIndex = 0
+                elif Aplayer.__manualSwitch == False: # song ended naturally
                     Aplayer.songIndex += 1
                 Aplayer.aplayer = Aplayer.__genProcess(Aplayer.getSong()['FQFN'], Aplayer.__args)
                 while Aplayer.aplayer.stdout.readline().startswith("Play") == False: pass
@@ -183,7 +192,7 @@ class Aplayer:
                     Aplayer.songRunning = True
                     Aplayer.__forceStop = False
             Aplayer.__manualSwitch = False
-            Aplayer.skipLock = False
+            Aplayer.__skipLock = False
         elif Aplayer.ctext.startswith('A:'):
             exactPos = float(Aplayer.ctext.split()[1]) # class var in future
             Aplayer.pos = floor(exactPos)
@@ -231,7 +240,7 @@ class Aplayer:
 
     def seek(seconds: int, type=""):
         if type == "+":
-            if Aplayer.skipLock == True: return
+            if Aplayer.__skipLock == True: return
             if Aplayer.pos >= Aplayer.getSong()['duration']: return
             duration = Aplayer.getSong()['duration']
             if Aplayer.pos + seconds >= duration - 1:
@@ -248,7 +257,7 @@ class Aplayer:
             if seconds < 0:
                 seekString = '0 2'
             elif seconds >= Aplayer.getSong()['duration']:
-                if Aplayer.skipLock == True: return  
+                if Aplayer.__skipLock == True: return  
             else:
                 seekString = str(seconds) + ' 2'
         Aplayer.pwrite('seek ' + seekString)
@@ -262,6 +271,24 @@ class Aplayer:
 
     def shuffle():
         Aplayer.__shuffleSignal = True
+
+    def repeat():
+        """Repeats either the track, the queue
+        or not at all, depending on when it is called.
+        
+        The first repeat() call will repeat the current track and set
+        Aplayer.repeatMode to Aplayer.TRACK.  
+        The next repeat() call will repeat the whole queue instead,
+        and set Aplayer.repeatMode to Aplayer.QUEUE.
+        The repeat() call after that will stop all repetition and set
+        Aplayer.repeatMode to Aplayer.VOID (the empty string)
+        And then it cycles back round (call no. 4 == first repeat() call)
+        """
+        if Aplayer.__repeatIndex >= len(Aplayer.__modes) - 1: 
+            Aplayer.__repeatIndex = 0
+        else:
+            Aplayer.__repeatIndex += 1
+        Aplayer.repeatMode = Aplayer.__modes[Aplayer.__repeatIndex]
 
     def setVolume(volume: int):
         """
