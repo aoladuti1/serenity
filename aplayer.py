@@ -29,7 +29,8 @@ class Aplayer:
     pos = 0
     songRunning = False
     queuing = False
-    repeatSong = False
+    repeatTrack = False
+    repeatQueue = False
     genNow = False
     skipLock = False
     __shuffleSignal = False
@@ -101,7 +102,7 @@ class Aplayer:
             Aplayer.genNow = True
         else:
             print("X")
-            Aplayer.genNow = Aplayer.repeatSong
+            Aplayer.genNow = Aplayer.repeatTrack
 
     def next(muteBeforeNext: bool = True):
         if Aplayer.skipLock == True: return
@@ -156,7 +157,7 @@ class Aplayer:
         if Aplayer.songRunning == True:
             Aplayer.ctext = Aplayer.aplayer.stdout.readline()
         if Aplayer.ctext.startswith('ds_fill') == True or Aplayer.__forceStop==True or not Aplayer.songRunning:
-            if not Aplayer.genNow: Aplayer.genNow = Aplayer.repeatSong
+            if not Aplayer.genNow: Aplayer.genNow = Aplayer.repeatTrack
             if Aplayer.__manualSwitch == True:
                 pass
             elif Aplayer.songRunning == True:
@@ -164,7 +165,7 @@ class Aplayer:
             Aplayer.songRunning = False
             Aplayer.playing = False
             # this branch is run EVERY time a song changes
-            if not Aplayer.songIndex >= len(Aplayer.songs)-1 and Aplayer.repeatSong == False: # we are going to next song
+            if not Aplayer.songIndex >= len(Aplayer.songs)-1 and Aplayer.repeatTrack == False: # we are going to next song
                 if Aplayer.__manualSwitch == False: # song ended naturally
                     Aplayer.songIndex += 1
                 Aplayer.aplayer = Aplayer.__genProcess(Aplayer.getSong()['FQFN'], Aplayer.__args)
@@ -206,7 +207,6 @@ class Aplayer:
         while (Aplayer.ctext != ''):
             Aplayer.__handleOutput()
             if Aplayer.__shuffleSignal == True:
-                print('everyday im shufflin')
                 threading.Thread(target=Aplayer.__shuffle).start()
                 while (Aplayer.__shuffleSignal == True):
                     threading.Thread(target=Aplayer._handleOutput).start()
@@ -253,8 +253,6 @@ class Aplayer:
                 seekString = str(seconds) + ' 2'
         Aplayer.pwrite('seek ' + seekString)
     
-
-
     def __shuffle():
         list = Aplayer.songs.copy()
         fromIndex = Aplayer.songIndex + 1
