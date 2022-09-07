@@ -12,7 +12,7 @@ def shuffle(list: list, fromIndex = 0, toIndex = LEN_LIST):
     if toIndex == LEN_LIST: toIndex = len(list)
     for i in range(toIndex - 1, fromIndex, -1):
         temp = list[i]
-        j = random.randrange(0, i) 
+        j = random.randrange(fromIndex, i) 
         list[i] = list[j]
         list[j] = temp
 
