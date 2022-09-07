@@ -1,14 +1,12 @@
 
 from math import floor
-from multiprocessing.pool import ApplyResult
 import random
 from re import A
 import subprocess
 import threading
-from tkinter.tix import Tree
-from turtle import position
 
 LEN_LIST = -69
+
 
 def shuffle(list: list, fromIndex = 0, toIndex = LEN_LIST):
     if toIndex == LEN_LIST: toIndex = len(list)
@@ -31,12 +29,11 @@ class Aplayer:
     firstRun = True
     pos = 0
     songRunning = False
-    switchToSilence = False
     errorStop = False
     args = []
     queuing = False
     quickReload = False
-    repeat = False
+    repeat = True
     genNow = False
 
     # Will open a aplayer.exe
@@ -65,11 +62,13 @@ class Aplayer:
             )
 
     def kill():
+        # call only once
+        Aplayer.songRunning = True # breaks the idle playpriv loop
         if Aplayer.aplayer == None: return
         while Aplayer.procInstances > 0:
             Aplayer.aplayer.terminate()
             Aplayer.procInstances -= 1
-        Aplayer.songRunning=False
+        
 
     def getSong() -> dict:
         return Aplayer.songs[Aplayer.songIndex]
@@ -94,14 +93,20 @@ class Aplayer:
             print("n")
             Aplayer.genNow = True
 
-    def next():
-        Aplayer.switchToSilence = Aplayer.songIndex >= len(Aplayer.songs) - 1
+    # only call if signsOfLife() is True
+    def __prepNext():
+        if not Aplayer.songIndex >= len(Aplayer.songs) - 1:
+            Aplayer.songIndex += 1
+            Aplayer.genNow = True
+        else:
+            Aplayer.genNow = Aplayer.repeat
+
+    def next(muteBeforeNext: bool = True):
         if Aplayer.signsOfLife() == True:
-            if Aplayer.switchToSilence == False:
-                Aplayer.songIndex += 1
-                Aplayer.genNow = True
+            Aplayer.__prepNext()
             Aplayer.quickReload = True
-            Aplayer.aplayer.stdin.write('mute\n')
+            if muteBeforeNext == True:
+                Aplayer.aplayer.stdin.write('mute\n')
             Aplayer.aplayer.stdin.write('seek 101 1\n')
         Aplayer.pos = 0
     
@@ -153,8 +158,8 @@ class Aplayer:
         while (Aplayer.ctext != ''):
             if Aplayer.songRunning == True:
                 Aplayer.ctext = Aplayer.aplayer.stdout.readline()
-            
             if Aplayer.ctext.startswith('ds_fill') == True or Aplayer.errorStop==True or not Aplayer.songRunning:
+                if not Aplayer.genNow: Aplayer.genNow = Aplayer.repeat
                 if Aplayer.quickReload == True:
                     pass
                 elif Aplayer.songRunning == True:
@@ -162,7 +167,7 @@ class Aplayer:
                 Aplayer.songRunning = False
                 Aplayer.playing = False
                 # this branch is run EVERY time a song changes
-                if not Aplayer.repeat and not Aplayer.songIndex >= len(Aplayer.songs)-1: # we are going to next song
+                if not Aplayer.songIndex >= len(Aplayer.songs)-1: # we are going to next song
                     print("1")  
                     if Aplayer.genNow == True:
                         if Aplayer.quickReload == False: # song ended naturally
@@ -220,7 +225,7 @@ class Aplayer:
     def seek(seconds: int, type=""):
         if type == "+":
             if Aplayer.pos + seconds >= Aplayer.getSong()['duration'] - 1:
-                Aplayer.genNow = True # maybe replace with Aplayer.next()
+                Aplayer.__prepNext()
             seekString = str(seconds)
         elif type == "-":
             if Aplayer.pos == 0 and Aplayer.songIndex > 0:
@@ -232,7 +237,7 @@ class Aplayer:
             if seconds < 0:
                 seekString = '0 2'
             elif seconds >= Aplayer.getSong()['duration']:
-                Aplayer.genNow = True # maybe replace with Aplayer.next()
+                Aplayer.__prepNext()
             else:
                 seekString = str(seconds) + ' 2'
         Aplayer.pwrite('seek ' + seekString)
