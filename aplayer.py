@@ -1,10 +1,22 @@
+
 from math import floor
+from multiprocessing.pool import ApplyResult
+import random
+from re import A
 import subprocess
 import threading
+from tkinter.tix import Tree
 from turtle import position
 
-def genShellString(string):
-    return "\"" + string.replace("\\", "\\\\") + "\""
+LEN_LIST = -69
+
+def shuffle(list: list, fromIndex = 0, toIndex = LEN_LIST):
+    if toIndex == LEN_LIST: toIndex = len(list)
+    for i in range(toIndex - 1, fromIndex, -1):
+        temp = list[i]
+        j = random.randrange(0, i) 
+        list[i] = list[j]
+        list[j] = temp
 
 class Aplayer:
     MPLAYER_DIR = 'C:\\Users\\anton\\Downloads\\mplayer-svn-38151-x86_64\\mplayer.exe'
@@ -23,10 +35,14 @@ class Aplayer:
     errorStop = False
     args = []
     queuing = False
+    quickReload = False
+    repeat = False
+    genNow = False
 
     # Will open a aplayer.exe
     # args is a list of additional arguments after -slave and before the fully qualified filename
     def __genProcess(FQFN, args=[]):
+        print('gp')
         # -pausing 2 means that no matter what command is passed through the PIPE, 
         # the pause/play state stays the same
         Aplayer.kill()
@@ -71,30 +87,34 @@ class Aplayer:
             Aplayer.aplayer = Aplayer.__genProcess(songDict['FQFN'], args)
             Aplayer.playing = True
             threading.Thread(target=Aplayer.__playpriv).start()
-        else:
-            Aplayer.pwrite(
-                # mplayer syntax: loadfile <file> [zero or nonzero value]
-                # if it has a zero it will play immediately; queue==False as an int is 0
-                'loadfile {} {}'.format(
-                    genShellString(songDict['FQFN']), int(queue)
-                )
-            )     
+        elif queue == False:
+            Aplayer.errorStop = True
+            Aplayer.quickReload = True
+        elif Aplayer.songRunning == False:
+            print("n")
+            Aplayer.genNow = True
 
     def next():
-
-        if Aplayer.pwrite('pt_step 1 1') == True:
-            Aplayer.setSpeed(Aplayer.speed)
-        Aplayer.switchToSilence = len(Aplayer.songs) - Aplayer.songIndex <= 1
+        Aplayer.switchToSilence = Aplayer.songIndex >= len(Aplayer.songs) - 1
+        if Aplayer.signsOfLife() == True:
+            if Aplayer.switchToSilence == False:
+                Aplayer.songIndex += 1
+                Aplayer.genNow = True
+            Aplayer.quickReload = True
+            Aplayer.aplayer.stdin.write('mute\n')
+            Aplayer.aplayer.stdin.write('seek 101 1\n')
         Aplayer.pos = 0
     
     def prev():
-        Aplayer.switchToSilence = Aplayer.songIndex <= 0
         if Aplayer.signsOfLife() == True:
-            if Aplayer.songIndex >= 1:
+            if Aplayer.songIndex > 0:
+                Aplayer.quickReload = True
                 Aplayer.songIndex -= 1
-            Aplayer.firstRun = True
-            Aplayer.play(Aplayer.getSong())
-            Aplayer.setSpeed(Aplayer.speed)
+                Aplayer.genNow = True
+                Aplayer.aplayer.stdin.write('mute\n')
+                Aplayer.aplayer.stdin.write('seek 101 1\n')
+            else:
+                Aplayer.seek(0,"")
         Aplayer.pos = 0
         
     def play(songDict: dict, queue = False, args: list=[]):
@@ -131,42 +151,53 @@ class Aplayer:
         """
         Aplayer.songRunning = True
         while (Aplayer.ctext != ''):
-            Aplayer.ctext = Aplayer.aplayer.stdout.readline()
-            if Aplayer.ctext.startswith('ds_fill') == True or Aplayer.errorStop==True:
-                while Aplayer.aplayer.stdout.readline().startswith("ao_") == False: pass
-                if Aplayer.songIndex + 1 >= len(Aplayer.songs) and Aplayer.errorStop==False: #only / last song
-                    Aplayer.playing = False
-                    Aplayer.songRunning = False
-                    Aplayer.aplayer.stdin.write('stop\n')
-                    Aplayer.errorStop = True
+            if Aplayer.songRunning == True:
+                Aplayer.ctext = Aplayer.aplayer.stdout.readline()
+            
+            if Aplayer.ctext.startswith('ds_fill') == True or Aplayer.errorStop==True or not Aplayer.songRunning:
+                if Aplayer.quickReload == True:
+                    pass
+                elif Aplayer.songRunning == True:
+                    while Aplayer.aplayer.stdout.readline().startswith("ao_") == False: pass
+                Aplayer.songRunning = False
+                Aplayer.playing = False
+                # this branch is run EVERY time a song changes
+                if not Aplayer.repeat and not Aplayer.songIndex >= len(Aplayer.songs)-1: # we are going to next song
+                    print("1")  
+                    if Aplayer.genNow == True:
+                        if Aplayer.quickReload == False: # song ended naturally
+                            Aplayer.songIndex += 1
+                        Aplayer.aplayer = Aplayer.__genProcess(Aplayer.getSong()['FQFN'], Aplayer.args)
+                        while Aplayer.aplayer.stdout.readline().startswith("Play") == False: pass
+                        Aplayer.genNow = False
+                        Aplayer.songRunning = True
+                        Aplayer.playing = True
+                        Aplayer.errorStop = False
                 else:
-                    # this branch is run EVERY time a song changes
-                    if Aplayer.firstRun == True:
-                        Aplayer.firstRun = False 
-                    elif Aplayer.queuing == True:
-                        Aplayer.songIndex += 1
-                    Aplayer.aplayer = Aplayer.__genProcess(Aplayer.getSong()['FQFN'], Aplayer.args)
-                    while Aplayer.aplayer.stdout.readline().startswith("Play") == False: ""
-                    Aplayer.songRunning = True
-                    Aplayer.playing = True
-                    Aplayer.errorStop = False
-            elif Aplayer.ctext.startswith('Play'):
-                Aplayer.setSpeed(Aplayer.speed)         
-                if Aplayer.firstRun == True:
-                    Aplayer.firstRun = False 
-                elif Aplayer.queuing == True:
-                    Aplayer.songIndex += 1
-                Aplayer.songRunning = True
-                if Aplayer.switchToSilence == True and Aplayer.playing == False:
-                    Aplayer.switchToSilence = False
-                else:
-                    Aplayer.playing = True
+                    print("2")
+                    if Aplayer.genNow == True:
+                        print("XX")
+                        Aplayer.aplayer = Aplayer.__genProcess(Aplayer.getSong()['FQFN'], Aplayer.args)
+                        while Aplayer.aplayer.stdout.readline().startswith("Play") == False: pass
+                        Aplayer.genNow = False
+                        Aplayer.playing = True
+                        Aplayer.songRunning = True
+                        Aplayer.errorStop = False
+                Aplayer.quickReload = False
             elif Aplayer.ctext.startswith('A:'):
                 exactPos = float(Aplayer.ctext.split()[1]) # class var in future
                 Aplayer.pos = floor(exactPos)
             elif Aplayer.ctext.startswith('EOF'):
                 Aplayer.songRunning = False
                 Aplayer.playing = False
+            elif Aplayer.ctext.startswith('Play'):
+                Aplayer.songRunning = True
+                if Aplayer.firstRun == True:
+                    Aplayer.firstRun = False 
+                else:
+                    Aplayer.songIndex += 1
+                Aplayer.playing = True
+
 
     def signsOfLife() -> bool:
         """Checks if there is a live, writable mplayer subprocess
@@ -188,6 +219,8 @@ class Aplayer:
 
     def seek(seconds: int, type=""):
         if type == "+":
+            if Aplayer.pos + seconds >= Aplayer.getSong()['duration'] - 1:
+                Aplayer.genNow = True # maybe replace with Aplayer.next()
             seekString = str(seconds)
         elif type == "-":
             if Aplayer.pos == 0 and Aplayer.songIndex > 0:
@@ -198,9 +231,19 @@ class Aplayer:
         else:
             if seconds < 0:
                 seekString = '0 2'
+            elif seconds >= Aplayer.getSong()['duration']:
+                Aplayer.genNow = True # maybe replace with Aplayer.next()
             else:
                 seekString = str(seconds) + ' 2'
         Aplayer.pwrite('seek ' + seekString)
+    
+
+
+    def shuffle():
+        list = Aplayer.songs.copy()
+        fromIndex = Aplayer.songIndex + 1
+        shuffle(list, fromIndex)
+        Aplayer.songs = list
 
     def setVolume(volume: int):
         """
@@ -223,6 +266,3 @@ class Aplayer:
         """
         Aplayer.speed = speed
         Aplayer.pwrite('speed_set ' + str(speed))
-
-
-        
