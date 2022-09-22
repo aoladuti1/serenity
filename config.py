@@ -39,7 +39,7 @@ os.environ['PATH'] += DIR_PATH + os.sep + 'subprograms' +os.sep+'libmpv' + os.pa
 os.environ['PATH'] += DIR_PATH + 'subprograms' + os.sep + 'ffmpeg' + os.sep + 'bin' + os.pathsep
 
 #file paths
-DEFAULT_ART = ART_PATH + "default.jpeg"
+DEFAULT_ART = ART_PATH + "default" + os.sep + "default." + ART_FORMAT
 DATABASE = DIR_PATH + "databases" + os.sep + "data.sqlite"
 
 #gui
