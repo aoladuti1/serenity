@@ -34,17 +34,18 @@ def getAudioInfo(FQFN):
             return [bitRateInfo, samplingRateInfo, codec] #returning here is an optimization
     return ["0", "0", "0"]
 
-# Returns false if it fails to find or assign art
-# music is either the track name or album name, dependent on if isAlbum is true
-def dlArt(music, artist, album, isAlbum):
-
+def get_art_path(music, artist, album=UNKNOWN_ALBUM, isAlbum=False):
     if isAlbum is True:
         target = ART_PATH + artist + os.sep + music + os.sep + music + "." + ART_FORMAT
     else:
         target = ART_PATH + artist + os.sep + album + os.sep + music + "." + ART_FORMAT
+    return target
+
+# Returns false if it fails to find or assign art
+# music is either the track name or album name, dependent on if isAlbum is true
+def dlArt(music, artist, album, isAlbum):
+    target = get_art_path(music, artist, album, isAlbum)
     if os.path.exists(target) == True: return target
-    
-    
     artFile = DEFAULT_ART
     auth_manager = SpotifyClientCredentials(
         client_id=cred.CLIENT_ID,
@@ -139,20 +140,24 @@ def getTrackAndArtistInfo(song, folderName):
         except: ""
     return [artist, track, str(trackNum)]
 
-def getAlbum(folderName, folderIsAlbum):
-    if folderIsAlbum == True:
+def getAlbum(folderName, folderIsAlbum, artist):
+    if len(folderName.split(SPLITTER)) > 1:
+        if folderName.split(SPLITTER)[-2] == artist:
+            return folderName.split(SPLITTER)[-1]
+        elif folderIsAlbum is True:
             return folderName
-    try:
-        album = folderName.split(SPLITTER)[-2]
-    except IndexError:
-        album = UNKNOWN_ALBUM
-    return album    
+        else:
+            return UNKNOWN_ALBUM
+    elif folderIsAlbum is True:
+        return folderName
+    else:
+        return UNKNOWN_ALBUM
 
 
 def __getSongNoStructure(song, folderName, folderIsAlbum):
     info = getTrackAndArtistInfo(song, folderName)
     artist = info[0]
-    album = getAlbum(folderName, folderIsAlbum)
+    album = getAlbum(folderName, folderIsAlbum, artist)
     track = info[1]
     trackNum = info[2]
     return [artist, album, track, trackNum] 
@@ -349,7 +354,7 @@ def addFolder(directory: str, foldersAreAlbums = False, AAT_structure = False,
             db.addSong(songData)
         if i == 0:
             if db.directoryRegistered(fileDir) == False:
-                db.addDirectory(fileDir, folder_is_album=foldersAreAlbums, AAT_structure_structure=AAT_structure)
+                db.addDirectory(fileDir, folder_is_album=foldersAreAlbums, AAT_structure=AAT_structure)
             i = 1
         
 
