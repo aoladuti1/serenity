@@ -5,7 +5,7 @@ from config import *
 
 SONG_COLUMNS = (
     'FQFN', 'artist', 'album', 'track', 'trackNum', 'duration',
-    'bitRateInfo', 'samplingRateInfo', 'channelCount', 'audioFormat', 'art'
+    'bitRateInfo', 'samplingRateInfo', 'channelCount', 'audioFormat', 'art',
     'listens', 'startingSpeed'
 )
 
@@ -33,7 +33,7 @@ def init():
             audioFormat text COLLATE NOCASE,
             art text COLLATE NOCASE,
             listens integer,
-            startingSpeed integer,
+            startingSpeed REAL,
             PRIMARY KEY(FQFN)
         )
         """
@@ -143,7 +143,7 @@ def getSongsByArtist(artist: str) -> list[dict]:
     fetch = cursor.fetchall()
     return __genSongDicts(fetch)
 
-def getSongsByAlbum(album: str) -> list[dict]:
+def getSongsByAlbum(album: str, artist: str) -> list[dict]:
     """
     Returns:
         a list of dicts, each
@@ -156,9 +156,9 @@ def getSongsByAlbum(album: str) -> list[dict]:
     cursor.execute(
     """
     SELECT * from Songs
-    WHERE album = ?
+    WHERE album = ? AND artist = ?
     """,
-    [album]
+    [album,artist]
     )
     fetch = cursor.fetchall()
     return __genSongDicts(fetch)
