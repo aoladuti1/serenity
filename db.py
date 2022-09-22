@@ -287,7 +287,7 @@ def addSong(songData: dict):
         songData
     ) 
 
-def addDirectory(path: str, AAT_structure: bool, folder_is_album: bool):
+def addDirectory(path: str, folder_is_album: bool, AAT_structure: bool, include_subfolders = True):
     if AAT_structure is True:
         i = 2
     elif folder_is_album is True:
