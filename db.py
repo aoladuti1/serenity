@@ -4,9 +4,9 @@ from config import *
 
 
 SONG_COLUMNS = (
-    'FQFN', 'artist', 'album', 'track', 'trackNum', 'duration',
-    'bitRateInfo', 'samplingRateInfo', 'channelCount', 'audioFormat', 'art',
-    'listens', 'startingSpeed'
+    'FQFN', 'artist', 'album', 'track', 'trackNum',
+    'bitRateInfo', 'samplingRateInfo', 'codec', 'art',
+    'listens'
 )
 
 def executeAndCommit(string: str, bindings: Sequence = []):
@@ -21,29 +21,26 @@ def init():
     cursor.execute(
         """
         CREATE TABLE if not exists Songs (
-            FQFN text COLLATE NOCASE,
+            FQFN text,
             artist text COLLATE NOCASE,
             album text COLLATE NOCASE,
             track text COLLATE NOCASE,
             trackNum integer,
-            duration integer,
-            bitRateInfo text COLLATE NOCASE,
-            samplingRateInfo text COLLATE NOCASE,
-            channelCount integer,
-            audioFormat text COLLATE NOCASE,
+            bitRateInfo text,
+            samplingRateInfo text,
+            codec text,
             art text COLLATE NOCASE,
             listens integer,
-            startingSpeed REAL,
             PRIMARY KEY(FQFN)
         )
         """
     )
     cursor.execute(
-        # 0 = false, 1 = true for visible
+        # 0 = not structured/album, 1 = album, 2 = structured for structure
         """
         CREATE TABLE if not exists Directories (
             directory text,
-            visible integer,
+            structure integer,
             PRIMARY KEY(directory)
         )
         """
@@ -69,7 +66,7 @@ def directoryRegistered(path: str):
         WHERE directory = ?
         LIMIT 1
         """, [path]
-        ) 
+    ) 
     return cursor.fetchone() != None
 
 def getArtists() -> list[tuple[str]]:
@@ -198,6 +195,12 @@ def delSongIf(conditions: dict, negateConditions = False, conjunction: bool = Tr
     body = body[0:walk]
     executeAndCommit("DELETE FROM Songs WHERE " + body, conditions)
 
+def delDirectory(path: str):
+    executeAndCommit(
+        "DELETE FROM Directories " +
+        "WHERE directory = ?", [path]
+    )    
+
 def delSongIfAbsent(FQFN: str) -> bool: 
     """
     Deletes songs from the database that do not exist
@@ -231,36 +234,6 @@ def delSong(FQFN: str):
     executeAndCommit(
         "DELETE FROM Songs " +
         "WHERE FQFN = ?", [FQFN]
-    )
-
-def hideDirectory(path: str):
-    """
-    Marks a music directory as invisible to Serenity in the database
-    (visible = 0)
-    
-    Parameters:
-    
-    path: directory to hide (ensure it ends with os.sep)
-    """
-    executeAndCommit(
-        "UPDATE Directories SET\n"
-      + "visible = 0\n"
-      + "WHERE directory = ?", [path]
-    )
-
-def showDirectory(path: str):
-    """
-    Marks a music directory as visible to Serenity in the database
-    (visible = 1)
-    
-    Parameters:
-    
-    path: directory to make visible (ensure it ends with os.sep)
-    """
-    executeAndCommit(
-        "UPDATE Directories SET\n"
-      + "visible = 1\n"
-      + "WHERE directory = ?", [path]
     )
 
 
@@ -304,20 +277,23 @@ def addSong(songData: dict):
             :album,
             :track,
             :trackNum,
-            :duration,
             :bitRateInfo,
             :samplingRateInfo,
-            :channelCount,
-            :audioFormat,
+            :codec,
             :art,
-            :listens,
-            :startingSpeed
+            :listens
         )
         """,
         songData
-    )
+    ) 
 
-def addDirectory(path: str, visible: bool = True):
+def addDirectory(path: str, is_structured: bool, folder_is_album: bool):
+    if is_structured is True:
+        i = 2
+    elif folder_is_album is True:
+        i = 1
+    else:
+        i = 0
     """
     Adds a directory to the database to scan for music
     
@@ -327,7 +303,5 @@ def addDirectory(path: str, visible: bool = True):
     """
     executeAndCommit(
         "INSERT INTO Directories VALUES (?,?)", 
-        [path, int(visible)]
-    ) 
-
-
+        [path, i]
+    )
