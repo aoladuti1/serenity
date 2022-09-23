@@ -321,6 +321,7 @@ class Aplayer:
             playlist_name = playlist_title + PLAYLIST_EXTENSION
         with open(PLAYLISTS_PATH + playlist_name, 'w') as pl:
             for filename in Aplayer.player.playlist_filenames:
+                os.makedirs(os.path.dirname(pl), exist_ok=True)
                 pl.write(filename)
 
     def save_current_playlist():
