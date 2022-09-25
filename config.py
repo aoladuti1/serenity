@@ -32,7 +32,8 @@ UNKNOWN_ALBUM_ARTIST = "---"
 DIR_PATH = os.path.dirname(os.path.realpath(__file__)) + os.sep #path to config w/ slash appended
 ART_PATH = DIR_PATH + "art" + os.sep #should change to os.cwd() + "art" + os.sep in future
 PLAYLISTS_PATH = DIR_PATH + 'playlists' + os.sep
-DOWNLOAD_PATH = DIR_PATH + '-Downloads-' + os.sep
+DL_FOLDER_NAME = '-downloads-'
+DOWNLOAD_PATH = DIR_PATH + DL_FOLDER_NAME + os.sep
 
 #modifying PATH
 os.environ['PATH'] += DIR_PATH + os.sep + 'subprograms' +os.sep+'libmpv' + os.pathsep
