@@ -3,19 +3,19 @@ import math
 from config import *
 from PIL import Image
 from pathlib import Path
-import pathlib
 import os
 import time
 import mpv
 import threading
 import yt_dlp
+import youtube_title_parse as ytp
 
 PLAYLIST_EXTENSION = '.m3u'
 
 
 def convertImage(filename):
     while not os.path.exists(filename):
-        time.sleep(1)
+        time.sleep(0.1)
     if filename.endswith(ART_FORMAT):
         savepath = filename
     else:
@@ -24,7 +24,6 @@ def convertImage(filename):
         rgb_im = im.convert('RGB')
         rgb_im.save(savepath)
         os.remove(filename)
-    ThumbnailConverter.converted_thumb_paths.append(savepath)
 
 
 class VoidLogger(object):
@@ -40,9 +39,6 @@ class VoidLogger(object):
 
 
 class ThumbnailConverter(object):
-    CURRENT_THUMB_INDEX = -1
-    converted_thumb_paths = []
-
     def debug(msg):
         fine_msg = msg[7::]
         if not fine_msg.startswith('Writing video th'):
@@ -217,16 +213,32 @@ class Aplayer:
     def gen_online_song():
         pass  # TODO: IMPLEMENT
 
-    def _validate_title(urls: list, known_title: str = '') -> str:
+    def _validate_title(url: str, known_title: str = '') -> str:
         if known_title != '' and '|' in known_title is False:
             return known_title
-        title = yt_dlp.YoutubeDL(
-            {
-                'logger': VoidLogger,
-                'skip_download': True
-            }
-        ).extract_info(urls[0], download=False).get('title', None)
+        try:
+            title = yt_dlp.YoutubeDL(
+                {
+                    'logger': VoidLogger,
+                    'skip_download': True
+                }
+            ).extract_info(url, download=False).get('title', None)
+        except Exception:
+            return ''
         return title.replace("|", "¦")
+    
+    def get_artist_track(title):
+        options = {
+            'defaultArtist': UNKNOWN_ARTIST,
+            'defaultTitle': title
+        }
+        return ytp.get_artist_title(title, options)
+
+    def get_site_from_url(url: str):
+        shrunk_url = url.rpartition('://www.')[2]
+        if shrunk_url.startswith('http'):
+            shrunk_url = url.rpartition('://')[2]
+        return shrunk_url.split('/', 1)[0]
 
     def download_thumbnail(urls: list):
         """
@@ -236,22 +248,28 @@ class Aplayer:
 
         This usually should not be threaded from an Aplayer function
         if this art is desired for immediate use.
+
+        Returns:
+            The path to the downloaded thumbnail, or the empty string if 
+            it was not downloaded.
         """
-        try:
-            title = Aplayer._validate_title(urls)
-            index = ThumbnailConverter.CURRENT_THUMB_INDEX + 1
-            tdl = yt_dlp.YoutubeDL({
-                'outtmpl': ART_PATH + title,  # TODO -> ART_PATH/-Downloads-
-                'writethumbnail': True,
-                "logger": ThumbnailConverter,
-                'skip_download': True
-            })
-            tdl.download(urls)
-        except Exception:
-            pass
-        while not index <= len(ThumbnailConverter.converted_thumb_paths):
+        title = Aplayer._validate_title(urls[0])
+        if title == '':
+            return ''
+        artist, track = Aplayer.get_artist_track(title)
+        dl_path = ART_PATH + DL_FOLDER_NAME + os.sep + artist + os.sep + track
+        os.makedirs(os.path.dirname(dl_path), exist_ok=True)
+        tdl = yt_dlp.YoutubeDL({
+            'outtmpl': dl_path,  # TODO -> ART_PATH/-Downloads-
+            'writethumbnail': True,
+            "logger": ThumbnailConverter,
+            'skip_download': True
+        })
+        tdl.download(urls)
+        full_path = dl_path + '.' + ART_FORMAT
+        while not path_exists(full_path):
             time.sleep(0.1)
-        ThumbnailConverter.CURRENT_THUMB_INDEX += 1
+        return full_path
         # createSongDict(ThumbnailConverter.converted_thumb_paths[index]) thing
 
     def _is_download_index_writable() -> bool:
@@ -263,7 +281,6 @@ class Aplayer:
             True if the download index is in an acceptable range
             and False otherwise
         """
-        print(Aplayer._download_index)
         return (
             Aplayer._download_index < len(Aplayer._download_queue_titles) - 1
             and len(Aplayer._download_queue_titles) > 0
@@ -273,15 +290,15 @@ class Aplayer:
         #  if no known title exists, it'll generate one
         dl_index = Aplayer._download_index + 1
         try:
-            title = Aplayer._validate_title(urls, known_title)
+            title = Aplayer._validate_title(urls[0], known_title)
+            artist, track = Aplayer.get_artist_track(title)
         except Exception:
             return
         options = Aplayer.YT_DLP_OPTIONS.copy()
-        options['outtmpl'] = DOWNLOAD_PATH + title + '.%(ext)s'
+        dl_path = DOWNLOAD_PATH + artist + os.sep + track
+        options['outtmpl'] = dl_path + '.%(ext)s'
         downloader = yt_dlp.YoutubeDL(options)
-        if not path_exists("{}{}.{}".format(
-                DOWNLOAD_PATH, title, DOWNLOADS_CODEC)):
-            Aplayer._downloads_finished = False
+        if not path_exists("{}.{}".format(dl_path, DOWNLOADS_CODEC)):
             with downloader as dl:
                 try:
                     dl.add_progress_hook(Aplayer._prog_hook)
@@ -297,9 +314,11 @@ class Aplayer:
                 except Exception:
                     pass
 
-    def loadlist(playlist_title: str, pause_on_load: bool = False):
+    def loadlist(
+            playlist_title: str, index: int = -1, pause_on_load: bool = False):
         Aplayer._loading_list = True
         Aplayer.clear_subqueue()
+        index_chosen = index != -1
         playlist_path = PLAYLISTS_PATH + playlist_title + PLAYLIST_EXTENSION
         with open(playlist_path, 'r') as pl:
             Aplayer.online_queue = pl.readline().startswith('https:') is True
@@ -309,11 +328,20 @@ class Aplayer:
         if Aplayer.is_paused() != pause_on_load:
             Aplayer.pauseplay()
         if Aplayer._is_shuffling is True:
-            Aplayer.player.playlist_shuffle()
+            if index_chosen is False:
+                Aplayer.player.playlist_shuffle()
+                Aplayer.player.playlist_play_index(0)
+            else:
+                Aplayer.player.playlist_play_index(index)
+                Aplayer.player.playlist_shuffle()
+                Aplayer._mpv_wait()
+                Aplayer.playlist_move(Aplayer.get_playlist_pos(), 0)
+        elif index_chosen is True:
+            Aplayer.player.playlist_play_index(index)
             Aplayer._mpv_wait()
-            Aplayer.player.playlist_play_index(0)
         else:
             Aplayer._mpv_wait()
+        Aplayer._mpv_wait()
 
     def savelist(playlist_title: str):
         playlist_name = playlist_title
@@ -340,6 +368,7 @@ class Aplayer:
     def rename_current_playlist(new_playlist_title: str):
         Aplayer.rename_playlist(
             Aplayer.get_current_playlist_title(), new_playlist_title)
+        Aplayer._current_playlist_title = new_playlist_title
 
     def get_playlist_names() -> list:
         ret = []
@@ -392,7 +421,7 @@ class Aplayer:
         duration = Aplayer.get_duration()
         time_pos = Aplayer.get_time_pos()
         if duration == -1 or not Aplayer.is_active():
-            return False
+            return
         if relative is True:
             if time_pos + seconds >= duration - 1:
                 Aplayer.next()
@@ -407,7 +436,6 @@ class Aplayer:
                 Aplayer.prev()
             else:
                 Aplayer.player.seek(seconds, 'absolute')
-        return
 
     def get_duration() -> float:
         ret = Aplayer.player._get_property('duration')
@@ -484,11 +512,10 @@ class Aplayer:
             Aplayer.player._set_property('loop-playlist', False)
 
     def shuffle():
-        if Aplayer.is_loaded():
-            if not Aplayer._is_shuffling:
-                Aplayer.player.playlist_shuffle()
-            else:
-                Aplayer.player.playlist_unshuffle()
+        if Aplayer._is_shuffling is False:
+            Aplayer.player.playlist_shuffle()
+        else:
+            Aplayer.player.playlist_unshuffle()
         Aplayer._is_shuffling = not Aplayer._is_shuffling
         return Aplayer._is_shuffling
 
