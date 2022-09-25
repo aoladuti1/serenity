@@ -192,6 +192,7 @@ class Aplayer:
         else:
             play_type = 'append-play'
         # TODO: IF ONLINE DOWNLOAD THUMBNAIL HERE
+        title = Aplayer.get_title_from_file(filename)
         Aplayer.player.loadfile(filename, play_type)
         new_playlist_count = Aplayer.get_playlist_count()
         if queue is True and new_playlist_count > 1:
@@ -205,17 +206,18 @@ class Aplayer:
             Aplayer.player.playlist_remove()
         Aplayer.online_queue = online
         if online is True and Aplayer.dl_on_stream is True:
-            t = threading.Thread(
+            if Aplayer.download_thumbnail([filename]) is True:
+                t = threading.Thread(
                     target=Aplayer.download_to_audio, args=([filename], ''))
-            t.start()
+                t.start()
         Aplayer._mpv_wait()
 
     def gen_online_song():
         pass  # TODO: IMPLEMENT
 
     def _validate_title(url: str, known_title: str = '') -> str:
-        if known_title != '' and '|' in known_title is False:
-            return known_title
+        if known_title != '':
+            return known_title.replace("|", "¦")
         try:
             title = yt_dlp.YoutubeDL(
                 {
@@ -226,7 +228,22 @@ class Aplayer:
         except Exception:
             return ''
         return title.replace("|", "¦")
-    
+
+    def get_title_from_file(filename: str = ''):
+        if filename == '':
+            filename = Aplayer.getFilename()
+        if Aplayer.online_queue is True:
+            opts = {'skip_download': False, 'logger': VoidLogger}
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                try:
+                    info_dict = ydl.extract_info(filename, download=False)
+                except Exception:
+                    return ''
+                title = info_dict.get('title', None)
+                return Aplayer._validate_title(filename, title)
+        else:
+            return Path(filename).stem
+
     def get_artist_track(title):
         options = {
             'defaultArtist': UNKNOWN_ARTIST,
@@ -240,7 +257,7 @@ class Aplayer:
             shrunk_url = url.rpartition('://')[2]
         return shrunk_url.split('/', 1)[0]
 
-    def download_thumbnail(urls: list):
+    def download_thumbnail(urls: list, known_title: str = ''):
         """
         Will download the relevant thumbnail and save it in the
         format config.ART_FORMAT. The filename will be the video title,
@@ -250,10 +267,13 @@ class Aplayer:
         if this art is desired for immediate use.
 
         Returns:
-            The path to the downloaded thumbnail, or the empty string if 
+            The path to the downloaded thumbnail, or the empty string if
             it was not downloaded.
         """
-        title = Aplayer._validate_title(urls[0])
+        if known_title != '':
+            title = known_title
+        else:
+            title = Aplayer.get_title_from_file(urls[0])
         if title == '':
             return ''
         artist, track = Aplayer.get_artist_track(title)
@@ -289,10 +309,12 @@ class Aplayer:
     def download_to_audio(urls: list, known_title: str = ''):
         #  if no known title exists, it'll generate one
         dl_index = Aplayer._download_index + 1
-        try:
-            title = Aplayer._validate_title(urls[0], known_title)
-            artist, track = Aplayer.get_artist_track(title)
-        except Exception:
+        if known_title != '':
+            title = known_title
+        else:
+            title = Aplayer.get_title_from_file(urls[0])
+        artist, track = Aplayer.get_artist_track(title)
+        if title == '':
             return
         options = Aplayer.YT_DLP_OPTIONS.copy()
         dl_path = DOWNLOAD_PATH + artist + os.sep + track
