@@ -1,4 +1,4 @@
-from tkinter.tix import Tree
+import time
 from pymediainfo import MediaInfo
 import os
 import math
@@ -10,6 +10,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import cred
 from pathlib import Path
+
 
 numgex = re.compile("^\d+") #matches leading digits
 
@@ -99,6 +100,7 @@ def dlArt(music, artist, album, isAlbum):
             artFile = DEFAULT_ART
     return artFile
 
+
 def getTrackInfo(song):
     """
     Returns an array of ["", track, trackNum]
@@ -112,7 +114,7 @@ def getTrackInfo(song):
         trackNum = int(match.group())
     return ["",track, str(trackNum)]    
 
-def getTrackAndArtistInfo(song, folderName):
+def getTrackAndArtistInfo(song, folderName: str = ''):
     """
     Returns an array of [artist, track, trackNumber]
     """
@@ -125,8 +127,8 @@ def getTrackAndArtistInfo(song, folderName):
         track = song
         artist = UNKNOWN_ARTIST
     if not (match := numgex.search(track)) == None:
-        trackNum = int(match.group())
-    if artist == UNKNOWN_ARTIST:
+        trackNum = int(match.group()) 
+    if artist == UNKNOWN_ARTIST and folderName != '':
         try:
             artist = folderName.split(SPLITTER)[-2]
         except:
@@ -235,7 +237,7 @@ def __fileProcessing(
             "samplingRateInfo": samplingRateInfo,
             "codec": codec,
             "art": art, 
-            "listens": 0,     
+            "listens": 0
         }
         return songData
 
@@ -294,7 +296,34 @@ def addFiles(FQFNs: list[str], foldersAreAlbums = False, AAT_structure = False,
             findArt=findArt
         ) # may invert var foldersAreAlbums - see doc
         if songData==None: return
-        db.addSong(songData)      
+        db.addSong(songData)   
+
+def add_downloaded_song(FQFN, data):
+    print(FQFN)
+    artist, track, trackNum, _ = data
+    while not path_exists(FQFN):
+        time.sleep(0.1)
+    bitRateInfo, samplingRateInfo, codec = getAudioInfo(FQFN)
+    art_path = ART_PATH + DL_FOLDER_NAME + os.sep + artist + os.sep + track
+    os.makedirs(os.path.dirname(art_path), exist_ok=True)
+    art = art_path + '.' + ART_FORMAT
+    songData = {
+        "FQFN": FQFN,
+        "artist": artist,
+        "album": UNKNOWN_ALBUM,
+        "track": track,
+        "trackNum": trackNum,
+        "bitRateInfo": bitRateInfo,
+        "samplingRateInfo": samplingRateInfo,
+        "codec": codec,
+        "art": art,
+        "listens": 0
+    }
+    fileDir = os.path.dirname(FQFN) + os.sep
+    if not db.songRegistered(FQFN):
+        db.addSong(songData)
+    if db.directoryRegistered(fileDir) == False:
+        db.addDirectory(fileDir, folder_is_album=False, AAT_structure=False)
     
 def addFolder(directory: str, foldersAreAlbums = False, AAT_structure = False, 
               findArt=True):
