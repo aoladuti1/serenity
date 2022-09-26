@@ -1,11 +1,13 @@
 
 import math
+from typing import Sequence
 from config import *
 from PIL import Image
 from pathlib import Path
 import os
 import time
 import mpv
+import records
 import threading
 import yt_dlp
 import youtube_title_parse as ytp
@@ -185,6 +187,7 @@ class Aplayer:
             queue (bool, optional): if True, queues file. Defaults to False.
         """
         online = filename.startswith('https:') is True
+        Aplayer.online_queue = online
         if not queue:
             play_type = 'replace'
             if Aplayer.is_paused() is True:
@@ -193,6 +196,7 @@ class Aplayer:
             play_type = 'append-play'
         # TODO: IF ONLINE DOWNLOAD THUMBNAIL HERE
         title = Aplayer.get_title_from_file(filename)
+        data = Aplayer.get_artist_track_trackNum(title)
         Aplayer.player.loadfile(filename, play_type)
         new_playlist_count = Aplayer.get_playlist_count()
         if queue is True and new_playlist_count > 1:
@@ -204,11 +208,12 @@ class Aplayer:
         elif Aplayer.online_queue != online and queue is True:
             Aplayer.clear_subqueue()
             Aplayer.player.playlist_remove()
-        Aplayer.online_queue = online
         if online is True and Aplayer.dl_on_stream is True:
-            if Aplayer.download_thumbnail([filename]) is True:
+            if Aplayer.download_thumbnail([filename], data) != '':
                 t = threading.Thread(
-                    target=Aplayer.download_to_audio, args=([filename], ''))
+                    target=Aplayer.download_to_audio,
+                    args=([filename], data,)
+                )
                 t.start()
         Aplayer._mpv_wait()
 
@@ -217,7 +222,8 @@ class Aplayer:
 
     def _validate_title(url: str, known_title: str = '') -> str:
         if known_title != '':
-            return known_title.replace("|", "¦")
+            title = known_title.replace("|", "¦")
+            return "".join(i for i in title if i not in r'\/:*?"<>')
         try:
             title = yt_dlp.YoutubeDL(
                 {
@@ -227,12 +233,16 @@ class Aplayer:
             ).extract_info(url, download=False).get('title', None)
         except Exception:
             return ''
-        return title.replace("|", "¦")
+        title = title.replace("|", "¦")
+        return "".join(i for i in title if i not in r'\/:*?"<>')
 
     def get_title_from_file(filename: str = ''):
+        online = Aplayer.online_queue
         if filename == '':
             filename = Aplayer.getFilename()
-        if Aplayer.online_queue is True:
+        if filename.startswith('http'):
+            online = True
+        if online is True:
             opts = {'skip_download': False, 'logger': VoidLogger}
             with yt_dlp.YoutubeDL(opts) as ydl:
                 try:
@@ -244,12 +254,14 @@ class Aplayer:
         else:
             return Path(filename).stem
 
-    def get_artist_track(title):
+    def get_artist_track_trackNum(title):
         options = {
             'defaultArtist': UNKNOWN_ARTIST,
             'defaultTitle': title
         }
-        return ytp.get_artist_title(title, options)
+        artist, track = ytp.get_artist_title(title, options)
+        artist, track, trackNum = records.getTrackAndArtistInfo(title)
+        return [artist, track, trackNum, title]
 
     def get_site_from_url(url: str):
         shrunk_url = url.rpartition('://www.')[2]
@@ -257,7 +269,7 @@ class Aplayer:
             shrunk_url = url.rpartition('://')[2]
         return shrunk_url.split('/', 1)[0]
 
-    def download_thumbnail(urls: list, known_title: str = ''):
+    def download_thumbnail(urls: list, data: Sequence = None):
         """
         Will download the relevant thumbnail and save it in the
         format config.ART_FORMAT. The filename will be the video title,
@@ -270,13 +282,13 @@ class Aplayer:
             The path to the downloaded thumbnail, or the empty string if
             it was not downloaded.
         """
-        if known_title != '':
-            title = known_title
-        else:
+        if data is None:
             title = Aplayer.get_title_from_file(urls[0])
+            artist, track, _, _ = Aplayer.get_artist_track_trackNum(title)
+        else:
+            artist, track, _, title = data
         if title == '':
             return ''
-        artist, track = Aplayer.get_artist_track(title)
         dl_path = ART_PATH + DL_FOLDER_NAME + os.sep + artist + os.sep + track
         os.makedirs(os.path.dirname(dl_path), exist_ok=True)
         tdl = yt_dlp.YoutubeDL({
@@ -285,7 +297,8 @@ class Aplayer:
             "logger": ThumbnailConverter,
             'skip_download': True
         })
-        tdl.download(urls)
+        with tdl:
+            tdl.download(urls)
         full_path = dl_path + '.' + ART_FORMAT
         while not path_exists(full_path):
             time.sleep(0.1)
@@ -306,21 +319,24 @@ class Aplayer:
             and len(Aplayer._download_queue_titles) > 0
         )
 
-    def download_to_audio(urls: list, known_title: str = ''):
+    def download_to_audio(urls: list, data: Sequence):
         #  if no known title exists, it'll generate one
-        dl_index = Aplayer._download_index + 1
-        if known_title != '':
-            title = known_title
-        else:
+        # TODO: GOTO DB.PY AND MAKE IT AN INSTANCE CLASS WHERE CONNECTION IS REMADE
+        # ON EACH INSTANCE. MUST BE ONE CONNECTION PER THREAD.
+        # dl_index = Aplayer._download_index + 1
+        if data is None:
             title = Aplayer.get_title_from_file(urls[0])
-        artist, track = Aplayer.get_artist_track(title)
+            data = Aplayer.get_artist_track_trackNum(title)
+        artist, track, _, title = data
         if title == '':
             return
         options = Aplayer.YT_DLP_OPTIONS.copy()
         dl_path = DOWNLOAD_PATH + artist + os.sep + track
         options['outtmpl'] = dl_path + '.%(ext)s'
         downloader = yt_dlp.YoutubeDL(options)
-        if not path_exists("{}.{}".format(dl_path, DOWNLOADS_CODEC)):
+        full_path = "{}.{}".format(dl_path, DOWNLOADS_CODEC)
+        if not path_exists(full_path):
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
             with downloader as dl:
                 try:
                     dl.add_progress_hook(Aplayer._prog_hook)
@@ -335,6 +351,7 @@ class Aplayer:
                     dl.download(urls)
                 except Exception:
                     pass
+        records.add_downloaded_song(full_path, data)
 
     def loadlist(
             playlist_title: str, index: int = -1, pause_on_load: bool = False):
