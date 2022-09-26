@@ -11,8 +11,8 @@ from spotipy.oauth2 import SpotifyClientCredentials
 import cred
 from pathlib import Path
 
-
 numgex = re.compile("^\d+") #matches leading digits
+dbLink = db.DBLink()
 
 def getAudioInfo(FQFN):
     media_info = MediaInfo.parse(filename=FQFN)
@@ -210,7 +210,7 @@ def __fileProcessing(
     ) -> dict:
     if fileName.endswith(SUPPORTED_EXTENSIONS):
         FQFN = fileDir + fileName
-        if db.songRegistered(FQFN) == True:
+        if dbLink.songRegistered(FQFN) == True:
             return None
         song = fileName.rpartition(".")[0]
         art = DEFAULT_ART
@@ -296,9 +296,11 @@ def addFiles(FQFNs: list[str], foldersAreAlbums = False, AAT_structure = False,
             findArt=findArt
         ) # may invert var foldersAreAlbums - see doc
         if songData==None: return
-        db.addSong(songData)   
+        dbLink.addSong(songData)   
 
-def add_downloaded_song(FQFN, data):
+def add_downloaded_song(FQFN, data, custom_link = None):
+    if custom_link == None:
+        custom_link = dbLink
     artist, track, trackNum, _ = data
     while not path_exists(FQFN):
         time.sleep(0.1)
@@ -319,10 +321,10 @@ def add_downloaded_song(FQFN, data):
         "listens": 0
     }
     fileDir = os.path.dirname(FQFN) + os.sep
-    if not db.songRegistered(FQFN):
-        db.addSong(songData)
-    if db.directoryRegistered(fileDir) == False:
-        db.addDirectory(fileDir, folder_is_album=False, AAT_structure=False)
+    if not custom_link.songRegistered(FQFN):
+        custom_link.addSong(songData)
+    if custom_link.directoryRegistered(fileDir) == False:
+        custom_link.addDirectory(fileDir, folder_is_album=False, AAT_structure=False)
     
 def addFolder(directory: str, foldersAreAlbums = False, AAT_structure = False, 
               findArt=True):
@@ -379,10 +381,10 @@ def addFolder(directory: str, foldersAreAlbums = False, AAT_structure = False,
             ) # may invert var foldersAreAlbums - see doc
             if songData == None:
                 continue
-            db.addSong(songData)
+            dbLink.addSong(songData)
         if i == 0:
-            if db.directoryRegistered(fileDir) == False:
-                db.addDirectory(fileDir, folder_is_album=foldersAreAlbums, AAT_structure=AAT_structure)
+            if dbLink.directoryRegistered(fileDir) == False:
+                dbLink.addDirectory(fileDir, folder_is_album=foldersAreAlbums, AAT_structure=AAT_structure)
             i = 1
         
 

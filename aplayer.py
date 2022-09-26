@@ -5,6 +5,7 @@ from config import *
 from PIL import Image
 from pathlib import Path
 import os
+import db
 import time
 import mpv
 import records
@@ -108,7 +109,7 @@ class Aplayer:
                 Aplayer._current_download_percent = p
 
     def kill():
-        Aplayer.player.quit()
+        Aplayer.player.quit(code=0)
 
     def getFilename() -> dict:
         return Aplayer.player._get_property('path')
@@ -320,10 +321,8 @@ class Aplayer:
         )
 
     def download_to_audio(urls: list, data: Sequence):
-        #  if no known title exists, it'll generate one
-        # TODO: GOTO DB.PY AND MAKE IT AN INSTANCE CLASS WHERE CONNECTION IS REMADE
-        # ON EACH INSTANCE. MUST BE ONE CONNECTION PER THREAD.
-        # dl_index = Aplayer._download_index + 1
+        # data is a sequence of artist, track, trackNum, title
+        dl_index = Aplayer._download_index + 1
         if data is None:
             title = Aplayer.get_title_from_file(urls[0])
             data = Aplayer.get_artist_track_trackNum(title)
@@ -350,8 +349,10 @@ class Aplayer:
                         Aplayer._download_index = last_dl_index
                     dl.download(urls)
                 except Exception:
-                    pass
-        records.add_downloaded_song(full_path, data)
+                    while not (Aplayer._download_index < dl_index):
+                        Aplayer._download_index -= 1
+        dbLink = db.DBLink()
+        records.add_downloaded_song(full_path, data, dbLink)
 
     def loadlist(
             playlist_title: str, index: int = -1, pause_on_load: bool = False):
