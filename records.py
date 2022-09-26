@@ -299,7 +299,6 @@ def addFiles(FQFNs: list[str], foldersAreAlbums = False, AAT_structure = False,
         db.addSong(songData)   
 
 def add_downloaded_song(FQFN, data):
-    print(FQFN)
     artist, track, trackNum, _ = data
     while not path_exists(FQFN):
         time.sleep(0.1)
