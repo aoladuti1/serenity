@@ -42,40 +42,41 @@ def init():
     conn.commit()
     conn.close()
 
+
 class DBLink:
 
     def __init__(self):
         self.conn = sqlite3.connect(DATABASE)
     
-    def quickCommit(self, string: str, bindings: Sequence = []):
+    def quick_commit(self, string: str, bindings: Sequence = []):
         with self.conn as conn:
             conn.cursor().execute(string, bindings)
 
-    def songRegistered(self, FQFN: str):
+    def song_registered(self, FQFN: str):
         with self.conn as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT * FROM Songs 
+                SELECT * FROM Songs
                 WHERE FQFN = ?
                 LIMIT 1
                 """, [FQFN]
                 ) 
             return cursor.fetchone() != None
 
-    def directoryRegistered(self, path: str):
+    def directory_registered(self, path: str):
         with self.conn as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT * FROM Directories 
+                SELECT * FROM Directories
                 WHERE directory = ?
                 LIMIT 1
                 """, [path]
             ) 
             return cursor.fetchone() != None
 
-    def getArtists(self) -> list[tuple[str]]:
+    def get_artists(self) -> list[tuple[str]]:
         """
         Returns:
             a list of 1 dimensional tuples, each
@@ -92,7 +93,7 @@ class DBLink:
             )
             return cursor.fetchall()
 
-    def getAlbumsByArtist(self, artist: str) -> list[tuple[str]]:
+    def get_albums(self, artist: str = '') -> list[tuple]:
         """
         Returns:
             a list of 1 dimensional tuples, each
@@ -101,18 +102,23 @@ class DBLink:
         """
         with self.conn as conn:
             cursor = conn.cursor()
-            cursor.execute(
-            """
-            SELECT album from Songs
-            WHERE artist = ?
-            GROUP BY album
-            """,
-            [artist]
-            )
+            if artist == '':
+                sql_string = """
+                SELECT album from Songs
+                GROUP BY album
+                """
+                cursor.execute(sql_string)
+            else:
+                sql_string = """
+                SELECT album from Songs
+                WHERE artist = ?
+                GROUP BY album
+                """
+                cursor.execute(sql_string, [artist])
             return cursor.fetchall()
 
-    def __genSongDicts(self, fetchedRows: list):
-        """Takes a list of Song tuples returned by 
+    def __gen_song_dicts(self, fetchedRows: list):
+        """Takes a list of Song tuples returned by
         sqlite3.connection.cursor.fetchall()
         and converts it into a list of dicts
 
@@ -128,7 +134,7 @@ class DBLink:
                 ret[i][SONG_COLUMNS[j]] = fetchedRows[i][j]    
         return ret
 
-    def getSongsByArtist(self, artist: str) -> list[dict]:
+    def get_songs_by_artist(self, artist: str) -> list[dict]:
         """
         Returns:
             a list of dicts, each
@@ -147,9 +153,9 @@ class DBLink:
                 [artist]
             )
             fetch = cursor.fetchall()
-            return self.__genSongDicts(fetch)
+            return self.__gen_song_dicts(fetch)
 
-    def getSongsByAlbum(self, album: str, artist: str) -> list[dict]:
+    def get_songs_by_album(self, album: str, artist: str) -> list[dict]:
         """
         Returns:
             a list of dicts, each
@@ -165,16 +171,16 @@ class DBLink:
             SELECT * from Songs
             WHERE album = ? AND artist = ?
             """,
-            [album,artist]
+            [album, artist]
             )
             fetch = cursor.fetchall()
-            return self.__genSongDicts(fetch)
+            return self.__gen_song_dicts(fetch)
 
-    def delSongIf(self, conditions: dict,
-        negateConditions = False, conjunction: bool = True):
+    def del_song_if(self, conditions: dict,
+                    negate_all: bool = False, conjunction: bool = True):
         """
         Deletes records from the database of Songs based off a dictionary of conditions.
-        e.g. delSongIf( {'artist' : 'Drake'} ) deletes all rows where Drake is the artist.
+        e.g. del_song_if( {'artist' : 'Drake'} ) deletes all rows where Drake is the artist.
         (equiv. sql: "WHERE artist = 'Drake'").
         The NOT operator puts NOT in front of every boolean operator (AND / OR etc.)
         like in the following example: if negateConditions == True and
@@ -192,7 +198,7 @@ class DBLink:
         True if something was deleted
         """
         body = ''
-        if negateConditions == True:
+        if negate_all == True:
             negationText = 'NOT '
         else:
             negationText = ''
@@ -204,15 +210,15 @@ class DBLink:
         for key, val in conditions.items():
             body += negationText + key + ' = :' + key + spacedAndOr
         body = body[0:walk]
-        self.quickCommit("DELETE FROM Songs WHERE " + body, conditions)
+        self.quick_commit("DELETE FROM Songs WHERE " + body, conditions)
 
-    def delDirectory(self, path: str):
-        self.quickCommit(
+    def del_directory(self, path: str):
+        self.quick_commit(
             "DELETE FROM Directories " +
             "WHERE directory = ?", [path]
         )    
 
-    def delSongIfAbsent(self, FQFN: str) -> bool: 
+    def del_song_if_absent(self, FQFN: str) -> bool: 
         """
         Deletes songs from the database that do not exist
         based off their primary key FQFN (Fully Qualified Filename)
@@ -222,19 +228,18 @@ class DBLink:
         FQFN: the Fully Qualified Filename of the song in question
 
         Returns:
-        True if there was a record deleted from the database,
-        and False otherwise
-
+            True if there was a record deleted from the database,
+            meaning the song is absent, and False otherwise
         """
-        if os.path.exists(FQFN) == True:
+        if path_exists(FQFN) == True:
             return False
-        self.quickCommit(
+        self.quick_commit(
             "DELETE FROM Songs " +
             "WHERE FQFN = ?", [FQFN]
         )
         return True
 
-    def delSong(self, FQFN: str):
+    def del_song(self, FQFN: str):
         """
         Deletes a song from the database
         
@@ -242,13 +247,13 @@ class DBLink:
         
         path: the fully qualified filename of the song to delete
         """
-        self.quickCommit(
+        self.quick_commit(
             "DELETE FROM Songs " +
             "WHERE FQFN = ?", [FQFN]
         )
 
 
-    def updateSong(self, newData: dict):
+    def update_song(self, newData: dict):
         """
         Updates a song record.
 
@@ -267,9 +272,9 @@ class DBLink:
             + body + "\n"
             + "WHERE FQFN = :FQFN\n"
         )
-        self.quickCommit(fullSQL, newData)
+        self.quick_commit(fullSQL, newData)
 
-    def addSong(self, songData: dict):
+    def add_song(self, songData: dict):
         """
         Adds a song to the database.
 
@@ -280,7 +285,7 @@ class DBLink:
         """
         if songData == None:
             return
-        self.quickCommit(
+        self.quick_commit(
             """
             INSERT INTO Songs VALUES (
                 :FQFN,
@@ -298,8 +303,8 @@ class DBLink:
             songData
         ) 
 
-    def addDirectory(self, path: str, folder_is_album: bool, 
-        AAT_structure: bool, include_subfolders = True):
+    def add_directory(
+            self, path: str, folder_is_album: bool, AAT_structure: bool):
         if AAT_structure is True:
             i = 2
         elif folder_is_album is True:
@@ -313,7 +318,7 @@ class DBLink:
         
         path: directory to add (ensure it ends with os.sep)
         """
-        self.quickCommit(
+        self.quick_commit(
             "INSERT INTO Directories VALUES (?,?)", 
             [path, i]
         )
