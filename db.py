@@ -2,7 +2,6 @@ import sqlite3
 from typing import Sequence
 from config import *
 
-
 SONG_COLUMNS = (
     'FQFN', 'artist', 'album', 'track', 'trackNum',
     'bitRateInfo', 'samplingRateInfo', 'codec', 'art',
@@ -218,10 +217,10 @@ class DBLink:
             "WHERE directory = ?", [path]
         )    
 
-    def del_song_if_absent(self, FQFN: str) -> bool: 
+    def del_song_if_absent(self, FQFN: PathLike) -> bool: 
         """
         Deletes songs from the database that do not exist
-        based off their primary key FQFN (Fully Qualified Filename)
+        based off their primary key 'FQFN' (Fully Qualified Filename)
 
         Parameters:
         
@@ -229,14 +228,32 @@ class DBLink:
 
         Returns:
             True if there was a record deleted from the database,
-            meaning the song is absent, and False otherwise
+            meaning the song was absent, and False otherwise
         """
-        if path_exists(FQFN) == True:
+        if path_exists(FQFN) is True:
             return False
         self.quick_commit(
             "DELETE FROM Songs " +
             "WHERE FQFN = ?", [FQFN]
         )
+        return True
+
+    def del_directory_if_absent(self, path: PathLike) -> bool: 
+        """
+        Deletes directories from the database that do not exist
+        based off their primary key 'path'
+
+        Parameters:
+        
+        path: the full path to the directory in question
+
+        Returns:
+            True if there was a record deleted from the database,
+            meaning the path was absent, and False otherwise
+        """
+        if path_exists(path) is True:
+            return False
+        self.del_directory(path)
         return True
 
     def del_song(self, FQFN: str):
