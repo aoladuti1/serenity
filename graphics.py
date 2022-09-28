@@ -1,11 +1,8 @@
-from concurrent.futures import thread
-import copy
 import threading
 import time
 from tkinter.font import BOLD, ITALIC
 from tkinter import *
-from turtle import back, width
-from typing import Callable, Optional
+from typing import Callable
 import ttkbootstrap as ttk
 from aplayer import Aplayer
 import tkintools
@@ -22,6 +19,7 @@ DEFAULT_SUBHEADER='Your library'
 SUBHEADER_TEXT_MAX_WIDTH = 42
 PAUSE_LABELS=['|>','||']
 
+dbLink = db.DBLink()
 
 class LeftPane:
     def __init__(self, root: ttk.Window, background=COLOUR_DICT['dark']):
@@ -245,7 +243,7 @@ class LeftPane:
         self.currentPage = ARTISTS
         self.updateSubheader()
         if self.fetchedArtists == None:
-            self.fetchedArtists = db.getArtists()
+            self.fetchedArtists = dbLink.get_artists()
         i = 0
         for tuple in self.fetchedArtists:
             name = tuple[0]     
@@ -256,7 +254,7 @@ class LeftPane:
     def loadAlbums(self):
         self.backButton.configure(text="<--")
         self.currentPage = ALBUMS
-        self.fetchedAlbums = db.getAlbumsByArtist(self.chosenArtist)
+        self.fetchedAlbums = dbLink.get_albums(self.chosenArtist)
         self.updateSubheader()
         i = 0
         for tuple in self.fetchedAlbums:
@@ -267,7 +265,7 @@ class LeftPane:
     
     def loadTracks(self):
         self.currentPage = TRACKS
-        self.fetchedSongs = db.getSongsByAlbum(self.chosenAlbum, self.chosenArtist)
+        self.fetchedSongs = dbLink.get_songs_by_album(self.chosenAlbum, self.chosenArtist)
         self.updateSubheader()
         i = 0
         for song in self.fetchedSongs:

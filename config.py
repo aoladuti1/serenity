@@ -1,17 +1,29 @@
 #support
 import os
+import pathlib
 import ttkbootstrap as ttk
 import subprocess
-
+from typing import TypeVar
 from themes.user import USER_THEMES
 
+
+def path_exists(path):
+    return os.path.exists(os.path.expanduser(path))
+
+
+# typing
+PathLike = TypeVar("PathLike", str, pathlib.Path)
 
 SUPPORTED_EXTENSIONS = (
     ".mp3",
     ".wav",
     ".aac",
     ".wma"
-)
+) # THIS IS FAR FROM EXHAUSTIVE
+
+DOWNLOADS_CODEC = 'mp3'
+
+ART_FORMAT = 'jpg'
 
 #only splitterchar should be changed by the user
 SPLITTER_CHAR = '-'
@@ -25,9 +37,16 @@ UNKNOWN_ALBUM_ARTIST = "---"
 #directories
 DIR_PATH = os.path.dirname(os.path.realpath(__file__)) + os.sep #path to config w/ slash appended
 ART_PATH = DIR_PATH + "art" + os.sep #should change to os.cwd() + "art" + os.sep in future
+PLAYLISTS_PATH = DIR_PATH + 'playlists' + os.sep
+DL_FOLDER_NAME = '-downloads-'
+DOWNLOAD_PATH = DIR_PATH + DL_FOLDER_NAME + os.sep
+
+#modifying PATH
+os.environ['PATH'] += DIR_PATH + os.sep + 'subprograms' +os.sep+'libmpv' + os.pathsep
+os.environ['PATH'] += DIR_PATH + 'subprograms' + os.sep + 'ffmpeg' + os.sep + 'bin' + os.pathsep
 
 #file paths
-DEFAULT_ART = ART_PATH + "default.jpeg"
+DEFAULT_ART = ART_PATH + "default" + os.sep + "default." + ART_FORMAT
 DATABASE = DIR_PATH + "databases" + os.sep + "data.sqlite"
 
 #gui
