@@ -19,17 +19,20 @@ DEFAULT_SUBHEADER='Your library'
 SUBHEADER_TEXT_MAX_WIDTH = 42
 PAUSE_LABELS=['|>','||']
 
+
+
 dbLink = db.DBLink()
 
 class LeftPane:
     def __init__(self, root: ttk.Window, background=COLOUR_DICT['dark']):
+        global PANE_WIDTH
         self.root = root
         self.background = background
         self.frame = None
         self.browser = None
         self.header = None
-        self.subbar = None
         self.subheader = None
+        self.libTools = None
         self.controls = None
         self.backButton = None
         self.pauseButton = None
@@ -42,6 +45,9 @@ class LeftPane:
         self.chosenAlbum = None # should never be NoneType after init
         self.chosenSong = None # should never be NoneType after init
         self.currentPage = ARTISTS
+        self.libToolsVisible = False
+        PANE_WIDTH = LEFT_PANE_WIDTH(self.root)
+
 
     def drawAll(self):
         self.drawFrame()
@@ -50,14 +56,15 @@ class LeftPane:
     def drawAllExceptFrame(self):
         self.drawHeader()
         self.drawSubheader()
+        self.genLibTools()
         self.drawControls()
         self.drawBrowser()
         self.loadArtists()
 
     def drawFrame(self):
-        self.frame = Frame(self.root, height=self.root.winfo_height(), width=LEFT_PANE_WIDTH)
+        self.frame = Frame(self.root, height=self.root.winfo_height(), width=PANE_WIDTH)
         self.frame.grid(column = 0, row=0, sticky='nsw', columnspan=1)
-        self.frame.rowconfigure(3, weight=1) # browser is stretchy!
+        self.frame.rowconfigure(4, weight=1) # browser is stretchy!
         self.frame.configure(background=self.background)
         self.frame.grid_propagate(False)
     
@@ -70,29 +77,51 @@ class LeftPane:
         self.header.grid(column=0, row=0, sticky=W)
     
     def drawSubheader(self):
-        self.subbar = Frame(self.frame, width=LEFT_PANE_WIDTH)
-        self.subheader = ttk.Label(
-            self.subbar,text=DEFAULT_SUBHEADER, 
-            width=SUBHEADER_TEXT_MAX_WIDTH, background=self.background,
-            font=(DEFAULT_FONT_FAMILY,    12)
+        self.subheader = tkintools.LabelButton(
+            self.frame,text=DEFAULT_SUBHEADER,
+            activeFG=COLOUR_DICT['info'],
+            activeBG=COLOUR_DICT['dark'],
+            clickFG=COLOUR_DICT['info'],
+            clickBG=COLOUR_DICT['dark'],
+            clickFunc=self.showHideLibTools,
+            buttonReleaseFunc=lambda e: self.controlRelease(e),
+            background=self.background,
         )
+
         self.backButton = tkintools.LabelButton(
-            self.subbar,
+            self.frame,
             clickFG=COLOUR_DICT['info'],
             clickBG=COLOUR_DICT['dark'],
             clickFunc= self.goBack,
             text='---',
             font=(DEFAULT_FONT_FAMILY,12, BOLD)
         )
-        self.subbar.configure(background=self.background)
-        self.subbar.columnconfigure(1, weight=0)        
-        self.subbar.grid(row=1, sticky=W)
-        self.subheader.grid(column=0, row=0, sticky=W)
-        self.backButton.grid(row=0, column=1, padx=20, sticky=E)
+        self.backButton.grid(row=1, column=0, columnspan=1, padx=20, sticky=E)
+        self.subheader.grid(column=0, columnspan=1, row=1, sticky=W)
+        
+    def showHideLibTools(self, e: Event = None):  
+        if self.libToolsVisible is False:
+            self.libTools.grid(row=2, pady=5)
+        else:
+            self.libTools.grid_remove()
+        self.libToolsVisible = not self.libToolsVisible
+
+    def genLibTools(self):
+        self.libTools = Frame(self.frame)
+        self.libTools.configure(background=self.background)
+        addArtist = tkintools.LabelButton(
+            self.libTools,
+            clickFG=COLOUR_DICT['info'],
+            clickBG=COLOUR_DICT['dark'],
+            text='-add artists-',
+            font=(DEFAULT_FONT_FAMILY,12, BOLD)
+        )
+        padx = 7
+        addArtist.grid(column=0, row=0, sticky=S, padx=padx)
 
     def drawControls(self):
         self.controls = Frame(self.frame)
-        self.controls.grid(row=2, pady=5)
+        self.controls.grid(row=3, pady=5)
         self.controls.configure(background=self.background)
         seek = self.genControlButton(
             clickFunc=lambda t=10, type="+": self.controlThreader(Aplayer.seek(seconds=t,type=type)),
@@ -148,11 +177,11 @@ class LeftPane:
         self.browser = ScrolledFrame(
             self.frame, autohide=True,
             height=self.root.winfo_screenheight(),
-            width=LEFT_PANE_WIDTH
+            width=PANE_WIDTH
         )
         self.browser.columnconfigure(0, weight=1)
         self.browser.columnconfigure(1, weight=0)
-        self.browser.grid(row=3, sticky = NW, columnspan=1)
+        self.browser.grid(row=4, sticky = NW, columnspan=1)
 
     def genBrowserButton(self, row: int, text: str = 'play', clickFunc = None):
         buttonFrame = Frame(self.browser)
@@ -176,7 +205,7 @@ class LeftPane:
             self.browser,
             text=text,
             bootstyle='info',
-            width=LEFT_PANE_WIDTH #makes the highlight bar go fully across
+            width=PANE_WIDTH #makes the highlight bar go fully across
         )
         browserLabel.grid(
             column=0, row=row, rowspan=1, sticky=NW

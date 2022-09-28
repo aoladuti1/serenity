@@ -58,8 +58,8 @@ ACTIVE_BUTTON_BG_HEX = '#0b3740'
 CLICK_BUTTON_BG_HEX = '#2696ad'
 DEFAULT_FONT_FAMILY = 'Cascadia Code Light'
 
-#gui - left pane
-LEFT_PANE_WIDTH = 700
+def LEFT_PANE_WIDTH(root: ttk.Window):
+    return root.winfo_screenwidth() / 5.25
 
 def configureStyle():
     style = ttk.Style(THEME_NAME)
@@ -75,7 +75,7 @@ def configureFont():
 def configureRoot(root: ttk.Window):
     width = root.winfo_screenwidth()
     height = root.winfo_screenheight()
-    root.geometry("%dx%d" % (700, height * 0.5))
+    root.geometry("%dx%d" % (LEFT_PANE_WIDTH(root), height * 0.5))
     root.update()
     root.columnconfigure(0, weight=0)
     root.columnconfigure(1, weight=1)
