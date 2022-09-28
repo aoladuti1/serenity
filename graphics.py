@@ -71,7 +71,7 @@ class LeftPane:
     def drawHeader(self):
         self.header = ttk.Label(self.frame, text="serenity", bootstyle='primary')
         self.header.configure(
-            font=(DEFAULT_FONT_FAMILY,50, ITALIC),
+            font=(DEFAULT_FONT_FAMILY, 50, ITALIC),
             background=self.background
         )
         self.header.grid(column=0, row=0, sticky=W)
