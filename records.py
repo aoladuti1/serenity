@@ -320,11 +320,8 @@ def add_downloaded_song(FQFN, data, custom_link = None):
         "art": art,
         "listens": 0
     }
-    fileDir = os.path.dirname(FQFN) + os.sep
-    if not custom_link.song_registered(FQFN):
-        custom_link.add_song(songData)
-    if custom_link.directory_registered(fileDir) == False:
-        custom_link.add_directory(fileDir, folder_is_album=False, AAT_structure=False)
+    if not custom_link.song_registered(FQFN, db.DOWNLOADS):
+        custom_link.add_song(songData, db.DOWNLOADS)
     
 def addFolder(directory: str, foldersAreAlbums = False, AAT_structure = False, 
               findArt=True):

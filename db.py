@@ -8,12 +8,15 @@ SONG_COLUMNS = (
     'listens'
 )
 
+SONGS = 'Songs'
+DOWNLOADS = 'Downloads'
+
 def init():
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
     cursor.execute(
         """
-        CREATE TABLE if not exists Songs (
+        CREATE TABLE if not exists {} (
             FQFN text,
             artist text COLLATE NOCASE,
             album text COLLATE NOCASE,
@@ -26,7 +29,7 @@ def init():
             listens integer,
             PRIMARY KEY(FQFN)
         )
-        """
+        """.format(SONGS)
     )
     cursor.execute(
         # 0 = not structured/album, 1 = album, 2 = structured for structure
@@ -37,6 +40,24 @@ def init():
             PRIMARY KEY(directory)
         )
         """
+    )
+
+    cursor.execute(
+        """
+        CREATE TABLE if not exists {} (
+            FQFN text,
+            artist text COLLATE NOCASE,
+            album text COLLATE NOCASE,
+            track text COLLATE NOCASE,
+            trackNum integer,
+            bitRateInfo text,
+            samplingRateInfo text,
+            codec text,
+            art text COLLATE NOCASE,
+            listens integer,
+            PRIMARY KEY(FQFN)
+        )
+        """.format(DOWNLOADS)
     )
     conn.commit()
     conn.close()
@@ -51,15 +72,15 @@ class DBLink:
         with self.conn as conn:
             conn.cursor().execute(string, bindings)
 
-    def song_registered(self, FQFN: str):
+    def song_registered(self, FQFN: str, table: str = SONGS):
         with self.conn as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT * FROM Songs
+                SELECT * FROM {}
                 WHERE FQFN = ?
                 LIMIT 1
-                """, [FQFN]
+                """.format(table), [FQFN]
                 ) 
             return cursor.fetchone() != None
 
@@ -75,20 +96,21 @@ class DBLink:
             ) 
             return cursor.fetchone() != None
 
-    def get_artists(self) -> list[tuple[str]]:
+    def get_artists(self, table: str = SONGS) -> list[tuple[str]]:
         """
         Returns:
             a list of 1 dimensional tuples, each
-            containing the name of a registered artist, or
+            containing the name of a registered artist in the
+            specified table (default: 'Songs'), or
             an empty list if there are no registered artists
         """
         with self.conn as conn:
             cursor = conn.cursor()
             cursor.execute(
             """
-            SELECT artist from Songs
+            SELECT artist from {}
             GROUP BY artist
-            """
+            """.format(table)
             )
             return cursor.fetchall()
 
@@ -133,11 +155,12 @@ class DBLink:
                 ret[i][SONG_COLUMNS[j]] = fetchedRows[i][j]    
         return ret
 
-    def get_songs_by_artist(self, artist: str) -> list[dict]:
+    def get_songs_by_artist(self, artist: str, table: str = SONGS) -> list[dict]:
         """
         Returns:
-            a list of dicts, each
-            containing a column name and value key-value pairing
+            a list of dicts, each containing a column name
+            from the specified table ('Songs' is the default) 
+            and value key-value pairing
             for a registered song by the specified artist, or
             an empty list if there are no registered songs
             by that artist
@@ -146,9 +169,9 @@ class DBLink:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT * from Songs
+                SELECT * from {}
                 WHERE artist = ?
-                """,
+                """.format(table),
                 [artist]
             )
             fetch = cursor.fetchall()
@@ -174,9 +197,11 @@ class DBLink:
             )
             fetch = cursor.fetchall()
             return self.__gen_song_dicts(fetch)
+   
 
     def del_song_if(self, conditions: dict,
-                    negate_all: bool = False, conjunction: bool = True):
+                    negate_all: bool = False, conjunction: bool = True,
+                    table: str = SONGS):
         """
         Deletes records from the database of Songs based off a dictionary of conditions.
         e.g. del_song_if( {'artist' : 'Drake'} ) deletes all rows where Drake is the artist.
@@ -209,7 +234,8 @@ class DBLink:
         for key, val in conditions.items():
             body += negationText + key + ' = :' + key + spacedAndOr
         body = body[0:walk]
-        self.quick_commit("DELETE FROM Songs WHERE " + body, conditions)
+        self.quick_commit(
+            "DELETE FROM {} WHERE {}".format(table, body), conditions)
 
     def del_directory(self, path: str):
         self.quick_commit(
@@ -256,7 +282,7 @@ class DBLink:
         self.del_directory(path)
         return True
 
-    def del_song(self, FQFN: str):
+    def del_song(self, FQFN: str, table: str = SONGS):
         """
         Deletes a song from the database
         
@@ -265,12 +291,13 @@ class DBLink:
         path: the fully qualified filename of the song to delete
         """
         self.quick_commit(
-            "DELETE FROM Songs " +
-            "WHERE FQFN = ?", [FQFN]
+            """
+            DELETE FROM {}
+            WHERE FQFN = ?
+            """.format(table), [FQFN]
         )
 
-
-    def update_song(self, newData: dict):
+    def update_song(self, newData: dict, table: str = SONGS):
         """
         Updates a song record.
 
@@ -285,13 +312,13 @@ class DBLink:
             body += key + ' = :' + key + ',\n'
         body = body[0:-2]
         fullSQL = (
-            "UPDATE Songs SET\n"
+            "UPDATE {} SET\n".format(table)
             + body + "\n"
             + "WHERE FQFN = :FQFN\n"
         )
         self.quick_commit(fullSQL, newData)
 
-    def add_song(self, songData: dict):
+    def add_song(self, songData: dict, table: str = SONGS):
         """
         Adds a song to the database.
 
@@ -304,7 +331,7 @@ class DBLink:
             return
         self.quick_commit(
             """
-            INSERT INTO Songs VALUES (
+            INSERT INTO {} VALUES (
                 :FQFN,
                 :artist,
                 :album,
@@ -316,7 +343,7 @@ class DBLink:
                 :art,
                 :listens
             )
-            """,
+            """.format(table),
             songData
         ) 
 
