@@ -1,13 +1,18 @@
 #support
 import os
+import pathlib
 import ttkbootstrap as ttk
 import subprocess
+from typing import TypeVar
 from themes.user import USER_THEMES
 
 
 def path_exists(path):
     return os.path.exists(os.path.expanduser(path))
 
+
+# typing
+PathLike = TypeVar("PathLike", str, pathlib.Path)
 
 SUPPORTED_EXTENSIONS = (
     ".mp3",
@@ -17,6 +22,7 @@ SUPPORTED_EXTENSIONS = (
 ) # THIS IS FAR FROM EXHAUSTIVE
 
 DOWNLOADS_CODEC = 'mp3'
+
 ART_FORMAT = 'jpg'
 
 #only splitterchar should be changed by the user

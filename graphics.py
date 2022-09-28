@@ -243,7 +243,7 @@ class LeftPane:
         self.currentPage = ARTISTS
         self.updateSubheader()
         if self.fetchedArtists == None:
-            self.fetchedArtists = dbLink.getArtists()
+            self.fetchedArtists = dbLink.get_artists()
         i = 0
         for tuple in self.fetchedArtists:
             name = tuple[0]     
@@ -254,7 +254,7 @@ class LeftPane:
     def loadAlbums(self):
         self.backButton.configure(text="<--")
         self.currentPage = ALBUMS
-        self.fetchedAlbums = dbLink.getAlbumsByArtist(self.chosenArtist)
+        self.fetchedAlbums = dbLink.get_albums(self.chosenArtist)
         self.updateSubheader()
         i = 0
         for tuple in self.fetchedAlbums:
@@ -265,7 +265,7 @@ class LeftPane:
     
     def loadTracks(self):
         self.currentPage = TRACKS
-        self.fetchedSongs = dbLink.getSongsByAlbum(self.chosenAlbum, self.chosenArtist)
+        self.fetchedSongs = dbLink.get_songs_by_album(self.chosenAlbum, self.chosenArtist)
         self.updateSubheader()
         i = 0
         for song in self.fetchedSongs:

@@ -210,7 +210,7 @@ def __fileProcessing(
     ) -> dict:
     if fileName.endswith(SUPPORTED_EXTENSIONS):
         FQFN = fileDir + fileName
-        if dbLink.songRegistered(FQFN) == True:
+        if dbLink.song_registered(FQFN) == True:
             return None
         song = fileName.rpartition(".")[0]
         art = DEFAULT_ART
@@ -296,7 +296,7 @@ def addFiles(FQFNs: list[str], foldersAreAlbums = False, AAT_structure = False,
             findArt=findArt
         ) # may invert var foldersAreAlbums - see doc
         if songData==None: return
-        dbLink.addSong(songData)   
+        dbLink.add_song(songData)   
 
 def add_downloaded_song(FQFN, data, custom_link = None):
     if custom_link == None:
@@ -320,11 +320,8 @@ def add_downloaded_song(FQFN, data, custom_link = None):
         "art": art,
         "listens": 0
     }
-    fileDir = os.path.dirname(FQFN) + os.sep
-    if not custom_link.songRegistered(FQFN):
-        custom_link.addSong(songData)
-    if custom_link.directoryRegistered(fileDir) == False:
-        custom_link.addDirectory(fileDir, folder_is_album=False, AAT_structure=False)
+    if not custom_link.song_registered(FQFN, db.DOWNLOADS):
+        custom_link.add_song(songData, db.DOWNLOADS)
     
 def addFolder(directory: str, foldersAreAlbums = False, AAT_structure = False, 
               findArt=True):
@@ -381,10 +378,10 @@ def addFolder(directory: str, foldersAreAlbums = False, AAT_structure = False,
             ) # may invert var foldersAreAlbums - see doc
             if songData == None:
                 continue
-            dbLink.addSong(songData)
+            dbLink.add_song(songData)
         if i == 0:
-            if dbLink.directoryRegistered(fileDir) == False:
-                dbLink.addDirectory(fileDir, folder_is_album=foldersAreAlbums, AAT_structure=AAT_structure)
+            if dbLink.directory_registered(fileDir) == False:
+                dbLink.add_directory(fileDir, folder_is_album=foldersAreAlbums, AAT_structure=AAT_structure)
             i = 1
         
 
