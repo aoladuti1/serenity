@@ -2,7 +2,7 @@
 import os
 import pathlib
 import ttkbootstrap as ttk
-import subprocess
+import math
 from typing import TypeVar
 from themes.user import USER_THEMES
 
@@ -59,7 +59,7 @@ CLICK_BUTTON_BG_HEX = '#2696ad'
 DEFAULT_FONT_FAMILY = 'Cascadia Code Light'
 
 def LEFT_PANE_WIDTH(root: ttk.Window):
-    return root.winfo_screenwidth() / 5.25
+    return math.floor(root.winfo_screenwidth() / 5.25)
 
 def configureStyle():
     style = ttk.Style(THEME_NAME)

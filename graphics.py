@@ -16,7 +16,7 @@ ARTISTS='artists'
 ALBUMS='albums'
 TRACKS='tracks'
 DEFAULT_SUBHEADER='Your library'
-SUBHEADER_TEXT_MAX_WIDTH = 42
+SUBHEADER_TEXT_MAX_WIDTH = 42 # FIX
 PAUSE_LABELS=['|>','||']
 
 
@@ -26,6 +26,7 @@ dbLink = db.DBLink()
 class LeftPane:
     def __init__(self, root: ttk.Window, background=COLOUR_DICT['dark']):
         global PANE_WIDTH
+        global EDGE_PAD
         self.root = root
         self.background = background
         self.frame = None
@@ -47,7 +48,7 @@ class LeftPane:
         self.currentPage = ARTISTS
         self.libToolsVisible = False
         PANE_WIDTH = LEFT_PANE_WIDTH(self.root)
-
+        EDGE_PAD = 20 * root.winfo_screenwidth() / 3840
 
     def drawAll(self):
         self.drawFrame()
@@ -65,6 +66,7 @@ class LeftPane:
         self.frame = Frame(self.root, height=self.root.winfo_height(), width=PANE_WIDTH)
         self.frame.grid(column = 0, row=0, sticky='nsw', columnspan=1)
         self.frame.rowconfigure(4, weight=1) # browser is stretchy!
+        self.frame.columnconfigure(0, weight=1)
         self.frame.configure(background=self.background)
         self.frame.grid_propagate(False)
     
@@ -86,17 +88,22 @@ class LeftPane:
             clickFunc=self.showHideLibTools,
             buttonReleaseFunc=lambda e: self.controlRelease(e),
             background=self.background,
+            font=(DEFAULT_FONT_FAMILY,12),
         )
 
+        bbFrame = Frame(self.frame, padx=EDGE_PAD)
+        bbFrame.configure(background=self.background)
+        bbFrame.grid(row=1, column=0, columnspan=2, sticky=E)
+        
         self.backButton = tkintools.LabelButton(
-            self.frame,
+            bbFrame,
             clickFG=COLOUR_DICT['info'],
             clickBG=COLOUR_DICT['dark'],
             clickFunc= self.goBack,
-            text='---',
+            text=' --- ',
             font=(DEFAULT_FONT_FAMILY,12, BOLD)
         )
-        self.backButton.grid(row=1, column=0, columnspan=1, padx=20, sticky=E)
+        self.backButton.grid()
         self.subheader.grid(column=0, columnspan=1, row=1, sticky=W)
         
     def showHideLibTools(self, e: Event = None):  
@@ -192,7 +199,7 @@ class LeftPane:
         )            
         buttonFrame.grid(
             column=1, row=row, rowspan=1, ipady=0, 
-            padx=(20,20), pady=(0,9), sticky=E
+            padx=(EDGE_PAD,EDGE_PAD), pady=(0,9), sticky=E
         )
         button = tkintools.LabelButton(
             buttonFrame, text=text, padx=3, pady=0, clickFunc=clickFunc
@@ -268,7 +275,7 @@ class LeftPane:
 
 
     def loadArtists(self):
-        self.backButton.configure(text="---")
+        self.backButton.configure(text=" --- ")
         self.currentPage = ARTISTS
         self.updateSubheader()
         if self.fetchedArtists == None:
@@ -281,7 +288,7 @@ class LeftPane:
             i += 1
     
     def loadAlbums(self):
-        self.backButton.configure(text="<--")
+        self.backButton.configure(text=" <-- ")
         self.currentPage = ALBUMS
         self.fetchedAlbums = dbLink.get_albums(self.chosenArtist)
         self.updateSubheader()
