@@ -297,6 +297,16 @@ class DBLink:
             """.format(table), [FQFN]
         )
 
+    def get_row_count(self, table: str = SONGS):
+        with self.conn as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM {}".format(table))
+            return cursor.fetchall()[0][0]
+
+    def table_is_empty(self, table: str = SONGS):
+        return self.get_row_count() == 0
+
+
     def update_song(self, newData: dict, table: str = SONGS):
         """
         Updates a song record.
