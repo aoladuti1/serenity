@@ -417,6 +417,13 @@ class Aplayer:
                 ret.append(os.path.abspath(PLAYLISTS_PATH + filename))
         return ret
 
+    def get_playlist_titles() -> list:
+        ret = []
+        for _, _, filenames in os.walk(PLAYLISTS_PATH):
+            for filename in filenames:
+                ret.append(Path(filename).stem)
+        return ret
+
     def set_dl_on_stream(dl_on_stream=False):
         Aplayer.dl_on_stream = dl_on_stream
 
