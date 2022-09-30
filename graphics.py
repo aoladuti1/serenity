@@ -15,6 +15,11 @@ from config import *
 ARTISTS='artists'
 ALBUMS='albums'
 TRACKS='tracks'
+PLAYLISTS='playlists'
+PLAYLIST_TRACKS='playlist_tracks'
+DOWNLOAD_ARTISTS='download_artists'
+DOWNLOAD_TRACKS='download_tracks'
+
 DEFAULT_SUBHEADER=' Your library'
 SUBHEADER_TEXT_MAX_WIDTH = 999 # TODO make it fit 1080p, 2k and 4k
 PAUSE_LABELS=[' |> ', ' || ']
