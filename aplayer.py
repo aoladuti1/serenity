@@ -504,6 +504,13 @@ class Aplayer:
     def get_playlist_count():
         return Aplayer.player._get_property('playlist-count')
 
+    def get_number_of_playlists():
+        count = 0
+        for _, _, filenames in os.walk(PLAYLISTS_PATH):
+            for filename in filenames:
+                count += 1
+        return count
+
     def get_playlist_pos() -> int:
         """Returns the index loaded for current playback.
         (This fetches the mpv 'playlist-pos' property.)
