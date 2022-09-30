@@ -15,9 +15,9 @@ from config import *
 ARTISTS='artists'
 ALBUMS='albums'
 TRACKS='tracks'
-DEFAULT_SUBHEADER='Your library'
-SUBHEADER_TEXT_MAX_WIDTH = 42 # FIX
-PAUSE_LABELS=['|>','||']
+DEFAULT_SUBHEADER=' Your library'
+SUBHEADER_TEXT_MAX_WIDTH = 999 # TODO make it fit 1080p, 2k and 4k
+PAUSE_LABELS=[' |> ', ' || ']
 
 
 
@@ -48,7 +48,7 @@ class LeftPane:
         self.currentPage = ARTISTS
         self.libToolsVisible = False
         PANE_WIDTH = LEFT_PANE_WIDTH(self.root)
-        EDGE_PAD = 20 * root.winfo_screenwidth() / 3840
+        EDGE_PAD = 20 * math.floor(root.winfo_screenwidth() / 3840)
 
     def drawAll(self):
         self.drawFrame()
@@ -100,7 +100,7 @@ class LeftPane:
             clickFG=COLOUR_DICT['info'],
             clickBG=COLOUR_DICT['dark'],
             clickFunc= self.goBack,
-            text=' --- ',
+            text='---',
             font=(DEFAULT_FONT_FAMILY,12, BOLD)
         )
         self.backButton.grid()
@@ -116,29 +116,46 @@ class LeftPane:
     def genLibTools(self):
         self.libTools = Frame(self.frame)
         self.libTools.configure(background=self.background)
-        addArtist = tkintools.LabelButton(
+        addArtists = tkintools.LabelButton(
             self.libTools,
             clickFG=COLOUR_DICT['info'],
             clickBG=COLOUR_DICT['dark'],
-            text='-add artists-',
-            font=(DEFAULT_FONT_FAMILY,12, BOLD)
+            text='[add artists]',
+            font=(DEFAULT_FONT_FAMILY, 12, BOLD)
+        )
+        addAlbums = tkintools.LabelButton(
+            self.libTools,
+            clickFG=COLOUR_DICT['info'],
+            clickBG=COLOUR_DICT['dark'],
+            text='[add albums]',
+            font=(DEFAULT_FONT_FAMILY, 12, BOLD)
+        )
+        addSongs = tkintools.LabelButton(
+            self.libTools,
+            clickFG=COLOUR_DICT['info'],
+            clickBG=COLOUR_DICT['dark'],
+            text='[add songs]',
+            font=(DEFAULT_FONT_FAMILY, 12, BOLD)
         )
         padx = 7
-        addArtist.grid(column=0, row=0, sticky=S, padx=padx)
+        addArtists.grid(column=0, row=0, sticky=S, padx=padx)
+        addAlbums.grid(column=1, row=0, sticky=S, padx=padx)
+        addSongs.grid(column=2, row=0, sticky=S, padx=padx)
 
     def drawControls(self):
         self.controls = Frame(self.frame)
         self.controls.grid(row=3, pady=5)
         self.controls.configure(background=self.background)
         seek = self.genControlButton(
-            clickFunc=lambda t=10, type="+": self.controlThreader(Aplayer.seek(seconds=t,type=type)),
-            text='++>'   
+            clickFunc=lambda t=10: self.controlThreader(Aplayer.seek(seconds=t)),
+            text=' ++> '   
         )
+
         pause = self.genControlButton(
             clickFunc=lambda: self.controlThreader(Aplayer.pauseplay),
-            text='|>'
+            text=' |> '
         )
-        padx = 7
+        padx = 13
         pause.grid(column=0, row=0, sticky=S, padx=padx)
         seek.grid(column=1, row=0, sticky=S, padx=padx)
         self.pauseButton = pause
@@ -148,7 +165,7 @@ class LeftPane:
     def monitorPlaystate(self):
         while True:
             try:
-                self.pauseButton.configure(text=PAUSE_LABELS[int(Aplayer.playing)])
+                self.pauseButton.configure(text=PAUSE_LABELS[int(Aplayer.is_paused())])
             except: pass #tkinter complains about the threading but i don't care
             time.sleep(1)
 
@@ -162,7 +179,7 @@ class LeftPane:
             clickFunc=clickFunc,
             buttonReleaseFunc=lambda e: self.controlRelease(e),
             text=text,
-            font=(DEFAULT_FONT_FAMILY,12, BOLD)
+            font=(DEFAULT_FONT_FAMILY,18, BOLD)
         )
 
     def controlThreader(self, function):
@@ -210,7 +227,7 @@ class LeftPane:
     def genBrowserLabel(self, row: int, text: str, dblClickFunc = None):
         browserLabel = ttk.Label(
             self.browser,
-            text=text,
+            text=" " + text,
             bootstyle='info',
             width=PANE_WIDTH #makes the highlight bar go fully across
         )
@@ -254,7 +271,7 @@ class LeftPane:
         if e != None:
             for widget in self.browser.winfo_children():
                 if widget == e.widget:
-                    self.chosenArtist = e.widget.cget('text')
+                    self.chosenArtist = e.widget.cget('text').lstrip()
         self.browser.grid_remove()
         self.drawBrowser()
         self.loadAlbums()
@@ -263,7 +280,7 @@ class LeftPane:
         if e != None:
             for widget in self.browser.winfo_children():
                 if widget == e.widget:
-                    self.chosenAlbum = e.widget.cget('text')
+                    self.chosenAlbum = e.widget.cget('text').lstrip()
         self.browser.grid_remove()
         self.drawBrowser()
         self.loadTracks()
@@ -275,7 +292,7 @@ class LeftPane:
 
 
     def loadArtists(self):
-        self.backButton.configure(text=" --- ")
+        self.backButton.configure(text="---")
         self.currentPage = ARTISTS
         self.updateSubheader()
         if self.fetchedArtists == None:
@@ -286,9 +303,37 @@ class LeftPane:
             self.genBrowserLabel(i, name, self.__killAndLoadAlbums)
             self.genBrowserButton(i)
             i += 1
+        if i == 0:
+            txt = ttk.Text(self.browser, font=(DEFAULT_FONT_FAMILY, 15))
+            txt.insert(INSERT,
+                (
+                "Click 'Your Library' to add some music!\n"
+              + "When you choose a directory all music files "
+              + "in its subdirectories will be "
+              + "added to the database.\n\n"
+              + "Click [add artists] if each song is in an album folder, and "
+              + "each album folder is inside an artist folder\n"
+              + "(e.g. music/Bryson Tiller/T R A P S O U L/05 - Dont.mp3).\n\n"
+              + "Click [add albums] if each "
+              + "song is in an album folder, and the song filename "
+              + "or album folder name has the artist's name in it\n"
+              + "(e.g. music/True to Self/Bryson Tiller - Self Made.mp3).\n\n"
+              + "Otherwise, click [add songs] and we'll try our best to get "
+              + "all your music added and organised nicely :-)\n\n"
+              + "Don't worry too much about the EXACT file / folder names, "
+              + "Serenity is flexible!\n"
+              + "[Note: Serenity does not use metadata at all. "
+              + "Things like track number can be signalled by being "
+              + "present in the filename like .../01 - Intro.mp3.]"
+            ))
+            txt.configure(
+                background=self.background, highlightbackground=self.background,
+                wrap=WORD)
+            txt.grid(columnspan=2)
+        
     
     def loadAlbums(self):
-        self.backButton.configure(text=" <-- ")
+        self.backButton.configure(text="<--")
         self.currentPage = ALBUMS
         self.fetchedAlbums = dbLink.get_albums(self.chosenArtist)
         self.updateSubheader()

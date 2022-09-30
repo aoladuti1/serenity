@@ -59,7 +59,7 @@ CLICK_BUTTON_BG_HEX = '#2696ad'
 DEFAULT_FONT_FAMILY = 'Cascadia Code Light'
 
 def LEFT_PANE_WIDTH(root: ttk.Window):
-    return math.floor(root.winfo_screenwidth() / 5.25)
+    return math.floor(root.winfo_screenwidth() / 3)
 
 def configureStyle():
     style = ttk.Style(THEME_NAME)
