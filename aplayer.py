@@ -1,9 +1,9 @@
 
-import math
 from typing import Sequence
 from config import *
 from PIL import Image
 from pathlib import Path
+import math
 import os
 import db
 import time
@@ -191,8 +191,6 @@ class Aplayer:
         Aplayer.online_queue = online
         if not queue:
             play_type = 'replace'
-            if Aplayer.is_paused() is True:
-                Aplayer.pauseplay()
         else:
             play_type = 'append-play'
         # TODO: IF ONLINE DOWNLOAD THUMBNAIL HERE
@@ -217,6 +215,9 @@ class Aplayer:
                 )
                 t.start()
         Aplayer._mpv_wait()
+        if not queue:
+            if Aplayer.is_paused() is True or Aplayer.is_active() is False:
+                Aplayer.pauseplay()
 
     def gen_online_song():
         pass  # TODO: IMPLEMENT
@@ -229,7 +230,8 @@ class Aplayer:
             title = yt_dlp.YoutubeDL(
                 {
                     'logger': VoidLogger,
-                    'skip_download': True
+                    'skip_download': True,
+                    'quiet': True
                 }
             ).extract_info(url, download=False).get('title', None)
         except Exception:
@@ -237,21 +239,25 @@ class Aplayer:
         title = title.replace("|", "¦")
         return "".join(i for i in title if i not in r'\/:*?"<>')
 
+    def scrape_title(url: str):
+        return yt_dlp.YoutubeDL(
+            {
+                'logger': VoidLogger,
+                'skip_download': True,
+                'quiet': True
+            }
+        ).extract_info(url, download=False).get('title', None)
+
     def get_title_from_file(filename: str = ''):
-        online = Aplayer.online_queue
         if filename == '':
             filename = Aplayer.getFilename()
         if filename.startswith('http'):
             online = True
+        else:
+            online = False
         if online is True:
-            opts = {'skip_download': False, 'logger': VoidLogger}
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                try:
-                    info_dict = ydl.extract_info(filename, download=False)
-                except Exception:
-                    return ''
-                title = info_dict.get('title', None)
-                return Aplayer._validate_title(filename, title)
+            return Aplayer._validate_title(
+                            filename, Aplayer.scrape_title(filename))
         else:
             return Path(filename).stem
 

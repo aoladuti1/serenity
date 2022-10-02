@@ -198,6 +198,21 @@ class DBLink:
             fetch = cursor.fetchall()
             return self.__gen_song_dicts(fetch)
    
+    def get_all_tracks_and_paths(self, album: str, artist: str):
+        """
+        Returns:
+            a list of tuples, containing (track, FQFN) columns.
+        """
+        with self.conn as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+            """
+            SELECT track, FQFN from Songs
+            WHERE album = ? AND artist = ?
+            """,
+            [album, artist]
+            )
+            return cursor.fetchall()
 
     def del_song_if(self, conditions: dict,
                     negate_all: bool = False, conjunction: bool = True,

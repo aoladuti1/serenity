@@ -37,7 +37,10 @@ UNKNOWN_ALBUM_ARTIST = "---"
 #directories
 DIR_PATH = os.path.dirname(os.path.realpath(__file__)) + os.sep #path to config w/ slash appended
 ART_PATH = DIR_PATH + "art" + os.sep #should change to os.cwd() + "art" + os.sep in future
-PLAYLISTS_PATH = DIR_PATH + 'playlists' + os.sep
+
+PLAYLIST_FOLDER_NAME = '-playlists-'
+PLAYLISTS_PATH = DIR_PATH + PLAYLIST_FOLDER_NAME + os.sep
+
 DL_FOLDER_NAME = '-downloads-'
 DOWNLOAD_PATH = DIR_PATH + DL_FOLDER_NAME + os.sep
 
@@ -57,6 +60,9 @@ UNSELECTED_LABEL_BG_HEX = '#000000'
 ACTIVE_BUTTON_BG_HEX = '#0b3740'
 CLICK_BUTTON_BG_HEX = '#2696ad'
 DEFAULT_FONT_FAMILY = 'Cascadia Code Light'
+
+#misc
+SEARCH_ICON = u"\U0001F50E"
 
 def LEFT_PANE_WIDTH(root: ttk.Window):
     return math.floor(root.winfo_screenwidth() / 3)
