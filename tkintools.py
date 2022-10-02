@@ -13,11 +13,13 @@ class LabelButton(Label):
         self['background'] = self.defaultBG
         self['foreground'] = self.defaultFG
 
-    def on_click(self, e):
+    def on_click(self, e: Event = None):
         self['background'] = self.clickBG
         self['foreground'] = self.clickFG
-        if self.clickFunc != None: self.clickFunc()
-        
+        if e == None:
+            if self.clickFunc != None: self.clickFunc()
+        else:
+            if self.clickFunc != None: self.clickFunc(e)
     def __init__(
             self, master, clickFunc: Callable = None,
             onClickFunc: Callable = None,
