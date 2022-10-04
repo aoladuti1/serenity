@@ -1,7 +1,13 @@
 from tkinter import *
+import ttkbootstrap as ttk
 from turtle import onclick
 from typing import Callable, Any
 from config import *
+
+class TypedLabel(ttk.Label):
+    def __init__(self, master, label_type: str, **kw):
+        self.label_type = label_type
+        ttk.Label.__init__(self, master, **kw)
 
 class LabelButton(Label):
     

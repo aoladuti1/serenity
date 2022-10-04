@@ -421,7 +421,7 @@ class Aplayer:
         for _, _, filenames in os.walk(PLAYLISTS_PATH):
             for filename in filenames:
                 ret.append(os.path.abspath(PLAYLISTS_PATH + filename))
-        return ret
+        return sorted(ret, key = lambda v: (v.casefold(), v))
 
     def get_playlist_titles() -> list:
         ret = []

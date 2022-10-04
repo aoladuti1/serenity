@@ -57,6 +57,7 @@ class LeftPane:
         self.chosenPlaylist = None
         self.currentPage = ARTISTS
         self.libToolsVisible = False
+        self.selectedContent = []
         PANE_WIDTH = LEFT_PANE_WIDTH(self.root)
         EDGE_PAD = math.floor(20 * root.winfo_screenwidth() / 3840)
 
@@ -157,12 +158,12 @@ class LeftPane:
         self.controls.grid(row=3, pady=5)
         self.controls.configure(background=self.background)
         seek = self.genControlButton(
-            clickFunc=lambda t=10: self.controlThreader(Aplayer.seek(seconds=t)),
+            clickFunc=lambda e, t=10: self.controlThreader(e, Aplayer.seek(seconds=t)),
             text=' ++> '   
         )
 
         pause = self.genControlButton(
-            clickFunc=lambda: self.controlThreader(Aplayer.pauseplay),
+            clickFunc=lambda e: self.controlThreader(e, Aplayer.pauseplay),
             text=' |> '
         )
         padx = 13
@@ -192,7 +193,7 @@ class LeftPane:
             font=(DEFAULT_FONT_FAMILY,18, BOLD)
         )
 
-    def controlThreader(self, function):
+    def controlThreader(self, e: Event, function):
         threading.Thread(
                 target=self.controlHandler, 
                 args=(function,)
@@ -246,11 +247,13 @@ class LeftPane:
         button.grid()
         return buttonFrame
     
-    def genBrowserLabel(self, row: int, text: str, dblClickFunc = None, browser = None):
+    def genBrowserLabel(self, row: int, text: str, label_type: str,
+                        dblClickFunc = None, browser = None):
         if browser is None:
             browser = self.browser
-        browserLabel = ttk.Label(
+        browserLabel = tkintools.TypedLabel(
             browser,
+            label_type=label_type,
             text=" " + text,
             bootstyle='info',
             width=PANE_WIDTH #makes the highlight bar go fully across
@@ -311,7 +314,7 @@ class LeftPane:
         self.loading = True
         for name in Aplayer.get_playlist_names():   
             self.genBrowserLabel(
-                i, Path(name).stem,
+                i, Path(name).stem, PLAYLISTS,
                 lambda e, pl=name: self.__go_to_playlist_songs(e, pl),
                 browser=browser)
             self.genBrowserButton(i, browser=browser)
@@ -334,18 +337,21 @@ class LeftPane:
         playlist_length = len(chosen_playlist_files)
         self.loading = True
         for song in chosen_playlist_files:
-            self.genBrowserLabel(i, Aplayer.get_title_from_file(song), browser=browser)
+            self.genBrowserLabel(
+                i, Aplayer.get_title_from_file(song),
+                PLAYLIST_SONGS, browser=browser)
             self.__show_label_load_stats(
                 e, chosen_playlist_title, i, playlist_length)
-            i+=1
+            i += 1
         self.drawBrowser(browser)
 
-    def play_track(self, e: Event, FQFN: str, file_type=TRACKS, label = None):
+    def play_track(self, e: Event, FQFN: str, label=None):
         if label is None:
             widget = e.widget
         else:
             widget = label
-        if file_type == TRACKS:
+        label_type = widget.label_type
+        if label_type == TRACKS:
             threading.Thread(target=Aplayer.loadfile, args=(FQFN,)).start()
         threading.Thread(target=self._temp_mark_playing, 
                         args=(widget,), daemon=True).start()
@@ -373,7 +379,7 @@ class LeftPane:
             self.fetchedArtists = dbLink.get_artists()
         i = 0
         if Aplayer.get_number_of_playlists() > 0:
-            x = self.genBrowserLabel(i, PLAYLISTS, self.__go_to_playlists)
+            x = self.genBrowserLabel(i, PLAYLISTS, ARTISTS, self.__go_to_playlists)
             x.configure(foreground=COLOUR_DICT['light'])
             self.genBrowserButton(i, text="open")
             i += 1
@@ -382,7 +388,7 @@ class LeftPane:
         
         for tuple in self.fetchedArtists:
             name = tuple[0]     
-            self.genBrowserLabel(i, name, self.loadAlbums)
+            self.genBrowserLabel(i, name, ARTISTS, self.loadAlbums)
             self.genBrowserButton(i)
             i += 1
         if i == 0:
@@ -426,7 +432,8 @@ class LeftPane:
         i = 0
         text = " " + self.chosenArtist
         for album_tuple in self.fetchedAlbums:
-            self.genBrowserLabel(i, album_tuple[0], self.loadTracks, browser)
+            self.genBrowserLabel(
+                i, album_tuple[0], ALBUMS, self.loadTracks, browser)
             if e != None:
                 self.__show_label_load_stats(
                     e, text, i, album_count)
@@ -450,14 +457,14 @@ class LeftPane:
         text = " " + self.chosenAlbum
         self.loading = True
         for tuple in self.fetchedTracks:
-            label = self.genBrowserLabel(i, tuple[0], 
-                lambda e, file=tuple[1], fileType=TRACKS:
-                    self.play_track(e, file, fileType), browser)
+            label = self.genBrowserLabel(i, tuple[0], TRACKS,
+                lambda e, file=tuple[1]:
+                    self.play_track(e, file), browser)
             self.genBrowserButton(
                 i, browser=browser,
                 clickFunc=(
                     lambda e, file=tuple[1], fileType=TRACKS, label=label:
-                        self.play_track(e,file, fileType, label)))
+                        self.play_track(e,file, label)))
             if e != None:
                 self.__show_label_load_stats(
                     e, text, i, song_count)
