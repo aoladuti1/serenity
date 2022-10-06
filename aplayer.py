@@ -1,10 +1,11 @@
 
-import math
 from typing import Sequence
 from config import *
 from PIL import Image
 from pathlib import Path
+import math
 import os
+import db
 import time
 import mpv
 import records
@@ -108,7 +109,7 @@ class Aplayer:
                 Aplayer._current_download_percent = p
 
     def kill():
-        Aplayer.player.quit()
+        Aplayer.player.quit(code=0)
 
     def getFilename() -> dict:
         return Aplayer.player._get_property('path')
@@ -190,8 +191,6 @@ class Aplayer:
         Aplayer.online_queue = online
         if not queue:
             play_type = 'replace'
-            if Aplayer.is_paused() is True:
-                Aplayer.pauseplay()
         else:
             play_type = 'append-play'
         # TODO: IF ONLINE DOWNLOAD THUMBNAIL HERE
@@ -216,6 +215,9 @@ class Aplayer:
                 )
                 t.start()
         Aplayer._mpv_wait()
+        if not queue:
+            if Aplayer.is_paused() is True or Aplayer.is_active() is False:
+                Aplayer.pauseplay()
 
     def gen_online_song():
         pass  # TODO: IMPLEMENT
@@ -228,7 +230,8 @@ class Aplayer:
             title = yt_dlp.YoutubeDL(
                 {
                     'logger': VoidLogger,
-                    'skip_download': True
+                    'skip_download': True,
+                    'quiet': True
                 }
             ).extract_info(url, download=False).get('title', None)
         except Exception:
@@ -236,21 +239,25 @@ class Aplayer:
         title = title.replace("|", "¦")
         return "".join(i for i in title if i not in r'\/:*?"<>')
 
+    def scrape_title(url: str):
+        return yt_dlp.YoutubeDL(
+            {
+                'logger': VoidLogger,
+                'skip_download': True,
+                'quiet': True
+            }
+        ).extract_info(url, download=False).get('title', None)
+
     def get_title_from_file(filename: str = ''):
-        online = Aplayer.online_queue
         if filename == '':
             filename = Aplayer.getFilename()
         if filename.startswith('http'):
             online = True
+        else:
+            online = False
         if online is True:
-            opts = {'skip_download': False, 'logger': VoidLogger}
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                try:
-                    info_dict = ydl.extract_info(filename, download=False)
-                except Exception:
-                    return ''
-                title = info_dict.get('title', None)
-                return Aplayer._validate_title(filename, title)
+            return Aplayer._validate_title(
+                            filename, Aplayer.scrape_title(filename))
         else:
             return Path(filename).stem
 
@@ -320,10 +327,8 @@ class Aplayer:
         )
 
     def download_to_audio(urls: list, data: Sequence):
-        #  if no known title exists, it'll generate one
-        # TODO: GOTO DB.PY AND MAKE IT AN INSTANCE CLASS WHERE CONNECTION IS REMADE
-        # ON EACH INSTANCE. MUST BE ONE CONNECTION PER THREAD.
-        # dl_index = Aplayer._download_index + 1
+        # data is a sequence of artist, track, trackNum, title
+        dl_index = Aplayer._download_index + 1
         if data is None:
             title = Aplayer.get_title_from_file(urls[0])
             data = Aplayer.get_artist_track_trackNum(title)
@@ -350,8 +355,10 @@ class Aplayer:
                         Aplayer._download_index = last_dl_index
                     dl.download(urls)
                 except Exception:
-                    pass
-        records.add_downloaded_song(full_path, data)
+                    while not (Aplayer._download_index < dl_index):
+                        Aplayer._download_index -= 1
+        dbLink = db.DBLink()
+        records.add_downloaded_song(full_path, data, dbLink)
 
     def loadlist(
             playlist_title: str, index: int = -1, pause_on_load: bool = False):
@@ -414,6 +421,13 @@ class Aplayer:
         for _, _, filenames in os.walk(PLAYLISTS_PATH):
             for filename in filenames:
                 ret.append(os.path.abspath(PLAYLISTS_PATH + filename))
+        return sorted(ret, key = lambda v: (v.casefold(), v))
+
+    def get_playlist_titles() -> list:
+        ret = []
+        for _, _, filenames in os.walk(PLAYLISTS_PATH):
+            for filename in filenames:
+                ret.append(Path(filename).stem)
         return ret
 
     def set_dl_on_stream(dl_on_stream=False):
@@ -502,6 +516,13 @@ class Aplayer:
 
     def get_playlist_count():
         return Aplayer.player._get_property('playlist-count')
+
+    def get_number_of_playlists():
+        count = 0
+        for _, _, filenames in os.walk(PLAYLISTS_PATH):
+            for filename in filenames:
+                count += 1
+        return count
 
     def get_playlist_pos() -> int:
         """Returns the index loaded for current playback.

@@ -1,13 +1,18 @@
 #support
 import os
+import pathlib
 import ttkbootstrap as ttk
-import subprocess
+import math
+from typing import TypeVar
 from themes.user import USER_THEMES
 
 
 def path_exists(path):
     return os.path.exists(os.path.expanduser(path))
 
+
+# typing
+PathLike = TypeVar("PathLike", str, pathlib.Path)
 
 SUPPORTED_EXTENSIONS = (
     ".mp3",
@@ -17,6 +22,7 @@ SUPPORTED_EXTENSIONS = (
 ) # THIS IS FAR FROM EXHAUSTIVE
 
 DOWNLOADS_CODEC = 'mp3'
+
 ART_FORMAT = 'jpg'
 
 #only splitterchar should be changed by the user
@@ -31,7 +37,10 @@ UNKNOWN_ALBUM_ARTIST = "---"
 #directories
 DIR_PATH = os.path.dirname(os.path.realpath(__file__)) + os.sep #path to config w/ slash appended
 ART_PATH = DIR_PATH + "art" + os.sep #should change to os.cwd() + "art" + os.sep in future
-PLAYLISTS_PATH = DIR_PATH + 'playlists' + os.sep
+
+PLAYLIST_FOLDER_NAME = '-playlists-'
+PLAYLISTS_PATH = DIR_PATH + PLAYLIST_FOLDER_NAME + os.sep
+
 DL_FOLDER_NAME = '-downloads-'
 DOWNLOAD_PATH = DIR_PATH + DL_FOLDER_NAME + os.sep
 
@@ -52,8 +61,11 @@ ACTIVE_BUTTON_BG_HEX = '#0b3740'
 CLICK_BUTTON_BG_HEX = '#2696ad'
 DEFAULT_FONT_FAMILY = 'Cascadia Code Light'
 
-#gui - left pane
-LEFT_PANE_WIDTH = 700
+#misc
+SEARCH_ICON = u"\U0001F50E"
+
+def LEFT_PANE_WIDTH(root: ttk.Window):
+    return math.floor(root.winfo_screenwidth() / 3)
 
 def configureStyle():
     style = ttk.Style(THEME_NAME)
@@ -69,7 +81,7 @@ def configureFont():
 def configureRoot(root: ttk.Window):
     width = root.winfo_screenwidth()
     height = root.winfo_screenheight()
-    root.geometry("%dx%d" % (700, height * 0.5))
+    root.geometry("%dx%d" % (LEFT_PANE_WIDTH(root), height * 0.5))
     root.update()
     root.columnconfigure(0, weight=0)
     root.columnconfigure(1, weight=1)

@@ -1,7 +1,13 @@
 from tkinter import *
+import ttkbootstrap as ttk
 from turtle import onclick
 from typing import Callable, Any
 from config import *
+
+class TypedLabel(ttk.Label):
+    def __init__(self, master, label_type: str, **kw):
+        self.label_type = label_type
+        ttk.Label.__init__(self, master, **kw)
 
 class LabelButton(Label):
     
@@ -13,11 +19,13 @@ class LabelButton(Label):
         self['background'] = self.defaultBG
         self['foreground'] = self.defaultFG
 
-    def on_click(self, e):
+    def on_click(self, e: Event = None):
         self['background'] = self.clickBG
         self['foreground'] = self.clickFG
-        if self.clickFunc != None: self.clickFunc()
-        
+        if e == None:
+            if self.clickFunc != None: self.clickFunc()
+        else:
+            if self.clickFunc != None: self.clickFunc(e)
     def __init__(
             self, master, clickFunc: Callable = None,
             onClickFunc: Callable = None,
@@ -47,6 +55,7 @@ class LabelButton(Label):
         self.onEnterFunc = onEnterFunc
         self.onLeaveFunc = onLeaveFunc
         self.buttonReleaseFunc = buttonReleaseFunc
+        self.state = 0
         if onClickFunc == None:
             self.onClickFunc = self.on_click
         if defaultBG == None:
