@@ -55,6 +55,7 @@ class LabelButton(Label):
         self.onEnterFunc = onEnterFunc
         self.onLeaveFunc = onLeaveFunc
         self.buttonReleaseFunc = buttonReleaseFunc
+        self.state = 0
         if onClickFunc == None:
             self.onClickFunc = self.on_click
         if defaultBG == None:
