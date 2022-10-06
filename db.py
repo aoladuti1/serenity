@@ -209,9 +209,33 @@ class DBLink:
             """
             SELECT track, FQFN from Songs
             WHERE album = ? AND artist = ?
+            ORDER BY trackNum
             """,
             [album, artist]
             )
+            return cursor.fetchall()
+    
+    def get_album_filenames(self, album: str, artist: str):
+        with self.conn as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+            """
+            SELECT FQFN from Songs
+            WHERE album = ? AND artist = ?
+            ORDER BY trackNum
+            """, [album, artist])
+            return cursor.fetchall()
+
+
+    def get_artist_filenames(self, artist: str):
+        with self.conn as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+            """
+            SELECT FQFN from Songs
+            WHERE artist = ?
+            ORDER BY album, trackNum
+            """, [artist])
             return cursor.fetchall()
 
     def del_song_if(self, conditions: dict,
