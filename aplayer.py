@@ -389,6 +389,22 @@ class Aplayer:
             Aplayer._mpv_wait()
         Aplayer._mpv_wait()
 
+    def loadall(filenames: list, queue: bool = True):
+        # offline tracks only
+        element_count = len(filenames)
+        if element_count == 0:
+            return
+        if Aplayer.online_queue is True or Aplayer.get_playlist_count() < 1:
+            Aplayer.clear_subqueue()
+            if not Aplayer.is_paused():
+                Aplayer.pauseplay()
+        Aplayer.loadfile(filenames[0], queue)
+        if element_count > 1:
+            for filename in filenames[1:-1]:
+                Aplayer.player.loadfile(filename, 'append')
+                Aplayer._queue_properly()
+            Aplayer._mpv_wait()
+
     def savelist(playlist_title: str):
         playlist_name = playlist_title
         if not playlist_title.endswith(PLAYLIST_EXTENSION):
