@@ -50,7 +50,7 @@ USER_THEMES = {
             "info": "#ffffff",
             "warning": "#ffbd05",
             "danger": "#e34b54",
-            "light": "#44d7e8",
+            "light": "#c4f2f9",
             "dark": "#000000",
             "bg": "#10051b",
             "fg": "#32fbe2",
