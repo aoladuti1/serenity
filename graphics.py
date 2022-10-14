@@ -34,6 +34,8 @@ class LeftPane:
     NO_BACK_TEXT = '---'
     SPECIAL_HEX = COLOUR_DICT['primary']
     DEFAULT_SUBHEADER=' Your library'
+    STARTING_TEXT = ' ..starting..'
+    QUEUING_TEXT = ' ..queuing..'
     SUBHEADER_TEXT_MAX_WIDTH = 999 # TODO make it fit 1080p, 2k and 4k
     
 
@@ -61,10 +63,19 @@ class LeftPane:
         self.chosenSong = None # should never be NoneType after init
         self.chosenPlaylist = None
         self.currentPage = ARTISTS
+        self.subframe = None
+        self.entryBar = None
+        self.entry = None
         self.libToolsVisible = False
+        self.entryBarVisible = False
         self.selectedContent = []
+        self.current_file = ''
+        self.current_duration = ''
+        self.playing_text = 'Now playing:'
+        self.status = None
+        Aplayer.player.observe_property('path', self.observe_title)
         PANE_WIDTH = LEFT_PANE_WIDTH(self.root)
-        EDGE_PAD = math.floor(20 * root.winfo_screenwidth() / 3840)
+        EDGE_PAD = math.floor(25 * root.winfo_screenwidth() / 3840)
 
     def drawAll(self):
         self.drawFrame()
@@ -72,18 +83,19 @@ class LeftPane:
 
     def drawAllExceptFrame(self):
         self.drawHeader()
-        self.drawBackbutton()
         self.drawSubheader()
-        
+        self.drawBackbutton()
         self.genLibTools()
+        self.genEntryBar()
         self.drawControls()
         self.drawBrowser()
+        self.drawStatus()
         self.loadArtists()
 
     def drawFrame(self):
         self.frame = Frame(self.root, height=self.root.winfo_height(), width=PANE_WIDTH)
         self.frame.grid(column = 0, row=0, sticky='nsw', columnspan=1)
-        self.frame.rowconfigure(4, weight=1) # browser is stretchy!
+        self.frame.rowconfigure(5, weight=1) # browser is stretchy!
         self.frame.columnconfigure(0, weight=1)
         self.frame.configure(background=self.background)
         self.frame.grid_propagate(False)
@@ -97,37 +109,54 @@ class LeftPane:
     
     def drawSubheader(self):
         self.subheader = tkintools.LabelButton(
-            self.frame,text=LeftPane.DEFAULT_SUBHEADER,
+            self.frame, text=LeftPane.DEFAULT_SUBHEADER,
             activeFG=COLOUR_DICT['info'],
             activeBG=COLOUR_DICT['dark'],
             clickFG=COLOUR_DICT['info'],
             clickBG=COLOUR_DICT['dark'],
-            clickFunc=self.showHideLibTools,
+            clickFunc=self.showHideExtras,
             buttonReleaseFunc=lambda e: self.controlRelease(e),
             background=self.background,
-            font=(DEFAULT_FONT_FAMILY,14))
-        self.subheader.grid(column=0, columnspan=1, row=1, sticky=W)
+            font=(DEFAULT_FONT_FAMILY, 14))
+        self.subheader.grid(column=0, row=1, sticky=W)
+
+    def drawStatus(self):
+        self.status = ttk.Label(self.frame, 
+        font=(DEFAULT_FONT_FAMILY, 12), background=self.background, padding='4 4 4 4')
 
     def drawBackbutton(self):
         bbFrame = Frame(self.frame, padx=EDGE_PAD)
         bbFrame.configure(background=self.background)
-        bbFrame.grid(row=1, column=0, columnspan=2, sticky=E)
+        bbFrame.grid(row=1, rowspan=1, sticky=NE)
         self.backButton = tkintools.LabelButton(
             bbFrame,
             clickFG=COLOUR_DICT['info'],
             clickBG=COLOUR_DICT['dark'],
             clickFunc= self.goBack,
             text=LeftPane.NO_BACK_TEXT,
-            font=(DEFAULT_FONT_FAMILY,18, BOLD)
+            font=(DEFAULT_FONT_FAMILY,16, BOLD)
         )
         self.backButton.grid()
-        
-    def showHideLibTools(self, e: Event = None):  
+
+    def showHideExtras(self, e: Event = None):
+        self.__showHideLibTools()
+        self.__showHideEntryBar()
+
+    def __showHideLibTools(self):  
         if self.libToolsVisible is False:
-            self.libTools.grid(row=2, pady=5)
+            self.libTools.grid(row=3, pady=5)
         else:
             self.libTools.grid_remove()
         self.libToolsVisible = not self.libToolsVisible
+
+    def __showHideEntryBar(self):  
+        if self.entryBarVisible is False:
+            self.entryBar.grid(row=2, rowspan=1, pady=5)
+            self.entry.focus_force()
+        else:
+            self.entryBar.grid_remove()
+            self.root.focus_force()
+        self.entryBarVisible = not self.entryBarVisible
 
     def genLibTools(self):
         self.libTools = Frame(self.frame)
@@ -154,26 +183,59 @@ class LeftPane:
             font=(DEFAULT_FONT_FAMILY, 12, BOLD)
         )
         padx = 7
-        addArtists.grid(column=0, row=0, sticky=S, padx=padx)
-        addAlbums.grid(column=1, row=0, sticky=S, padx=padx)
-        addSongs.grid(column=2, row=0, sticky=S, padx=padx)
+        addArtists.grid(column=0, row=2, sticky=S, padx=padx)
+        addAlbums.grid(column=1, row=2, sticky=S, padx=padx)
+        addSongs.grid(column=2, row=2, sticky=S, padx=padx)
+    
+    def genEntryBar(self):
+        self.entryBar = Frame(self.frame)
+        self.entryBar.configure(background=self.background)
+        stream = tkintools.LabelButton(
+            self.entryBar,
+            clickFG=COLOUR_DICT['info'],
+            clickBG=COLOUR_DICT['dark'],
+            text='[stream]',
+            font=(DEFAULT_FONT_FAMILY, 12, BOLD)
+        )
+        search = tkintools.LabelButton(
+            self.entryBar,
+            clickFG=COLOUR_DICT['info'],
+            clickBG=COLOUR_DICT['dark'],
+            text='[search]',
+            font=(DEFAULT_FONT_FAMILY, 12, BOLD)
+        )
+        self.entry = ttk.Entry(self.entryBar)
+        self.entry.grid(row=0,column=0)
+        self.entry.configure(font = (DEFAULT_FONT_FAMILY,10))
+        stream.grid(row=0,column=2, sticky=S)
+        search.grid(row=0,column=1, sticky=S)
+
+    def seek(self, e, seconds):
+        threading.Thread(target=Aplayer.seek, args=(seconds,)).start()
+        Aplayer._mpv_wait()
+        self.status.configure(
+            text='>seek {} to [{}]'.format(seconds, self.get_time_pos()))
+    
 
     def drawControls(self):
         self.controls = Frame(self.frame)
-        self.controls.grid(row=3, pady=5)
+        self.controls.grid(row=4, pady=5, rowspan=1)
         self.controls.configure(background=self.background)
-        seek = self.genControlButton(
-            clickFunc=lambda e, t=10: self.controlThreader(e, Aplayer.seek(seconds=t)),
+        seek_pos = self.genControlButton(
+            clickFunc=lambda e, t=10: self.seek(e, t),
             text=' ++> '   
         )
-
+        seek_neg = self.genControlButton(
+            clickFunc=lambda e, t=-10: self.seek(e, t),
+            text=' <++ '   
+        )
         pause = self.genControlButton(
             clickFunc=lambda e: self.controlThreader(e, Aplayer.pauseplay),
             text=' |> '
         )
-        padx = 13
-        pause.grid(column=0, row=0, sticky=S, padx=padx, pady=5)
-        seek.grid(column=1, row=0, sticky=S, padx=padx, pady=5)
+        pause.grid(column=1, row=0, sticky=S, pady=5)
+        seek_pos.grid(column=2, row=0, sticky=S, pady=5)
+        seek_neg.grid(column=0, row=0, sticky=S, pady=5)
         self.pauseButton = pause
         threading.Thread(target=self.monitorPlaystate, daemon=True).start()
         
@@ -185,6 +247,46 @@ class LeftPane:
             except: pass #tkinter complains about the threading but i don't care
             time.sleep(1)
 
+    def observe_title(self, path, v):
+        if self.status is None:
+            return
+        if v is None:
+            self.current_file = ''
+            self.current_duration = ''
+            self.status.grid_remove()
+        else:
+            self.status.grid(row=6)
+            self.status.configure(background=COLOUR_DICT['bg'])
+            if Aplayer.online_queue is True:
+                self.current_file = Aplayer.get_title_from_file(v)
+                self.playing_text = 'Now streaming:'
+            else:
+                self.current_file = Path(v).name
+                self.playing_text = 'Now playing:'
+
+            threading.Thread(target=self.monitor_pos).start()
+
+    def get_time_pos(self):
+        secs = Aplayer.get_time_pos()
+        if secs < 0 or secs is None:
+            return '00:00:00'
+        else:
+            return time.strftime("%H:%M:%S", time.gmtime(secs))
+
+    def monitor_pos(self):
+        self.status.configure(
+            text='{} {} | [{}/{}]'.format(
+                self.playing_text, self.current_file, '00:00:00', '...?'))  
+        while not self.current_file == '':
+            time.sleep(1)
+            self.current_duration = time.strftime(
+                "%H:%M:%S", time.gmtime(Aplayer.get_duration()))
+            self.status.configure(
+                text='{} {} | [{}/{}]'.format(
+                    self.playing_text,
+                    self.current_file, self.get_time_pos(), self.current_duration))
+            self.root.update()
+
     def genControlButton(self, text: str, clickFunc: Callable):
         return tkintools.LabelButton(
             self.controls,
@@ -195,7 +297,7 @@ class LeftPane:
             clickFunc=clickFunc,
             buttonReleaseFunc=lambda e: self.controlRelease(e),
             text=text,
-            font=(DEFAULT_FONT_FAMILY,18, BOLD)
+            font=(DEFAULT_FONT_FAMILY, 16, BOLD)
         )
 
     def controlThreader(self, e: Event, function):
@@ -205,7 +307,6 @@ class LeftPane:
                 ).start()
 
     def controlHandler(self, function):
-        time.sleep(0.07)
         if (function != None):
             function()
 
@@ -230,7 +331,7 @@ class LeftPane:
             self.browser.grid_remove()
             self.browser = browser
         self.loading = False
-        self.browser.grid(row=4, sticky = NW, columnspan=1)
+        self.browser.grid(row=5, sticky = NW, columnspan=1, rowspan=1)
 
     def flipBrowserButton(self, e):
         text_states = ['play', 'queue']
@@ -281,6 +382,7 @@ class LeftPane:
         button.grid()
         return buttonFrame
         
+
 
 
     
@@ -370,9 +472,8 @@ class LeftPane:
         browser = self.genBrowser()
         i = 0
         chosen_playlist_files = open(chosen_playlist, 'r').readlines()
-        chosen_playlist_title = e.widget.cget('text')
+        chosen_playlist_title = self.strip_widget_text(e)
         playlist_length = len(chosen_playlist_files)
-        self.loading = True
         for song in chosen_playlist_files:
             self.genBrowserLabel(
                 i, Aplayer.get_title_from_file(song),
@@ -424,9 +525,9 @@ class LeftPane:
         if str(old_fg) == str(LeftPane.SPECIAL_HEX):
             return
         old_text = widget.cget('text')
-        new_text = '  ...starting...' if queue is False else '  ...enqueued!'
+        new_text = LeftPane.STARTING_TEXT if queue is False else LeftPane.QUEUING_TEXT
         widget.configure(foreground=LeftPane.SPECIAL_HEX)
-        widget.configure(text=old_text + new_text)
+        widget.configure(text=new_text + old_text)
         self.root.update()
         time.sleep(1.25)
         widget.configure(foreground=old_fg)
@@ -485,12 +586,19 @@ class LeftPane:
                 wrap=WORD)
             txt.grid(columnspan=2)
         
-    
+    def strip_widget_text(self, e: Event):
+        text = e.widget.cget('text')
+        if text.startswith(LeftPane.STARTING_TEXT):
+            text = text[len(LeftPane.STARTING_TEXT):]
+        elif text.startswith(LeftPane.QUEUING_TEXT):
+            text = text[len(LeftPane.QUEUING_TEXT):]
+        return text.lstrip()
+
     def loadAlbums(self, e: Event = None):
         if self.loading is True:
             return
         if e != None:
-            self.chosenArtist = e.widget.cget('text').lstrip()
+            self.chosenArtist = self.strip_widget_text(e)
         self.fetchedAlbums = dbLink.get_albums(self.chosenArtist)
         self.updateSubheader(ALBUMS)
         album_count = len(self.fetchedAlbums)
@@ -519,7 +627,7 @@ class LeftPane:
         text = ''
         if e != None:
             text = e.widget.cget('text')
-            self.chosenAlbum = text.lstrip()
+            self.chosenAlbum = self.strip_widget_text(e)
         self.fetchedTracksAndPaths = dbLink.get_all_tracks_and_paths(
                                     self.chosenAlbum, self.chosenArtist)
         self.updateSubheader(TRACKS)
