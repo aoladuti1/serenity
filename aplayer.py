@@ -251,10 +251,7 @@ class Aplayer:
     def get_title_from_file(filename: str = ''):
         if filename == '':
             filename = Aplayer.getFilename()
-        if filename.startswith('http'):
-            online = True
-        else:
-            online = False
+        online = filename.startswith('http')
         if online is True:
             return Aplayer._validate_title(
                             filename, Aplayer.scrape_title(filename))

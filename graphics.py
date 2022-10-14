@@ -64,9 +64,16 @@ class LeftPane:
         self.chosenPlaylist = None
         self.currentPage = ARTISTS
         self.subframe = None
+        self.entryBar = None
+        self.entry = None
         self.libToolsVisible = False
         self.entryBarVisible = False
         self.selectedContent = []
+        self.current_file = ''
+        self.current_duration = ''
+        self.playing_text = 'Now playing:'
+        self.status = None
+        Aplayer.player.observe_property('path', self.observe_title)
         PANE_WIDTH = LEFT_PANE_WIDTH(self.root)
         EDGE_PAD = math.floor(25 * root.winfo_screenwidth() / 3840)
 
@@ -76,13 +83,13 @@ class LeftPane:
 
     def drawAllExceptFrame(self):
         self.drawHeader()
-        
         self.drawSubheader()
         self.drawBackbutton()
         self.genLibTools()
         self.genEntryBar()
         self.drawControls()
         self.drawBrowser()
+        self.drawStatus()
         self.loadArtists()
 
     def drawFrame(self):
@@ -113,6 +120,10 @@ class LeftPane:
             font=(DEFAULT_FONT_FAMILY, 14))
         self.subheader.grid(column=0, row=1, sticky=W)
 
+    def drawStatus(self):
+        self.status = ttk.Label(self.frame, 
+        font=(DEFAULT_FONT_FAMILY, 12), background=self.background, padding='4 4 4 4')
+
     def drawBackbutton(self):
         bbFrame = Frame(self.frame, padx=EDGE_PAD)
         bbFrame.configure(background=self.background)
@@ -141,8 +152,10 @@ class LeftPane:
     def __showHideEntryBar(self):  
         if self.entryBarVisible is False:
             self.entryBar.grid(row=2, rowspan=1, pady=5)
+            self.entry.focus_force()
         else:
             self.entryBar.grid_remove()
+            self.root.focus_force()
         self.entryBarVisible = not self.entryBarVisible
 
     def genLibTools(self):
@@ -191,23 +204,29 @@ class LeftPane:
             text='[search]',
             font=(DEFAULT_FONT_FAMILY, 12, BOLD)
         )
-        entry = ttk.Entry(self.entryBar)
-        entry.grid(row=0,column=0)
-        entry.configure(font = (DEFAULT_FONT_FAMILY,10))
-        entry.focus_force()
+        self.entry = ttk.Entry(self.entryBar)
+        self.entry.grid(row=0,column=0)
+        self.entry.configure(font = (DEFAULT_FONT_FAMILY,10))
         stream.grid(row=0,column=2, sticky=S)
         search.grid(row=0,column=1, sticky=S)
+
+    def seek(self, e, seconds):
+        threading.Thread(target=Aplayer.seek, args=(seconds,)).start()
+        Aplayer._mpv_wait()
+        self.status.configure(
+            text='>seek {} to [{}]'.format(seconds, self.get_time_pos()))
+    
 
     def drawControls(self):
         self.controls = Frame(self.frame)
         self.controls.grid(row=4, pady=5, rowspan=1)
         self.controls.configure(background=self.background)
         seek_pos = self.genControlButton(
-            clickFunc=lambda e, t=10: self.controlThreader(e, Aplayer.seek(seconds=t)),
+            clickFunc=lambda e, t=10: self.seek(e, t),
             text=' ++> '   
         )
         seek_neg = self.genControlButton(
-            clickFunc=lambda e, t=-10: self.controlThreader(e, Aplayer.seek(seconds=t)),
+            clickFunc=lambda e, t=-10: self.seek(e, t),
             text=' <++ '   
         )
         pause = self.genControlButton(
@@ -227,6 +246,46 @@ class LeftPane:
                 self.pauseButton.configure(text=LeftPane.PAUSE_LABELS[int(Aplayer.is_paused())])
             except: pass #tkinter complains about the threading but i don't care
             time.sleep(1)
+
+    def observe_title(self, path, v):
+        if self.status is None:
+            return
+        if v is None:
+            self.current_file = ''
+            self.current_duration = ''
+            self.status.grid_remove()
+        else:
+            self.status.grid(row=6)
+            self.status.configure(background=COLOUR_DICT['bg'])
+            if Aplayer.online_queue is True:
+                self.current_file = Aplayer.get_title_from_file(v)
+                self.playing_text = 'Now streaming:'
+            else:
+                self.current_file = Path(v).name
+                self.playing_text = 'Now playing:'
+
+            threading.Thread(target=self.monitor_pos).start()
+
+    def get_time_pos(self):
+        secs = Aplayer.get_time_pos()
+        if secs < 0 or secs is None:
+            return '00:00:00'
+        else:
+            return time.strftime("%H:%M:%S", time.gmtime(secs))
+
+    def monitor_pos(self):
+        self.status.configure(
+            text='{} {} | [{}/{}]'.format(
+                self.playing_text, self.current_file, '00:00:00', '...?'))  
+        while not self.current_file == '':
+            time.sleep(1)
+            self.current_duration = time.strftime(
+                "%H:%M:%S", time.gmtime(Aplayer.get_duration()))
+            self.status.configure(
+                text='{} {} | [{}/{}]'.format(
+                    self.playing_text,
+                    self.current_file, self.get_time_pos(), self.current_duration))
+            self.root.update()
 
     def genControlButton(self, text: str, clickFunc: Callable):
         return tkintools.LabelButton(
@@ -248,7 +307,6 @@ class LeftPane:
                 ).start()
 
     def controlHandler(self, function):
-        time.sleep(0.07)
         if (function != None):
             function()
 
@@ -324,6 +382,7 @@ class LeftPane:
         button.grid()
         return buttonFrame
         
+
 
 
     
