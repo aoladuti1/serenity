@@ -1,4 +1,6 @@
 import sqlite3
+import subprocess
+from sys import platform
 from typing import Sequence
 from config import *
 
@@ -47,6 +49,13 @@ def init():
     )
     conn.commit()
     conn.close()
+    try:    
+        if platform == "linux" or platform == "linux2":
+            if not path_exists(DATABASE):
+                print('Attempting ffmpeg install.')
+                subprocess.run(['sudo', 'apt', 'install', 'ffmpeg'])
+    except Exception:
+        pass
 
 
 class DBLink:

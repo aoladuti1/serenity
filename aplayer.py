@@ -353,12 +353,7 @@ class Aplayer:
                     Aplayer.downloading_audio = True
                     dl.download(urls)
                 except Exception:
-                    try:
-                        if platform == "linux" or platform == "linux2":
-                            print('Attempting ffmpeg install.')
-                            subprocess.run(['sudo', 'apt', 'install', 'ffmpeg'])
-                    except Exception:
-                        pass
+                    pass
         if len(Aplayer._download_queue_titles) == 0:
             Aplayer.downloading_audio = False
         dbLink = db.DBLink()
