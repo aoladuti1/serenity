@@ -9,7 +9,6 @@ SONG_COLUMNS = (
 )
 
 SONGS = 'Songs'
-DOWNLOADS = 'Downloads'
 
 def init():
     conn = sqlite3.connect(DATABASE)
@@ -41,23 +40,10 @@ def init():
         )
         """
     )
-
     cursor.execute(
         """
-        CREATE TABLE if not exists {} (
-            FQFN text,
-            artist text COLLATE NOCASE,
-            album text COLLATE NOCASE,
-            track text COLLATE NOCASE,
-            trackNum integer,
-            bitRateInfo text,
-            samplingRateInfo text,
-            codec text,
-            art text COLLATE NOCASE,
-            listens integer,
-            PRIMARY KEY(FQFN)
-        )
-        """.format(DOWNLOADS)
+        REPLACE INTO Directories VALUES (?,?)
+        """, [DOWNLOAD_PATH, 0]
     )
     conn.commit()
     conn.close()
@@ -83,6 +69,24 @@ class DBLink:
                 """.format(table), [FQFN]
                 ) 
             return cursor.fetchone() != None
+        
+    def del_all_absent_songs(self, table: str = SONGS):
+        fetch = []
+        list = []
+        with self.conn as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+            """
+            SELECT FQFN from {}
+            """.format(table)
+            )
+            fetch = cursor.fetchall()  
+        for path_tuple in fetch:
+            if not path_exists(path_tuple[0]):
+                list.append(path_tuple[0])
+        for path in list:
+            self.del_song(path)
+
 
     def directory_registered(self, path: str):
         with self.conn as conn:
@@ -111,6 +115,47 @@ class DBLink:
             SELECT artist from {}
             GROUP BY artist
             """.format(table)
+            )
+            return cursor.fetchall()
+
+    def search_artists(self, query):
+        with self.conn as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT artist
+                FROM Songs
+                WHERE artist LIKE '%'||?||'%'
+                GROUP BY artist
+                """,
+                [query]
+            )
+            return cursor.fetchall()
+
+    def search_albums(self, query):
+        with self.conn as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT album, artist
+                FROM Songs
+                WHERE album LIKE '%'||?||'%'
+                GROUP BY artist
+                """,
+                [query]
+            )
+            return cursor.fetchall()
+
+    def search_tracks(self, query):
+        with self.conn as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT track, FQFN
+                FROM Songs
+                WHERE track LIKE '%'||?||'%'
+                """,
+                [query]
             )
             return cursor.fetchall()
 
@@ -397,10 +442,8 @@ class DBLink:
         ) 
 
     def add_directory(
-            self, path: str, folder_is_album: bool, AAT_structure: bool):
+            self, path: str, AAT_structure: bool = False):
         if AAT_structure is True:
-            i = 2
-        elif folder_is_album is True:
             i = 1
         else:
             i = 0
@@ -415,3 +458,9 @@ class DBLink:
             "INSERT INTO Directories VALUES (?,?)", 
             [path, i]
         )
+
+    def get_directories_structures(self):
+        with self.conn as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT directory, structure from Directories')
+            return cursor.fetchall() 
