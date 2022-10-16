@@ -20,14 +20,10 @@ def path_exists(path):
 PathLike = TypeVar("PathLike", str, pathlib.Path)
 
 SUPPORTED_EXTENSIONS = (
-    ".mp3",
-    ".wav",
-    ".aac",
-    ".wma"
-    ".flac"
-    ".ogg"
-    ".opus"
-    ".m4a"
+    ".mp3", ".wav", ".aac",
+    ".wma", ".flac", ".ogg",
+    ".opus", ".m4a", ".wma",
+    ".pcm", ".au", ".3gp",
 ) # THIS IS FAR FROM EXHAUSTIVE
 
 DOWNLOADS_CODEC = 'mp3'
