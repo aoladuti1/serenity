@@ -75,3 +75,15 @@ class LabelButton(Label):
         self.bind("<Button-1>", self.onClickFunc)
         self.bind("<ButtonRelease-1>", self.buttonReleaseFunc)
 
+class StatusBar(Frame):
+    def __init__(self, master, **kw):
+        Frame.__init__(self, master, **kw)
+        self.configure(width=LEFT_PANE_WIDTH(master))
+        self.columnconfigure(1, weight=0)
+        self.columnconfigure(0, weight=1)
+        self.label = ttk.Label(self, 
+            font=(DEFAULT_FONT_FAMILY, 12), padding='4 4 0 4',
+            background=COLOUR_DICT['dark'])
+        self.time = ttk.Label(self, 
+            font=(DEFAULT_FONT_FAMILY, 12), padding='0 4 4 4',
+            background=COLOUR_DICT['dark'])

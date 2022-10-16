@@ -45,7 +45,7 @@ class LeftPane:
     SUBHEADER_TEXT_MAX_WIDTH = 999 # TODO make it fit 1080p, 2k and 4k
     
 
-    def __init__(self, root: ttk.Window):
+    def __init__(self, root: ttk.Window, status: tkintools.StatusBar):
         global PANE_WIDTH
         global EDGE_PAD
         self.root = root
@@ -80,7 +80,7 @@ class LeftPane:
         self.current_file = ''
         self.current_duration = ''
         self.playing_text = 'Now playing:'
-        self.status = None
+        self.status = status
         self.adding_music_label = None
         self.downloading = False
         self.__overriding_status = False
@@ -100,7 +100,6 @@ class LeftPane:
         self.genEntryBar()
         self.drawControls()
         self.drawBrowser()
-        self.drawStatus()
         self.loadArtists()
 
     def drawFrame(self):
@@ -127,16 +126,6 @@ class LeftPane:
             buttonReleaseFunc=lambda e: self.controlRelease(e),
             font=(DEFAULT_FONT_FAMILY, 14))
         self.subheader.grid(column=0, row=1, sticky=W)
-
-    def drawStatus(self):
-        self.status = Frame(self.root, width=PANE_WIDTH)
-        self.status.columnconfigure(1, weight=0)
-        self.status.columnconfigure(0, weight=1)
-        self.status_text = ttk.Label(self.status, 
-            font=(DEFAULT_FONT_FAMILY, 12), padding='4 4 0 4',
-            background=COLOUR_DICT['dark'])
-        self.status_time = ttk.Label(self.status, 
-            font=(DEFAULT_FONT_FAMILY, 12), padding='0 4 4 4')
 
     def drawBackbutton(self):
         bbFrame = Frame(self.frame, padx=EDGE_PAD)
@@ -340,9 +329,9 @@ class LeftPane:
             self.search_library()
         elif self.entry_mode == STREAM_MODE:
             title = self.__stream(queue)
-            if self.status_text.cget('text') == '':
+            if self.status.label.cget('text') == '':
                 text = 'queuing... \"' + title + '\"' if queue else 'loading...'
-                self.status_text.configure(text=text)
+                self.status.label.configure(text=text)
             else:
                 if queue is True:
                     threading.Thread(
@@ -351,8 +340,8 @@ class LeftPane:
         elif self.entry_mode == STREAM_DOWNLOAD_MODE:
             threading.Thread(target=self.__stream, args=(queue, True)).start()
             threading.Thread(target=self.__download_and_display).start()
-            if self.status_text.cget('text') == '':
-                self.status_text.configure(text='loading and downloading...')
+            if self.status.label.cget('text') == '':
+                self.status.label.configure(text='loading and downloading...')
         elif self.entry_mode == DOWNLOAD_MODE:
             threading.Thread(target=self.__download_and_display).start()
 
@@ -463,11 +452,12 @@ class LeftPane:
         """
         Temporarily override the status bar text.
         Usage: threading.Thread(target=self.__override_status).start()
-        Then update self.status_text.
+        Then update self.status.label.
         """
-        self.status_text.configure(text=text)
+        self.status.label.configure(text=text)
         time.sleep(1)
-        self.status_text.configure(text=self.current_file)
+        self.status.label.configure(text=self.current_file)
+        self.root.update()
 
     def seek(self, e, seconds):
         threading.Thread(target=Aplayer.seek, args=(seconds,)).start()
@@ -504,16 +494,14 @@ class LeftPane:
             time.sleep(1)
 
     def observe_title(self, path, v):
-        if self.status is None:
-            return
         if v is None:
             self.current_file = ''
             self.current_duration = ''
             self.status.grid_remove()
         else:
             self.status.grid(row=6)
-            self.status_text.grid(column=0, row=0)
-            self.status_time.grid(column=1, row=0)
+            self.status.label.grid(column=0, row=0)
+            self.status.time.grid(column=1, row=0)
             self.status.configure(background=COLOUR_DICT['bg'])
             if Aplayer.online_queue is True:
                 self.current_file = Aplayer.get_title_from_file(v)
@@ -521,7 +509,6 @@ class LeftPane:
             else:
                 self.current_file = Path(v).name
                 self.playing_text = 'Now playing:'
-
             threading.Thread(target=self.monitor_pos, daemon=True).start()
 
     def get_time_pos(self):
@@ -535,18 +522,19 @@ class LeftPane:
         if Aplayer.get_duration() >= 0:
             self.current_duration = time.strftime(
                         "%H:%M:%S", time.gmtime(Aplayer.get_duration()))
-        self.status_time.configure(text=' | [{}/{}]'.format(
+        self.status.time.configure(text=' | [{}/{}]'.format(
                             self.get_time_pos(), self.current_duration))
 
     def monitor_pos(self):
-        self.status_text.configure(
+        self.status.label.configure(
             text='{} {}'.format(self.playing_text, self.current_file))
-        self.status_time.configure(text=' | [{}/{}]'.format('00:00:00', '...?'))
+        self.status.time.configure(text=' | [{}/{}]'.format('00:00:00', '...?'))
+        self.root.update()
         while not self.current_file == '':
             time.sleep(1)
             if self.__overriding_status is False:
                 self.__update_status_time()
-            self.root.update()
+        self.root.update()
 
     def genControlButton(self, text: str, clickFunc: Callable):
         return tkintools.LabelButton(
