@@ -1,4 +1,6 @@
 
+import subprocess
+from sys import platform
 from typing import Sequence
 from config import *
 from PIL import Image
@@ -15,18 +17,25 @@ import youtube_title_parse as ytp
 
 PLAYLIST_EXTENSION = '.m3u'
 
+def gen_MPV():
+    return mpv.MPV(
+        video=False, ytdl=True, ytdl_format='best',
+        ytdl_raw_options='yes-playlist=', keep_open=True)
 
 def convertImage(filename):
     while not os.path.exists(filename):
         time.sleep(0.1)
-    if filename.endswith(ART_FORMAT):
-        savepath = filename
-    else:
-        im = Image.open(filename)
-        savepath = filename.rsplit('.', maxsplit=1)[0] + '.' + ART_FORMAT
-        rgb_im = im.convert('RGB')
-        rgb_im.save(savepath)
-        os.remove(filename)
+    try:
+        if filename.endswith(ART_FORMAT):
+            savepath = filename
+        else:
+            im = Image.open(filename)
+            savepath = filename.rsplit('.', maxsplit=1)[0] + '.' + ART_FORMAT
+            rgb_im = im.convert('RGB')
+            rgb_im.save(savepath)
+            os.remove(filename)
+    except:
+        pass
 
 
 class VoidLogger(object):
@@ -77,15 +86,15 @@ class Aplayer:
         }]
     }
 
-    player = mpv.MPV(
-        video=False, ytdl=True, ytdl_format='best',
-        ytdl_raw_options='yes-playlist=', keep_open=True)
+    player = gen_MPV()
     online_queue = False
     wait_stream_lock = False
     dl_on_stream = False
+    converting_audio = False
+    downloading_audio = False
     _download_queue_titles = []
     _download_index = -1
-    _current_download_percent = -1
+    _current_download_percent = 0
     _current_playlist_title = DEFAULT_QUEUE
     _loading_list = False
     _is_shuffling = False
@@ -99,13 +108,16 @@ class Aplayer:
         # TODO: Reports the progress of the least completed download
         if d['status'] == 'finished':
             Aplayer._download_index -= 1
-            if Aplayer._download_index < 0:
-                Aplayer._current_download_percent = -1
+            if len(Aplayer._download_queue_titles) > 0:
+                Aplayer._download_queue_titles.pop()
+                Aplayer._mpv_wait()
+                Aplayer._current_download_percent = 0
+            else:
+                Aplayer._current_download_percent = 100
         if d['status'] == 'downloading':
             p = d['_percent_str']
-            p = math.floor(float(p.replace('%', '')))
-            title = Path(d['filename']).stem
-            if Aplayer.getDownloadingTitle() == title:
+            p = math.floor(float(p[0:-1]))
+            if Aplayer._download_index >= len(Aplayer._download_queue_titles) - 1:
                 Aplayer._current_download_percent = p
 
     def kill():
@@ -168,14 +180,12 @@ class Aplayer:
         if Aplayer.subqueue_length == 1:
             Aplayer.subqueue_creation_pos = Aplayer.get_playlist_pos()
 
-    def loadfile(filename: str, queue=False):
+    def loadfile(filename: str, queue=False, scraped_title = '', download = False):
         """Load/play a file. If queue == False, the file is played immediately
         in a new playlist. If queue == True, the file is appended
         to the current playlist, or loaded in a paused state if there isn't
         an active playlist (Aplayer.is_active() == False).
-        A playlist can only be either online or offline,
-        and if a multi-track playlist changes
-        from online to offline or vice versa, it results in a new playlist.
+        A playlist can only be either online or offline.
 
         The queuing algorithm used will create a subqueue of tracks
         at the index after whatever the currently playing position is,
@@ -186,15 +196,18 @@ class Aplayer:
         Args:
             filename (str): the fully qualified filename or URL to play/queue
             queue (bool, optional): if True, queues file. Defaults to False.
+            online_title: if specified, when streaming music this method
+                will use online_title as an already scraped value for the title
+            download: if True, will download a stream if one is passed
         """
         online = filename.startswith('https:') is True
-        Aplayer.online_queue = online
-        if not queue:
-            play_type = 'replace'
+        if online:
+           Aplayer.online_queue = online
         else:
-            play_type = 'append-play'
-        # TODO: IF ONLINE DOWNLOAD THUMBNAIL HERE
-        title = Aplayer.get_title_from_file(filename)
+            if not path_exists(filename):
+                return
+        play_type = 'append-play'
+        title = Aplayer.get_title_from_file(filename, scraped_title, download)
         data = Aplayer.get_artist_track_trackNum(title)
         Aplayer.player.loadfile(filename, play_type)
         new_playlist_count = Aplayer.get_playlist_count()
@@ -202,16 +215,20 @@ class Aplayer:
             Aplayer._queue_properly()
         elif new_playlist_count == 1:
             Aplayer.clear_subqueue()
-            if queue is True and not Aplayer.is_paused():
-                Aplayer.pauseplay()
-        elif Aplayer.online_queue != online and queue is True:
-            Aplayer.clear_subqueue()
-            Aplayer.player.playlist_remove()
-        if online is True and Aplayer.dl_on_stream is True:
+            Aplayer.online_queue = online
+            if queue is True:
+                if not Aplayer.is_paused():
+                    Aplayer.pauseplay()
+        elif queue is False and new_playlist_count > 1:
+            pos = Aplayer.get_playlist_pos()
+            Aplayer.playlist_move(Aplayer.get_playlist_count() - 1, pos + 1)
+            Aplayer.player._set_property('playlist-pos', pos + 1)
+            Aplayer.player.playlist_remove(pos)
+        if online is True and download is True:
             if Aplayer.download_thumbnail([filename], data) != '':
                 t = threading.Thread(
                     target=Aplayer.download_to_audio,
-                    args=([filename], data,)
+                    args=([filename], data), daemon=True
                 )
                 t.start()
         Aplayer._mpv_wait()
@@ -219,53 +236,51 @@ class Aplayer:
             if Aplayer.is_paused() is True or Aplayer.is_active() is False:
                 Aplayer.pauseplay()
 
+    def download(filename, data):
+        if Aplayer.download_thumbnail([filename], data) != '':
+            Aplayer.download_to_audio([filename], data)
+
     def gen_online_song():
         pass  # TODO: IMPLEMENT
 
-    def _validate_title(url: str, known_title: str = '') -> str:
+    def _validate_title(known_title: str = '') -> str:
         if known_title != '':
             title = known_title.replace("|", "¦")
             return "".join(i for i in title if i not in r'\/:*?"<>')
-        try:
-            title = yt_dlp.YoutubeDL(
+
+    def scrape_title(url: str, force_title: str = ''):
+        if force_title != '':
+            return force_title
+        else:
+            return yt_dlp.YoutubeDL(
                 {
                     'logger': VoidLogger,
                     'skip_download': True,
                     'quiet': True
                 }
             ).extract_info(url, download=False).get('title', None)
-        except Exception:
-            return ''
-        title = title.replace("|", "¦")
-        return "".join(i for i in title if i not in r'\/:*?"<>')
 
-    def scrape_title(url: str):
-        return yt_dlp.YoutubeDL(
-            {
-                'logger': VoidLogger,
-                'skip_download': True,
-                'quiet': True
-            }
-        ).extract_info(url, download=False).get('title', None)
-
-    def get_title_from_file(filename: str = ''):
+    def get_title_from_file(filename: str = '', scraped_title: str = '', downloading = False):
         if filename == '':
             filename = Aplayer.getFilename()
         online = filename.startswith('http')
         if online is True:
-            return Aplayer._validate_title(
-                            filename, Aplayer.scrape_title(filename))
+            if downloading is True:
+                return Aplayer._validate_title(
+                    Aplayer.scrape_title(filename, scraped_title))
+            else:
+                return Aplayer.scrape_title(filename, scraped_title)
         else:
             return Path(filename).stem
 
-    def get_artist_track_trackNum(title):
+    def get_artist_track_trackNum(valid_title: str):
         options = {
             'defaultArtist': UNKNOWN_ARTIST,
-            'defaultTitle': title
+            'defaultTitle': valid_title
         }
-        artist, track = ytp.get_artist_title(title, options)
-        artist, track, trackNum = records.getTrackAndArtistInfo(title)
-        return [artist, track, trackNum, title]
+        artist, track = ytp.get_artist_title(valid_title, options)
+        artist, track, trackNum = records.getTrackAndArtistInfo(valid_title)
+        return [artist, track, trackNum, valid_title]
 
     def get_site_from_url(url: str):
         shrunk_url = url.rpartition('://www.')[2]
@@ -301,31 +316,21 @@ class Aplayer:
             "logger": ThumbnailConverter,
             'skip_download': True
         })
-        with tdl:
-            tdl.download(urls)
         full_path = dl_path + '.' + ART_FORMAT
+        if path_exists(full_path):
+            return
+        try:
+            tdl.download(urls)
+        except Exception:
+            return DEFAULT_ART
         while not path_exists(full_path):
             time.sleep(0.1)
         return full_path
         # createSongDict(ThumbnailConverter.converted_thumb_paths[index]) thing
 
-    def _is_download_index_writable() -> bool:
-        """
-        Returns True if the download index + 1 is within range of 0 inclusive
-        and len(Aplayer._download_queue_titles) and False otherwise.
-
-        Returns:
-            True if the download index is in an acceptable range
-            and False otherwise
-        """
-        return (
-            Aplayer._download_index < len(Aplayer._download_queue_titles) - 1
-            and len(Aplayer._download_queue_titles) > 0
-        )
-
     def download_to_audio(urls: list, data: Sequence):
         # data is a sequence of artist, track, trackNum, title
-        dl_index = Aplayer._download_index + 1
+        Aplayer._mpv_wait()
         if data is None:
             title = Aplayer.get_title_from_file(urls[0])
             data = Aplayer.get_artist_track_trackNum(title)
@@ -342,20 +347,19 @@ class Aplayer:
             with downloader as dl:
                 try:
                     dl.add_progress_hook(Aplayer._prog_hook)
-                    if Aplayer._is_download_index_writable() is False:
-                        Aplayer._download_queue_titles.insert(dl_index, title)
-                    else:
-                        Aplayer._download_queue_titles[dl_index] = title
                     Aplayer._download_index += 1
-                    last_dl_index = len(Aplayer._download_queue_titles) - 1
-                    if Aplayer._download_index > last_dl_index:
-                        Aplayer._download_index = last_dl_index
+                    Aplayer._download_queue_titles.append(title)
+                    Aplayer.converting_audio = True
+                    Aplayer.downloading_audio = True
                     dl.download(urls)
                 except Exception:
-                    while not (Aplayer._download_index < dl_index):
-                        Aplayer._download_index -= 1
+                    pass
+        if len(Aplayer._download_queue_titles) == 0:
+            Aplayer.downloading_audio = False
         dbLink = db.DBLink()
         records.add_downloaded_song(full_path, data, dbLink)
+        if len(Aplayer._download_queue_titles) == 0:
+            Aplayer.converting_audio = False
 
     def loadlist(
             playlist_title: str, index: int = -1, pause_on_load: bool = False):
@@ -363,8 +367,6 @@ class Aplayer:
         Aplayer.clear_subqueue()
         index_chosen = index != -1
         playlist_path = PLAYLISTS_PATH + playlist_title + PLAYLIST_EXTENSION
-        with open(playlist_path, 'r') as pl:
-            Aplayer.online_queue = pl.readline().startswith('https:') is True
         Aplayer.player.loadlist(playlist_path)
         Aplayer._loading_list = False
         Aplayer._current_playlist_title = playlist_title
@@ -391,7 +393,7 @@ class Aplayer:
         element_count = len(filenames)
         if element_count == 0:
             return
-        if Aplayer.online_queue is True or Aplayer.get_playlist_count() < 1:
+        if Aplayer.get_playlist_count() < 1:
             Aplayer.clear_subqueue()
             if not Aplayer.is_paused():
                 Aplayer.pauseplay()
@@ -403,6 +405,9 @@ class Aplayer:
             Aplayer._mpv_wait()
 
     def savelist(playlist_title: str):
+        if (playlist_title == Aplayer.DEFAULT_QUEUE
+                or Aplayer.online_queue is True):
+            return
         playlist_name = playlist_title
         if not playlist_title.endswith(PLAYLIST_EXTENSION):
             playlist_name = playlist_title + PLAYLIST_EXTENSION

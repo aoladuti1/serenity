@@ -1,4 +1,4 @@
-
+from tkinter import messagebox
 from config import *
 from aplayer import *
 import records
@@ -8,27 +8,32 @@ from tkinter import *
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
-db.init() 
+db.init()
+records.refresh()
 
 root = ttk.Window(themename=THEME_NAME)
-
 configureStyle()
 configureFont()
 configureRoot(root)
 
-leftPane = LeftPane(root)
-leftPane.drawAll()
-ttk.Label(
-    root, text="hi gang", 
-    font=(DEFAULT_FONT_FAMILY,100)
-    ).grid(sticky='nsew',column=1, row=0)
 
 def on_closing():
-    Aplayer.kill()
-    root.destroy()
+    if Aplayer.converting_audio is True:
+        res = messagebox.askyesno(
+            'Hold on!',
+            'Files are still converting/downloading. Quit?')
+        if not res:
+            return
+    os._exit(0)
 
-root.update()
-root.protocol("WM_DELETE_WINDOW", on_closing)
-root.mainloop()
+
+def main():
+    leftPane = LeftPane(root)
+    leftPane.drawAll()
+    root.update()
+    root.protocol("WM_DELETE_WINDOW", on_closing)
+    root.mainloop()
 
 
+if __name__ == "__main__":
+    main()
