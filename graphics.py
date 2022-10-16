@@ -45,11 +45,10 @@ class LeftPane:
     SUBHEADER_TEXT_MAX_WIDTH = 999 # TODO make it fit 1080p, 2k and 4k
     
 
-    def __init__(self, root: ttk.Window, background=COLOUR_DICT['dark']):
+    def __init__(self, root: ttk.Window):
         global PANE_WIDTH
         global EDGE_PAD
         self.root = root
-        self.background = background
         self.frame = None
         self.browser = None
         self.header = None
@@ -109,26 +108,23 @@ class LeftPane:
         self.frame.grid(column = 0, row=0, sticky='nsw', columnspan=1)
         self.frame.rowconfigure(5, weight=1) # browser is stretchy!
         self.frame.columnconfigure(0, weight=1)
-        self.frame.configure(background=self.background)
         self.frame.grid_propagate(False)
     
     def drawHeader(self):
         self.header = ttk.Label(self.frame, text="serenity", bootstyle='primary')
         self.header.configure(
-            font=(DEFAULT_FONT_FAMILY, 50, ITALIC),
-            background=self.background)
+            font=(DEFAULT_FONT_FAMILY, 50, ITALIC))
         self.header.grid(column=0, row=0, sticky=W)
     
     def drawSubheader(self):
         self.subheader = tkintools.LabelButton(
             self.frame, text=LeftPane.DEFAULT_SUBHEADER,
             activeFG=COLOUR_DICT['info'],
-            activeBG=COLOUR_DICT['dark'],
+            activeBG=COLOUR_DICT['bg'],
             clickFG=COLOUR_DICT['info'],
-            clickBG=COLOUR_DICT['dark'],
+            clickBG=COLOUR_DICT['bg'],
             clickFunc=self.showHideExtras,
             buttonReleaseFunc=lambda e: self.controlRelease(e),
-            background=self.background,
             font=(DEFAULT_FONT_FAMILY, 14))
         self.subheader.grid(column=0, row=1, sticky=W)
 
@@ -138,18 +134,17 @@ class LeftPane:
         self.status.columnconfigure(0, weight=1)
         self.status_text = ttk.Label(self.status, 
             font=(DEFAULT_FONT_FAMILY, 12), padding='4 4 0 4',
-            background=COLOUR_DICT['bg'])
+            background=COLOUR_DICT['dark'])
         self.status_time = ttk.Label(self.status, 
             font=(DEFAULT_FONT_FAMILY, 12), padding='0 4 4 4')
 
     def drawBackbutton(self):
         bbFrame = Frame(self.frame, padx=EDGE_PAD)
-        bbFrame.configure(background=self.background)
         bbFrame.grid(row=1, rowspan=1, sticky=NE)
         self.backButton = tkintools.LabelButton(
             bbFrame,
             clickFG=COLOUR_DICT['info'],
-            clickBG=COLOUR_DICT['dark'],
+            clickBG=COLOUR_DICT['bg'],
             clickFunc= self.goBack,
             text=LeftPane.NO_BACK_TEXT,
             font=(DEFAULT_FONT_FAMILY,16, BOLD)
@@ -177,8 +172,7 @@ class LeftPane:
         self.entryBarVisible = not self.entryBarVisible
 
     def finish_adding_music(self):
-        self.adding_music_label.configure(
-            text='done!', background=COLOUR_DICT['dark'])
+        self.adding_music_label.configure(text='done!')
         self.root.update()
         time.sleep(1)
         self.adding_music_label.grid_remove()
@@ -194,11 +188,10 @@ class LeftPane:
 
     def genLibTools(self):
         self.libTools = Frame(self.frame)
-        self.libTools.configure(background=self.background)
         add_library = tkintools.LabelButton(
             self.libTools,
             clickFG=COLOUR_DICT['info'],
-            clickBG=COLOUR_DICT['dark'],
+            clickBG=COLOUR_DICT['bg'],
             clickFunc=lambda e, AAT=True: self.add_folders(e, AAT),
             text='[add library]',
             font=(DEFAULT_FONT_FAMILY, 12, BOLD)
@@ -206,7 +199,7 @@ class LeftPane:
         add_songs = tkintools.LabelButton(
             self.libTools,
             clickFG=COLOUR_DICT['info'],
-            clickBG=COLOUR_DICT['dark'],
+            clickBG=COLOUR_DICT['bg'],
             clickFunc=lambda e, AAT=False: self.add_folders(e, AAT),
             text='[add songs]',
             font=(DEFAULT_FONT_FAMILY, 12, BOLD)
@@ -235,18 +228,17 @@ class LeftPane:
 
     def genEntryBar(self):
         self.entryBar = Frame(self.frame)
-        self.entryBar.configure(background=self.background)
         queue_button = tkintools.LabelButton(
             self.entryBar,
             clickFG=COLOUR_DICT['info'],
-            clickBG=COLOUR_DICT['dark'],
+            clickBG=COLOUR_DICT['bg'],
             clickFunc=lambda e, queue=True: self.search_hit(e, queue),
             text='[queue]',
             font=(DEFAULT_FONT_FAMILY, 12, BOLD)
         )
         search_button = self.genSearchButton()
         self.entry_label = ttk.Label(
-            self.entryBar, background=self.background,
+            self.entryBar,
             font = (DEFAULT_FONT_FAMILY, 12))
         self.entry = Entry(self.entryBar)
         self.entry.grid(row=0,column=0, padx=7)
@@ -369,7 +361,7 @@ class LeftPane:
 
     def draw_browser_subtitle(self, text, row, browser):
         ttk.Label(
-            browser, text=text, background=self.background, 
+            browser, text=text,
             padding='0 0 0 10',
             font=(DEFAULT_FONT_FAMILY,14,UNDERLINE)).grid(sticky=W,row=row)
 
@@ -485,7 +477,6 @@ class LeftPane:
     def drawControls(self):
         self.controls = Frame(self.frame)
         self.controls.grid(row=4, pady=5, rowspan=1)
-        self.controls.configure(background=self.background)
         seek_pos = self.genControlButton(
             clickFunc=lambda e, t=10: self.seek(e, t),
             text=' ++> '   
@@ -563,7 +554,7 @@ class LeftPane:
             onEnterFunc=self.wrapSquares,
             onLeaveFunc=self.unwrapSquares,
             clickFG=COLOUR_DICT['info'],
-            clickBG=COLOUR_DICT['dark'],
+            clickBG=COLOUR_DICT['bg'],
             clickFunc=clickFunc,
             buttonReleaseFunc=lambda e: self.controlRelease(e),
             text=text,
@@ -666,7 +657,6 @@ class LeftPane:
         browserLabel.grid(
             column=0, row=row, rowspan=1, sticky=NW
         )
-        browserLabel.configure(background = self.background)
         browserLabel.bind('<Button-1>', lambda e: self.select(e))
         browserLabel.bind('<Double-Button-1>', dblClickFunc)
         return browserLabel    
@@ -830,7 +820,8 @@ class LeftPane:
             txt = ttk.Text(self.browser, font=(DEFAULT_FONT_FAMILY, 15))
             txt.insert(INSERT, GUIDE_TEXT)
             txt.configure(
-                background=self.background, highlightbackground=self.background,
+                background=self.background,
+                highlightbackground=COLOUR_DICT['bg'],
                 wrap=WORD)
             txt.grid(columnspan=2)
         
@@ -922,6 +913,6 @@ class LeftPane:
         # IMPORTANT: for some reason the act of converting cget to a string
         # makes it work for comparisons
         if str(clickedWidget.cget('background')) == SELECTED_LABEL_BG_HEX:
-            clickedWidget.configure(background = self.background)
+            clickedWidget.configure(background = COLOUR_DICT['bg'])
         else:
             clickedWidget.configure(background = SELECTED_LABEL_BG_HEX)

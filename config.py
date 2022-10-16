@@ -117,9 +117,8 @@ def configureRoot(root: ttk.Window):
     maxwidth = LEFT_PANE_WIDTH(root, width)
     root.geometry("%dx%d+0+0" % (maxwidth, 2 * height / 3))
     root.update()
-    
     root.maxsize(width=maxwidth, height=0)
-    root.configure(background=COLOUR_DICT['dark'])
+    root.configure(background=COLOUR_DICT['bg'])
     root.rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
     root.title("serenity")
