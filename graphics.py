@@ -175,6 +175,9 @@ class LeftPane:
             records.addFolder(directory, AAT_structure)
             threading.Thread(target=self.finish_adding_music).start()
 
+    def entry_button_command(self, e: Event = None, queue: bool = False):
+        threading.Thread(target=self.search_hit, args=(e, queue)).start()
+
     def genLibTools(self):
         self.libTools = Frame(self.frame)
         add_library = tkintools.LabelButton(
@@ -199,7 +202,7 @@ class LeftPane:
         add_library.grid(column=0, row=2, sticky=S, padx=padx)
         add_songs.grid(column=1, row=2, sticky=S, padx=padx)
 
-    def genSearchButton(self):
+    def genEntryButton(self, text, queue = False):
         buttonFrame = Frame(self.entryBar)
         buttonFrame.configure(
             highlightcolor=COLOUR_DICT['light'],
@@ -207,25 +210,20 @@ class LeftPane:
             highlightthickness = 1
         )
         button = tkintools.LabelButton(
-            buttonFrame, text='search',
-            pady=0, clickFunc=self.search_hit,
+            buttonFrame, text=text,
+            pady=0, 
+            clickFunc=lambda e, q=queue: self.entry_button_command(e, q),
             font=(DEFAULT_FONT_FAMILY,13, BOLD)
         )
-        button.bind('<Button-3>', self.__alter_search_button)
+        if not queue:
+            button.bind('<Button-3>', self.__alter_search_button)
         button.grid()
         return buttonFrame
 
     def genEntryBar(self):
         self.entryBar = Frame(self.frame)
-        queue_button = tkintools.LabelButton(
-            self.entryBar,
-            clickFG=COLOUR_DICT['info'],
-            clickBG=COLOUR_DICT['bg'],
-            clickFunc=lambda e, queue=True: self.search_hit(e, queue),
-            text='[queue]',
-            font=(DEFAULT_FONT_FAMILY, 12, BOLD)
-        )
-        search_button = self.genSearchButton()
+        search_button = self.genEntryButton('search')
+        queue_button = self.genEntryButton('queue', True)
         self.entry_label = ttk.Label(
             self.entryBar,
             font = (DEFAULT_FONT_FAMILY, 12))
@@ -238,7 +236,7 @@ class LeftPane:
             '<Return>', lambda e: self.search_hit(e))
         self.entry.insert(0, '1. type 2. hit Enter')
         search_button.grid(row=0,column=1, sticky=S)
-        queue_button.grid(row=0,column=2, sticky=S)
+        queue_button.grid(row=0,column=2, sticky=S, padx=6)
 
     def __alter_search_button(self, e: Event):
         if self.entry_mode == SEARCH_MODE:
