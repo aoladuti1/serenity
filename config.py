@@ -119,6 +119,6 @@ def configureRoot(root: ttk.Window):
     root.update()
     root.maxsize(width=maxwidth, height=0)
     root.configure(background=COLOUR_DICT['bg'])
-    root.rowconfigure(0, weight=1)
+    root.rowconfigure(1, weight=1)
     root.columnconfigure(0, weight=1)
     root.title("serenity")

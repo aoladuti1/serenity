@@ -93,7 +93,6 @@ class LeftPane:
         self.drawAllExceptFrame()
 
     def drawAllExceptFrame(self):
-        self.drawHeader()
         self.drawSubheader()
         self.drawBackbutton()
         self.genLibTools()
@@ -104,16 +103,10 @@ class LeftPane:
 
     def drawFrame(self):
         self.frame = Frame(self.root, height=self.root.winfo_height(), width=PANE_WIDTH)
-        self.frame.grid(column = 0, row=0, sticky='nsw', columnspan=1)
+        self.frame.grid(column = 0, row=1, sticky='nsw', columnspan=1)
         self.frame.rowconfigure(5, weight=1) # browser is stretchy!
         self.frame.columnconfigure(0, weight=1)
         self.frame.grid_propagate(False)
-    
-    def drawHeader(self):
-        self.header = ttk.Label(self.frame, text="serenity", bootstyle='primary')
-        self.header.configure(
-            font=(DEFAULT_FONT_FAMILY, 50, ITALIC))
-        self.header.grid(column=0, row=0, sticky=W)
     
     def drawSubheader(self):
         self.subheader = tkintools.LabelButton(
@@ -125,11 +118,11 @@ class LeftPane:
             clickFunc=self.showHideExtras,
             buttonReleaseFunc=lambda e: self.controlRelease(e),
             font=(DEFAULT_FONT_FAMILY, 14))
-        self.subheader.grid(column=0, row=1, sticky=W)
+        self.subheader.grid(column=0, row=0, sticky=W)
 
     def drawBackbutton(self):
         bbFrame = Frame(self.frame, padx=EDGE_PAD)
-        bbFrame.grid(row=1, rowspan=1, sticky=NE)
+        bbFrame.grid(row=0, rowspan=1, sticky=NE)
         self.backButton = tkintools.LabelButton(
             bbFrame,
             clickFG=COLOUR_DICT['info'],
@@ -146,14 +139,14 @@ class LeftPane:
 
     def __showHideLibTools(self):  
         if self.libToolsVisible is False:
-            self.libTools.grid(row=3, pady=5)
+            self.libTools.grid(row=2, pady=5)
         else:
             self.libTools.grid_remove()
         self.libToolsVisible = not self.libToolsVisible
 
     def __showHideEntryBar(self):  
         if self.entryBarVisible is False:
-            self.entryBar.grid(row=2, rowspan=1, pady=5)
+            self.entryBar.grid(row=1, rowspan=1, pady=5)
             self.entry.focus_force()
         else:
             self.entryBar.grid_remove()
@@ -464,7 +457,7 @@ class LeftPane:
     
     def drawControls(self):
         self.controls = Frame(self.frame)
-        self.controls.grid(row=4, pady=5, rowspan=1)
+        self.controls.grid(row=3, pady=5, rowspan=1)
         seek_pos = self.genControlButton(
             clickFunc=lambda e, t=10: self.seek(e, t),
             text=' ++> '   
@@ -497,7 +490,7 @@ class LeftPane:
             self.current_duration = ''
             self.status.grid_remove()
         else:
-            self.status.grid(row=6)
+            self.status.grid(row=5)
             self.status.label.grid(column=0, row=0)
             self.status.time.grid(column=1, row=0)
             self.status.configure(background=COLOUR_DICT['bg'])
@@ -578,7 +571,7 @@ class LeftPane:
             self.browser.grid_remove()
             self.browser = browser
         self.loading = False
-        self.browser.grid(row=5, sticky = NW, columnspan=1, rowspan=1)
+        self.browser.grid(row=4, sticky = NW, columnspan=1, rowspan=1)
 
     def flipBrowserButton(self, e):
         text_states = ['play', 'queue']

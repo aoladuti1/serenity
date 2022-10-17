@@ -1,4 +1,5 @@
 from tkinter import messagebox
+from tkinter.font import ITALIC
 from config import *
 from aplayer import *
 import records
@@ -17,6 +18,13 @@ configureStyle()
 configureFont()
 configureRoot(root)
 
+def gen_draw_header(root):
+    header = ttk.Label(
+        root, text="serenity", bootstyle='primary')
+    header.configure(
+        font=(DEFAULT_FONT_FAMILY, 50, ITALIC))
+    header.grid(column=0, row=0, sticky=W)
+    return header
 
 def on_closing():
     if Aplayer.converting_audio is True:
@@ -29,6 +37,7 @@ def on_closing():
 
 
 def main():
+    header = gen_draw_header(root)
     leftPane = LeftPane(root, status_bar)
     leftPane.drawAll()
     root.update()
