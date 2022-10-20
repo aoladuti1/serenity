@@ -88,3 +88,14 @@ class StatusBar(Frame):
         self.time = ttk.Label(self, 
             font=(DEFAULT_FONT_FAMILY, 12), padding='0 4 4 4',
             background=COLOUR_DICT['dark'])
+
+class DarkLabelButton(LabelButton):
+    def __init__(self, master, clickFunc=None, **kw):
+        LabelButton.__init__(
+            self, master=master,
+            buttonReleaseFunc=clickFunc,
+            activeFG=COLOUR_DICT['info'],
+            activeBG=COLOUR_DICT['bg'],
+            clickFG=COLOUR_DICT['info'],
+            clickBG=COLOUR_DICT['bg'], **kw)
+    
