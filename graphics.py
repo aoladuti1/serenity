@@ -17,11 +17,11 @@ from config import *
 from youtubesearchpython.__future__ import VideosSearch
 
 
-ARTISTS='artists'
-ALBUMS='albums'
-TRACKS='tracks'
-PLAYLISTS='playlists'
-PLAYLIST_SONGS='playlist_songs'
+ARTISTS = 'artists'
+ALBUMS = 'albums'
+TRACKS = 'tracks'
+PLAYLISTS = 'playlists'
+PLAYLIST_SONGS = 'playlist_songs'
 PLAY = 'play'
 QUEUE = 'queue'
 SEARCH_RESULTS = 'search_results'
@@ -32,18 +32,18 @@ DOWNLOAD_MODE = 3
 
 dbLink = db.DBLink()
 
+
 class LeftPane:
 
-    PAUSE_LABELS=[' || ', ' |> ']
+    PAUSE_LABELS = [' || ', ' |> ']
     BROWSER_BUTTON_PADX = 4
     BACK_TEXT = '<--'
     NO_BACK_TEXT = '---'
     SPECIAL_HEX = COLOUR_DICT['primary']
-    DEFAULT_SUBHEADER=' Your library'
+    DEFAULT_SUBHEADER = ' More...'
     STARTING_TEXT = ' ..starting..'
     QUEUING_TEXT = ' ..queuing..'
-    SUBHEADER_TEXT_MAX_WIDTH = 999 # TODO make it fit 1080p, 2k and 4k
-    
+    SUBHEADER_TEXT_MAX_WIDTH = 999  # TODO make it fit 1080p, 2k and 4k
 
     def __init__(self, root: ttk.Window, status: tkintools.StatusBar):
         global PANE_WIDTH
@@ -63,9 +63,9 @@ class LeftPane:
         self.fetchedArtists = None
         self.fetchedAlbums = None
         self.fetchedTracksAndPaths = None
-        self.chosenArtist = None # should never be NoneType after init
-        self.chosenAlbum = None # should never be NoneType after init
-        self.chosenSong = None # should never be NoneType after init
+        self.chosenArtist = None  # should never be NoneType after init
+        self.chosenAlbum = None  # should never be NoneType after init
+        self.chosenSong = None  # should never be NoneType after init
         self.chosenPlaylist = None
         self.currentPage = ARTISTS
         self.subframe = None
@@ -102,12 +102,13 @@ class LeftPane:
         self.loadArtists()
 
     def drawFrame(self):
-        self.frame = Frame(self.root, height=self.root.winfo_height(), width=PANE_WIDTH)
-        self.frame.grid(column = 0, row=1, sticky='nsw', columnspan=1)
-        self.frame.rowconfigure(5, weight=1) # browser is stretchy!
+        self.frame = Frame(
+            self.root, height=self.root.winfo_height(), width=PANE_WIDTH)
+        self.frame.grid(column=0, row=1, sticky='nsw', columnspan=1)
+        self.frame.rowconfigure(5, weight=1)  # browser is stretchy!
         self.frame.columnconfigure(0, weight=1)
         self.frame.grid_propagate(False)
-    
+
     def drawSubheader(self):
         self.subheader = tkintools.LabelButton(
             self.frame, text=LeftPane.DEFAULT_SUBHEADER,
@@ -127,9 +128,9 @@ class LeftPane:
             bbFrame,
             clickFG=COLOUR_DICT['info'],
             clickBG=COLOUR_DICT['bg'],
-            clickFunc= self.goBack,
+            clickFunc=self.goBack,
             text=LeftPane.NO_BACK_TEXT,
-            font=(DEFAULT_FONT_FAMILY,16, BOLD)
+            font=(DEFAULT_FONT_FAMILY, 16, BOLD)
         )
         self.backButton.grid()
 
@@ -137,14 +138,14 @@ class LeftPane:
         self.__showHideLibTools()
         self.__showHideEntryBar()
 
-    def __showHideLibTools(self):  
+    def __showHideLibTools(self):
         if self.libToolsVisible is False:
             self.libTools.grid(row=2, pady=5)
         else:
             self.libTools.grid_remove()
         self.libToolsVisible = not self.libToolsVisible
 
-    def __showHideEntryBar(self):  
+    def __showHideEntryBar(self):
         if self.entryBarVisible is False:
             self.entryBar.grid(row=1, rowspan=1, pady=5)
             self.entry.focus_force()
@@ -190,23 +191,23 @@ class LeftPane:
             font=(DEFAULT_FONT_FAMILY, 12, BOLD)
         )
         self.adding_music_label = ttk.Label(self.libTools,
-            font=(DEFAULT_FONT_FAMILY, 12))
+                                            font=(DEFAULT_FONT_FAMILY, 12))
         padx = 7
         add_library.grid(column=0, row=2, sticky=S, padx=padx)
         add_songs.grid(column=1, row=2, sticky=S, padx=padx)
 
-    def genEntryButton(self, text, queue = False):
+    def genEntryButton(self, text, queue=False):
         buttonFrame = Frame(self.entryBar)
         buttonFrame.configure(
             highlightcolor=COLOUR_DICT['light'],
-            highlightbackground = COLOUR_DICT['light'],
-            highlightthickness = 1
+            highlightbackground=COLOUR_DICT['light'],
+            highlightthickness=1
         )
         button = tkintools.LabelButton(
             buttonFrame, text=text,
-            pady=0, 
+            pady=0,
             clickFunc=lambda e, q=queue: self.entry_button_command(e, q),
-            font=(DEFAULT_FONT_FAMILY,13, BOLD)
+            font=(DEFAULT_FONT_FAMILY, 13, BOLD)
         )
         if not queue:
             button.bind('<Button-3>', self.__alter_search_button)
@@ -219,17 +220,17 @@ class LeftPane:
         queue_button = self.genEntryButton('queue', True)
         self.entry_label = ttk.Label(
             self.entryBar,
-            font = (DEFAULT_FONT_FAMILY, 12))
+            font=(DEFAULT_FONT_FAMILY, 12))
         self.entry = Entry(self.entryBar)
-        self.entry.grid(row=0,column=0, padx=7)
+        self.entry.grid(row=0, column=0, padx=7)
         self.entry.configure(
-            font = (DEFAULT_FONT_FAMILY,13),
+            font=(DEFAULT_FONT_FAMILY, 13),
             background=COLOUR_DICT['bg'])
         self.entry.bind(
             '<Return>', lambda e: self.search_hit(e))
         self.entry.insert(0, '1. type 2. hit Enter')
-        search_button.grid(row=0,column=1, sticky=S)
-        queue_button.grid(row=0,column=2, sticky=S, padx=6)
+        search_button.grid(row=0, column=1, sticky=S)
+        queue_button.grid(row=0, column=2, sticky=S, padx=6)
 
     def __alter_search_button(self, e: Event):
         if self.entry_mode == SEARCH_MODE:
@@ -246,27 +247,28 @@ class LeftPane:
             e.widget.configure(text='search')
 
     async def __search_yt_from_entry(self):
-        videosSearch = VideosSearch(self.entry.get(), limit = 1)
+        videosSearch = VideosSearch(self.entry.get(), limit=1)
         videosResult = await videosSearch.next()
         return [videosResult['result'][0]['link'],
                 videosResult['result'][0]['title']]
 
-    def __stream(self, queue: bool = False, download = False):
+    def __stream(self, queue: bool = False, download=False):
         try:
             entry_text = self.entry.get()
             if entry_text.startswith('https://'):
-                threading.Thread(target=Aplayer.loadfile, 
-                    args=(self.entry.get(), queue, '', download)).start()
+                threading.Thread(target=Aplayer.loadfile,
+                                 args=(self.entry.get(), queue, '', download)).start()
                 return Aplayer.scrape_title(entry_text)
             else:
                 loop = asyncio.new_event_loop()
-                link, title = loop.run_until_complete(self.__search_yt_from_entry())
+                link, title = loop.run_until_complete(
+                    self.__search_yt_from_entry())
                 threading.Thread(target=Aplayer.loadfile,
-                    args=(link, queue, title, download)).start()
+                                 args=(link, queue, title, download)).start()
                 return title
         except Exception:
             pass
-    
+
     def __link_downloaded(self, data):
         artist, track, _, _ = data
         dl_path = DOWNLOAD_PATH + os.sep + artist + os.sep + track
@@ -279,7 +281,8 @@ class LeftPane:
             title = Aplayer.get_title_from_file(link, '', True)
         else:
             loop = asyncio.new_event_loop()
-            link, title_rough = loop.run_until_complete(self.__search_yt_from_entry())
+            link, title_rough = loop.run_until_complete(
+                self.__search_yt_from_entry())
             title = Aplayer._validate_title(title_rough)
         data = Aplayer.get_artist_track_trackNum(title)
         if not self.__link_downloaded(data):
@@ -288,7 +291,7 @@ class LeftPane:
         else:
             # TODO: add new label to row saying that the file exists
             pass
-        
+
     def put_dl_percent(self):
         if self.downloading is True:
             time.sleep(2)
@@ -303,7 +306,8 @@ class LeftPane:
             if Aplayer.downloading_audio is True and len(Aplayer._download_queue_titles) > 0:
                 break
         while len(Aplayer._download_queue_titles) > 0:
-            self.entry_label.config(text='downloading...' + str(Aplayer._current_download_percent) + '%')
+            self.entry_label.config(
+                text='downloading...' + str(Aplayer._current_download_percent) + '%')
             self.root.update()
             time.sleep(0.001)
             if Aplayer._current_download_percent == 100:
@@ -313,9 +317,9 @@ class LeftPane:
                     break
         self.downloading = False
         self.entry_label.grid_remove()
-        self.root.update()            
-    
-    def search_hit(self, e: Event = None, queue = False):
+        self.root.update()
+
+    def search_hit(self, e: Event = None, queue=False):
         if self.entry_mode == SEARCH_MODE:
             self.search_library()
         elif self.entry_mode == STREAM_MODE:
@@ -337,13 +341,12 @@ class LeftPane:
             threading.Thread(target=self.__download_and_display).start()
 
         self.root.update()
-            
 
     def draw_browser_subtitle(self, text, row, browser):
         ttk.Label(
             browser, text=text,
             padding='0 0 0 10',
-            font=(DEFAULT_FONT_FAMILY,14,UNDERLINE)).grid(sticky=W,row=row)
+            font=(DEFAULT_FONT_FAMILY, 14, UNDERLINE)).grid(sticky=W, row=row)
 
     def __search_playlists(self, insert_row, query, browser):
         pl_filenames = Aplayer.get_playlist_names()
@@ -354,9 +357,9 @@ class LeftPane:
         i = insert_row
         if len(playlist_results) > 0:
             self.draw_browser_subtitle(PLAYLISTS, i, browser)
-            i +=1
+            i += 1
         self.loading = True
-        for name in playlist_results:   
+        for name in playlist_results:
             self.genBrowserLabel(
                 i, Path(name).stem, PLAYLISTS,
                 lambda e, pl=name: self.__go_to_playlist_songs(e, pl),
@@ -366,34 +369,34 @@ class LeftPane:
         return i
 
     def __search_artists(self, insert_row, query, browser):
-        artist_results = dbLink.search_artists(query)
+        artist_results = db.DBLink().search_artists(query)
         i = insert_row
         if len(artist_results) > 0:
             self.draw_browser_subtitle(ARTISTS, i, browser)
-            i +=1
+            i += 1
         for artist_tuple in artist_results:
             label = self.genBrowserLabel(
-                i, artist_tuple[0], ARTISTS,self.loadAlbums, browser)
+                i, artist_tuple[0], ARTISTS, self.loadAlbums, browser)
             label_data = artist_tuple[0]
             self.genBrowserButton(
                 i, browser=browser,
                 clickFunc=(
                     lambda e, data=label_data, label=label:
                         self.play(e, data, label)))
-            i+=1
+            i += 1
         return i
 
     def __search_albums(self, insert_row, query, browser):
-        album_results = dbLink.search_albums(query)
+        album_results = db.DBLink().search_albums(query)
         i = insert_row
         if len(album_results) > 0:
             self.draw_browser_subtitle(ALBUMS, i, browser)
-            i +=1
+            i += 1
         for album_tuple in album_results:
             album = album_tuple[0]
             artist = album_tuple[1]
             label = self.genBrowserLabel(
-                i, album + ' | ' + artist, ALBUMS, 
+                i, album + ' | ' + artist, ALBUMS,
                 lambda e, artist=artist: self.loadTracks(e, artist), browser)
             label_data = album + '|' + artist
             self.genBrowserButton(
@@ -405,11 +408,11 @@ class LeftPane:
         return i
 
     def __search_tracks(self, insert_row, query, browser):
-        track_results = dbLink.search_tracks(query)
+        track_results = db.DBLink().search_tracks(query)
         i = insert_row
         if len(track_results) > 0:
             self.draw_browser_subtitle(TRACKS, i, browser)
-            i +=1
+            i += 1
         for tuple in track_results:
             label = self.genBrowserLabel(
                 i, tuple[0], TRACKS,
@@ -420,15 +423,13 @@ class LeftPane:
                 clickFunc=(
                     lambda e, data=tuple[1], label=label:
                         self.play(e, data, label)))
-            i+=1
-        return i       
-
-
+            i += 1
+        return i
 
     def search_library(self):
         query = self.entry.get()
         if self.loading is True:
-            return         
+            return
         self.updateSubheader(SEARCH_RESULTS, ' Search results for: ' + query)
         browser = self.genBrowser()
         i = 0
@@ -438,7 +439,7 @@ class LeftPane:
         i = self.__search_tracks(i, query, browser)
         self.browser.grid_remove()
         self.drawBrowser(browser)
-        
+
     def __override_status(self, text):
         """
         Temporarily override the status bar text.
@@ -454,17 +455,17 @@ class LeftPane:
         threading.Thread(target=Aplayer.seek, args=(seconds,)).start()
         Aplayer._mpv_wait()
         self.__update_status_time()
-    
+
     def drawControls(self):
         self.controls = Frame(self.frame)
         self.controls.grid(row=3, pady=5, rowspan=1)
         seek_pos = self.genControlButton(
             clickFunc=lambda e, t=10: self.seek(e, t),
-            text=' ++> '   
+            text=' ++> '
         )
         seek_neg = self.genControlButton(
             clickFunc=lambda e, t=-10: self.seek(e, t),
-            text=' <++ '   
+            text=' <++ '
         )
         pause = self.genControlButton(
             clickFunc=lambda e: self.controlThreader(e, Aplayer.pauseplay),
@@ -475,13 +476,14 @@ class LeftPane:
         seek_neg.grid(column=0, row=0, sticky=S, pady=5)
         self.pauseButton = pause
         threading.Thread(target=self.monitorPlaystate, daemon=True).start()
-        
 
     def monitorPlaystate(self):
         while True:
             try:
-                self.pauseButton.configure(text=LeftPane.PAUSE_LABELS[int(Aplayer.is_paused())])
-            except: pass #tkinter complains about the threading but i don't care
+                self.pauseButton.configure(
+                    text=LeftPane.PAUSE_LABELS[int(Aplayer.is_paused())])
+            except:
+                pass  # tkinter complains about the threading but i don't care
             time.sleep(1)
 
     def observe_title(self, path, v):
@@ -512,14 +514,15 @@ class LeftPane:
     def __update_status_time(self):
         if Aplayer.get_duration() >= 0:
             self.current_duration = time.strftime(
-                        "%H:%M:%S", time.gmtime(Aplayer.get_duration()))
+                "%H:%M:%S", time.gmtime(Aplayer.get_duration()))
         self.status.time.configure(text=' | [{}/{}]'.format(
-                            self.get_time_pos(), self.current_duration))
+            self.get_time_pos(), self.current_duration))
 
     def monitor_pos(self):
         self.status.label.configure(
             text='{} {}'.format(self.playing_text, self.current_file))
-        self.status.time.configure(text=' | [{}/{}]'.format('00:00:00', '...?'))
+        self.status.time.configure(
+            text=' | [{}/{}]'.format('00:00:00', '...?'))
         self.root.update()
         while not self.current_file == '':
             time.sleep(1)
@@ -542,9 +545,9 @@ class LeftPane:
 
     def controlThreader(self, e: Event, function):
         threading.Thread(
-                target=self.controlHandler, 
-                args=(function,)
-                ).start()
+            target=self.controlHandler,
+            args=(function,)
+        ).start()
 
     def controlHandler(self, function):
         if (function != None):
@@ -553,7 +556,7 @@ class LeftPane:
     def controlRelease(self, e: Event):
         e.widget.configure(foreground=COLOUR_DICT['primary'])
         self.unwrapSquares(e)
-    
+
     def genBrowser(self):
         browser = ScrolledFrame(
             self.frame, autohide=True,
@@ -564,66 +567,66 @@ class LeftPane:
         browser.columnconfigure(1, weight=0)
         return browser
 
-    def drawBrowser(self, browser = None):
+    def drawBrowser(self, browser=None):
         if browser is None:
             self.browser = self.genBrowser()
         else:
             self.browser.grid_remove()
             self.browser = browser
         self.loading = False
-        self.browser.grid(row=4, sticky = NW, columnspan=1, rowspan=1)
+        self.browser.grid(row=4, sticky=NW, columnspan=1, rowspan=1)
 
     def flipBrowserButton(self, e):
         text_states = ['play', 'queue']
         button = e.widget
         button.configure(text=text_states[int(not e.widget.state)])
         button.state = int(not button.state)
-        
-    def genBrowserButton(self, row: int, text: str = PLAY, 
-                        clickFunc = None, browser = None):
+
+    def genBrowserButton(self, row: int, text: str = PLAY,
+                         clickFunc=None, browser=None):
         if browser is None:
             browser = self.browser
         buttonFrame = Frame(browser)
         buttonFrame.configure(
             highlightcolor=COLOUR_DICT['primary'],
-            highlightbackground = COLOUR_DICT['primary'],
-            highlightthickness = 1
+            highlightbackground=COLOUR_DICT['primary'],
+            highlightthickness=1
         )
         buttonFrame.grid(
             column=1, row=row, rowspan=1, ipady=0,
-            padx=(EDGE_PAD,EDGE_PAD), pady=(0,9), sticky=E
+            padx=(EDGE_PAD, EDGE_PAD), pady=(0, 9), sticky=E
         )
         button = tkintools.LabelButton(
-            buttonFrame, text=text, padx=LeftPane.BROWSER_BUTTON_PADX, 
+            buttonFrame, text=text, padx=LeftPane.BROWSER_BUTTON_PADX,
             pady=0, clickFunc=clickFunc, width=5
         )
         button.bind('<Button-3>', self.flipBrowserButton)
         button.grid()
         return buttonFrame
 
-    def genBasicBrowserButton(self, row: int, text: str = 'open', 
-                        clickFunc = None, browser = None):
+    def genBasicBrowserButton(self, row: int, text: str = 'open',
+                              clickFunc=None, browser=None):
         if browser is None:
             browser = self.browser
         buttonFrame = Frame(browser)
         buttonFrame.configure(
             highlightcolor=COLOUR_DICT['primary'],
-            highlightbackground = COLOUR_DICT['primary'],
-            highlightthickness = 1
+            highlightbackground=COLOUR_DICT['primary'],
+            highlightthickness=1
         )
         buttonFrame.grid(
             column=1, row=row, rowspan=1, ipady=0,
-            padx=(EDGE_PAD,EDGE_PAD), pady=(0,9), sticky=E
+            padx=(EDGE_PAD, EDGE_PAD), pady=(0, 9), sticky=E
         )
         button = tkintools.LabelButton(
-            buttonFrame, text=text, padx=LeftPane.BROWSER_BUTTON_PADX, 
+            buttonFrame, text=text, padx=LeftPane.BROWSER_BUTTON_PADX,
             pady=0, clickFunc=clickFunc
         )
         button.grid()
         return buttonFrame
 
     def genBrowserLabel(self, row: int, text: str, label_type: str,
-                        dblClickFunc = None, browser = None):
+                        dblClickFunc=None, browser=None):
         if browser is None:
             browser = self.browser
         browserLabel = tkintools.TypedLabel(
@@ -631,24 +634,24 @@ class LeftPane:
             label_type=label_type,
             text=" " + text,
             bootstyle='info',
-            width=PANE_WIDTH #makes the highlight bar go fully across
+            width=PANE_WIDTH  # makes the highlight bar go fully across
         )
         browserLabel.grid(
             column=0, row=row, rowspan=1, sticky=NW
         )
         browserLabel.bind('<Button-1>', lambda e: self.select(e))
         browserLabel.bind('<Double-Button-1>', dblClickFunc)
-        return browserLabel    
+        return browserLabel
 
     def wrapSquares(self, e: Event):
         text = e.widget.cget('text')
-        e.widget.configure(text= '[' + text + ']')
-    
+        e.widget.configure(text='[' + text + ']')
+
     def unwrapSquares(self, e: Event):
         text = e.widget.cget('text')
         if text.startswith('['):
             e.widget.configure(text=text[1:-1])
-        
+
     def updateSubheader(self, new_page: str, subheader: str = ''):
         self.currentPage = new_page
         if self.currentPage != ARTISTS:
@@ -656,18 +659,18 @@ class LeftPane:
         else:
             self.backButton.configure(text=LeftPane.NO_BACK_TEXT)
         if self.currentPage == ARTISTS:
-            text=LeftPane.DEFAULT_SUBHEADER
+            text = LeftPane.DEFAULT_SUBHEADER
         elif self.currentPage == ALBUMS:
-            text=">> {}".format(self.chosenArtist)
+            text = ">> {}".format(self.chosenArtist)
         elif self.currentPage == TRACKS:
-            text=">> {}\{}".format(self.chosenArtist, self.chosenAlbum)
+            text = ">> {}\{}".format(self.chosenArtist, self.chosenAlbum)
         elif self.currentPage == PLAYLISTS:
-            text=">> {}".format(PLAYLIST_FOLDER_NAME)
+            text = ">> {}".format(PLAYLIST_FOLDER_NAME)
         elif self.currentPage == PLAYLIST_SONGS:
-            text=">> {}\{}".format(
+            text = ">> {}\{}".format(
                 PLAYLIST_FOLDER_NAME, Path(self.chosenPlaylist).stem)
         elif self.currentPage == SEARCH_RESULTS:
-            text=subheader
+            text = subheader
         if len(text) > LeftPane.SUBHEADER_TEXT_MAX_WIDTH:
             text = text[0:LeftPane.SUBHEADER_TEXT_MAX_WIDTH-3] + '...'
         self.subheader.configure(text=text)
@@ -681,7 +684,7 @@ class LeftPane:
             self.loadArtists()
         elif self.currentPage == PLAYLIST_SONGS:
             self.__go_to_playlists()
-    
+
     def __go_to_playlists(self, e: Event = None):
         if self.loading is True:
             return
@@ -689,7 +692,7 @@ class LeftPane:
         self.updateSubheader(PLAYLISTS)
         i = 0
         self.loading = True
-        for name in Aplayer.get_playlist_names():   
+        for name in Aplayer.get_playlist_names():
             self.genBrowserLabel(
                 i, Path(name).stem, PLAYLISTS,
                 lambda e, pl=name: self.__go_to_playlist_songs(e, pl),
@@ -702,7 +705,7 @@ class LeftPane:
         if text == '':
             self.strip_widget_text(e)
         e.widget.configure(text="{} [{:.1f}%]".format(text, 100 * count / max))
-        self.root.update()        
+        self.root.update()
 
     def __go_to_playlist_songs(self, e: Event, chosen_playlist: str):
         if self.loading is True:
@@ -723,7 +726,6 @@ class LeftPane:
             i += 1
         self.drawBrowser(browser)
 
-
     def __play_track(self, FQFN, queue):
         threading.Thread(target=Aplayer.loadfile, args=(FQFN, queue)).start()
 
@@ -733,21 +735,21 @@ class LeftPane:
         track_list = [i[0] for i in pull]
         threading.Thread(
             target=Aplayer.loadall, args=(track_list, queue)).start()
-        
+
     def __play_artist(self, artist, queue):
         pull = dbLink.get_artist_filenames(artist)
         artist_list = [i[0] for i in pull]
         threading.Thread(
             target=Aplayer.loadall, args=(artist_list, queue)).start()
 
-    def play(self, e: Event, data: str, external_label=None, queue_files = False):
+    def play(self, e: Event, data: str, external_label=None, queue_files=False):
         button = None
         if external_label is None:
             widget = e.widget
         else:
             button = e.widget
             widget = external_label
-        if queue_files == False and not button is None: 
+        if queue_files == False and not button is None:
             queue = button.state == 1
         else:
             queue = queue_files
@@ -758,9 +760,9 @@ class LeftPane:
             self.__play_album(data, queue)
         elif label_type == ARTISTS:
             self.__play_artist(data, queue)
-        threading.Thread(target=self._temp_mark_playing, 
-                        args=(widget, queue), daemon=True).start()
-            
+        threading.Thread(target=self._temp_mark_playing,
+                         args=(widget, queue), daemon=True).start()
+
     def _temp_mark_playing(self, widget, queue):
         old_fg = widget.cget('foreground')
         if str(old_fg) == str(LeftPane.SPECIAL_HEX):
@@ -784,16 +786,17 @@ class LeftPane:
             self.fetchedArtists = dbLink.get_artists()
         i = 0
         if Aplayer.get_number_of_playlists() > 0:
-            l = self.genBrowserLabel(i, PLAYLISTS, ARTISTS, self.__go_to_playlists)
+            l = self.genBrowserLabel(
+                i, PLAYLISTS, ARTISTS, self.__go_to_playlists)
             l.configure(foreground=COLOUR_DICT['light'])
             self.genBasicBrowserButton(i, text="open")
-            i += 1    
+            i += 1
         for tuple in self.fetchedArtists:
-            name = tuple[0]     
+            name = tuple[0]
             l = self.genBrowserLabel(i, name, ARTISTS, self.loadAlbums)
             self.genBrowserButton(
                 i,
-                clickFunc=lambda e, data=name, label=l: self.play(e,data,label))
+                clickFunc=lambda e, data=name, label=l: self.play(e, data, label))
             i += 1
         if i == 0:
             txt = ttk.Text(self.browser, font=(DEFAULT_FONT_FAMILY, 15))
@@ -803,7 +806,7 @@ class LeftPane:
                 highlightbackground=COLOUR_DICT['bg'],
                 wrap=WORD)
             txt.grid(columnspan=2)
-        
+
     def strip_widget_text(self, e: Event):
         text = e.widget.cget('text')
         if text.startswith(LeftPane.STARTING_TEXT):
@@ -835,10 +838,10 @@ class LeftPane:
             if e != None:
                 self.__show_label_load_stats(
                     e, text, i, album_count)
-            i+=1
+            i += 1
         self.browser.grid_remove()
-        self.drawBrowser(browser)    
-    
+        self.drawBrowser(browser)
+
     def loadTracks(self, e: Event = None, artist: str = ''):
         """Will load tracks into the browser.
 
@@ -862,7 +865,7 @@ class LeftPane:
             album = album.split(' | ')[0]
         self.chosenAlbum = album
         self.fetchedTracksAndPaths = dbLink.get_all_tracks_and_paths(
-                                    self.chosenAlbum, self.chosenArtist)
+            self.chosenAlbum, self.chosenArtist)
         self.updateSubheader(TRACKS)
         song_count = len(self.fetchedTracksAndPaths)
         browser = self.genBrowser()
@@ -882,7 +885,7 @@ class LeftPane:
             if e != None:
                 self.__show_label_load_stats(
                     e, text, i, song_count)
-            i+=1
+            i += 1
         self.loading = False
         self.browser.grid_remove()
         self.drawBrowser(browser)
@@ -892,6 +895,6 @@ class LeftPane:
         # IMPORTANT: for some reason the act of converting cget to a string
         # makes it work for comparisons
         if str(clickedWidget.cget('background')) == SELECTED_LABEL_BG_HEX:
-            clickedWidget.configure(background = COLOUR_DICT['bg'])
+            clickedWidget.configure(background=COLOUR_DICT['bg'])
         else:
-            clickedWidget.configure(background = SELECTED_LABEL_BG_HEX)
+            clickedWidget.configure(background=SELECTED_LABEL_BG_HEX)

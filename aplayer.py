@@ -17,10 +17,12 @@ import youtube_title_parse as ytp
 
 PLAYLIST_EXTENSION = '.m3u'
 
+
 def gen_MPV():
     return mpv.MPV(
         video=False, ytdl=True, ytdl_format='best',
         ytdl_raw_options='yes-playlist=', keep_open=True)
+
 
 def convertImage(filename):
     while not os.path.exists(filename):
@@ -169,8 +171,7 @@ class Aplayer:
         elif try_queue_insert_pos > Aplayer.get_playlist_count() - 1:
             Aplayer.subqueue_length = (
                 Aplayer.get_playlist_count() - 1
-                - Aplayer.get_playlist_pos()
-            )
+                - Aplayer.get_playlist_pos())
             Aplayer.subqueue_creation_pos = Aplayer.get_playlist_pos()
         final_queue_insert_pos = Aplayer._get_next_queue_index()
         Aplayer.playlist_move(
@@ -180,7 +181,7 @@ class Aplayer:
         if Aplayer.subqueue_length == 1:
             Aplayer.subqueue_creation_pos = Aplayer.get_playlist_pos()
 
-    def loadfile(filename: str, queue=False, scraped_title = '', download = False):
+    def loadfile(filename: str, queue=False, scraped_title='', download=False):
         """Load/play a file. If queue == False, the file is played immediately
         in a new playlist. If queue == True, the file is appended
         to the current playlist, or loaded in a paused state if there isn't
@@ -202,7 +203,7 @@ class Aplayer:
         """
         online = filename.startswith('https:') is True
         if online:
-           Aplayer.online_queue = online
+            Aplayer.online_queue = online
         else:
             if not path_exists(filename):
                 return
@@ -260,7 +261,7 @@ class Aplayer:
                 }
             ).extract_info(url, download=False).get('title', None)
 
-    def get_title_from_file(filename: str = '', scraped_title: str = '', downloading = False):
+    def get_title_from_file(filename: str = '', scraped_title: str = '', downloading=False):
         if filename == '':
             filename = Aplayer.getFilename()
         online = filename.startswith('http')
@@ -439,7 +440,7 @@ class Aplayer:
         for _, _, filenames in os.walk(PLAYLISTS_PATH):
             for filename in filenames:
                 ret.append(os.path.abspath(PLAYLISTS_PATH + filename))
-        return sorted(ret, key = lambda v: (v.casefold(), v))
+        return sorted(ret, key=lambda v: (v.casefold(), v))
 
     def get_playlist_titles() -> list:
         ret = []
