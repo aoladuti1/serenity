@@ -1,5 +1,3 @@
-from tkinter import messagebox
-from tkinter.font import ITALIC
 from config import *
 import records
 import db

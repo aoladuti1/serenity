@@ -1,4 +1,4 @@
-#support
+# support
 import os
 import pathlib
 import screenery as scrn
@@ -7,6 +7,7 @@ import ttkbootstrap as ttk
 import math
 from typing import TypeVar
 from themes.user import USER_THEMES
+
 
 def path_exists(path):
     return os.path.exists(os.path.expanduser(path))
@@ -20,24 +21,26 @@ SUPPORTED_EXTENSIONS = (
     ".wma", ".flac", ".ogg",
     ".opus", ".m4a", ".wma",
     ".pcm", ".au", ".3gp",
-) # THIS IS FAR FROM EXHAUSTIVE
+)  # THIS IS FAR FROM EXHAUSTIVE
 
 DOWNLOADS_CODEC = 'mp3'
 
 ART_FORMAT = 'jpg'
 
-#only splitterchar should be changed by the user
+# only splitterchar should be changed by the user
 SPLITTER_CHAR = '-'
 SPLITTER = " " + SPLITTER_CHAR + " "
 
-#placeholders
+# placeholders
 UNKNOWN_ARTIST = "Unknown Artist"
 UNKNOWN_ALBUM = "---"
 UNKNOWN_ALBUM_ARTIST = "---"
 
-#directories
-DIR_PATH = os.path.dirname(os.path.realpath(__file__)) + os.sep #path to config w/ slash appended
-ART_PATH = DIR_PATH + "art" + os.sep #should change to os.cwd() + "art" + os.sep in future
+# directories
+# path to config w/ slash appended
+DIR_PATH = os.path.dirname(os.path.realpath(__file__)) + os.sep
+# should change to os.cwd() + "art" + os.sep in future
+ART_PATH = DIR_PATH + "art" + os.sep
 
 PLAYLIST_FOLDER_NAME = '-playlists-'
 PLAYLISTS_PATH = DIR_PATH + PLAYLIST_FOLDER_NAME + os.sep
@@ -47,15 +50,17 @@ DOWNLOAD_PATH = DIR_PATH + DL_FOLDER_NAME + os.sep
 
 THEMES_PATH = DIR_PATH + 'themes' + os.sep
 
-#modifying PATH
-os.environ['PATH'] = DIR_PATH + 'subprograms' + os.sep + 'libmpv' + os.pathsep + os.environ['PATH']
-os.environ['PATH'] = DIR_PATH + 'subprograms' + os.sep + 'ffmpeg' + os.sep + 'bin' + os.pathsep + os.environ['PATH']
+# modifying PATH
+os.environ['PATH'] = DIR_PATH + 'subprograms' + \
+    os.sep + 'libmpv' + os.pathsep + os.environ['PATH']
+os.environ['PATH'] = DIR_PATH + 'subprograms' + os.sep + \
+    'ffmpeg' + os.sep + 'bin' + os.pathsep + os.environ['PATH']
 
-#file paths
+# file paths
 DEFAULT_ART = THEMES_PATH + 'default_art.jpg'
 DATABASE = DIR_PATH + "databases" + os.sep + "data.sqlite"
 
-#gui
+# gui
 THEME_NAME = 'serenity'
 COLOUR_DICT = USER_THEMES['serenity']['colors']
 SELECTED_LABEL_BG_HEX = '#1a1836'
@@ -65,11 +70,12 @@ CLICK_BUTTON_BG_HEX = '#2696ad'
 DEFAULT_FONT_FAMILY = 'Cascadia Code Light'
 EXPAND = 'expand'
 CONTRACT = 'contract'
+SMALL_SCREEN_CUTOFF = 2000
 
 # text
 SEARCH_ICON = u"\U0001F50E"
 CONVERSION_WARNING = ['Hold on!',
-    'Files are still converting/downloading. Quit?']
+                      'Files are still converting/downloading. Quit?']
 GUIDE_TEXT = """Click 'More...' to add some music!
 
 Then, click [add library] if each song file is in an album-named folder, and each album-named folder is inside an artist-named folder. For example (assuming you add a directory called "Music") the full directory of the song "Don't" may be "Music/Bryson Tiller/T R A P S O U L/05 - Don't.mp3."
@@ -81,27 +87,21 @@ When you choose a directory all music files in its subdirectories will be added 
 Don't worry too much about the EXACT file / folder names, Serenity is flexible!
 [Note: Serenity does not use metadata at all. Things like track number can be signalled by being present in the filename like .../01 - Intro.mp3.]"""
 
-def LEFT_PANE_WIDTH(root, screen_width = None):
-    if screen_width is None:
-        width, _ = scrn.widget_monitor_geometry(root)
-    else:
-        width = screen_width
-    if width < 2000:
-        return math.floor(width / 2)
-    else:
-        return math.floor(width / 3)
 
 def configureStyle():
     style = ttk.Style(THEME_NAME)
-        # the following line stops annoying highlight lines on button click
-    style.configure('TButton', focuscolor=style.configure('TButton')['background'])
+    # the following line stops annoying highlight lines on button click
+    style.configure('TButton', focuscolor=style.configure(
+        'TButton')['background'])
     style.configure('TFrame', background='black')
+
 
 def configureFont():
     DEFAULT_FONT = ttk.font.nametofont("TkDefaultFont")
     DEFAULT_FONT_SIZE = 14
     DEFAULT_FONT.configure(family=DEFAULT_FONT_FAMILY, size=DEFAULT_FONT_SIZE)
-    
+
+
 def configureRoot(root: ttk.Window, expanded: bool = False):
     from mastertools import Shield, Sword
     root.iconbitmap(THEMES_PATH + "icon.ico")
@@ -112,9 +112,10 @@ def configureRoot(root: ttk.Window, expanded: bool = False):
     root.columnconfigure(0, weight=1)
     root.protocol("WM_DELETE_WINDOW", Sword.on_closing)
     Shield.init(root)
+    if not expanded:
+        Shield.last_normal_width == root.winfo_width()
+    else:
+        root.overrideredirect(1)
     Shield.grid_root(expanded)
     Shield.draw_header()
     Shield.draw_size_button()
-
-    
-    

@@ -77,8 +77,9 @@ class LabelButton(Label):
 
 class StatusBar(Frame):
     def __init__(self, master, **kw):
+        from mastertools import Shield
         Frame.__init__(self, master, **kw)
-        self.configure(width=LEFT_PANE_WIDTH(master))
+        self.configure(width=Shield.base_pane_width(master))
         self.columnconfigure(1, weight=0)
         self.columnconfigure(0, weight=1)
         self.label = ttk.Label(self, 

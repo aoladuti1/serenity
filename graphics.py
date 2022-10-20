@@ -47,8 +47,7 @@ class LeftPane:
     SUBHEADER_TEXT_MAX_WIDTH = 999  # TODO make it fit 1080p, 2k and 4k
 
     def __init__(self, root: ttk.Window, status: tkintools.StatusBar):
-        global PANE_WIDTH
-        global EDGE_PAD
+        global edge_pad
         self.root = root
         self.frame = None
         self.browser = None
@@ -86,8 +85,7 @@ class LeftPane:
         self.downloading = False
         self.__overriding_status = False
         Aplayer.player.observe_property('path', self.observe_title)
-        PANE_WIDTH = LEFT_PANE_WIDTH(self.root)
-        EDGE_PAD = Shield.edge_pad()
+        edge_pad = Shield.edge_pad()
 
     def drawAll(self):
         self.drawFrame()
@@ -104,7 +102,7 @@ class LeftPane:
 
     def drawFrame(self):
         self.frame = Frame(
-            self.root, height=self.root.winfo_height(), width=PANE_WIDTH)
+            self.root, height=self.root.winfo_height(), width=Shield.max_pane())
         self.frame.grid(column=0, row=1, sticky='nsw', columnspan=1)
         self.frame.rowconfigure(5, weight=1)  # browser is stretchy!
         self.frame.columnconfigure(0, weight=1)
@@ -123,7 +121,7 @@ class LeftPane:
         self.subheader.grid(column=0, row=0, sticky=W)
 
     def drawBackbutton(self):
-        bbFrame = Frame(self.frame, padx=EDGE_PAD)
+        bbFrame = Frame(self.frame, padx=edge_pad)
         bbFrame.grid(row=0, rowspan=1, sticky=NE)
         self.backButton = tkintools.LabelButton(
             bbFrame,
@@ -559,10 +557,12 @@ class LeftPane:
         self.unwrapSquares(e)
 
     def genBrowser(self):
+        global edge_pad
+        edge_pad = Shield.edge_pad()
         browser = ScrolledFrame(
             self.frame, autohide=True,
             height=Shield.drawn_height,
-            width=PANE_WIDTH
+            width=Shield.max_pane()
         )
         browser.columnconfigure(0, weight=1)
         browser.columnconfigure(1, weight=0)
@@ -595,7 +595,7 @@ class LeftPane:
         )
         buttonFrame.grid(
             column=1, row=row, rowspan=1, ipady=0,
-            padx=(EDGE_PAD, EDGE_PAD), pady=(0, 9), sticky=E
+            padx=(edge_pad, edge_pad), pady=(0, 9), sticky=E
         )
         button = tkintools.LabelButton(
             buttonFrame, text=text, padx=LeftPane.BROWSER_BUTTON_PADX,
@@ -617,7 +617,7 @@ class LeftPane:
         )
         buttonFrame.grid(
             column=1, row=row, rowspan=1, ipady=0,
-            padx=(EDGE_PAD, EDGE_PAD), pady=(0, 9), sticky=E
+            padx=(edge_pad, edge_pad), pady=(0, 9), sticky=E
         )
         button = tkintools.LabelButton(
             buttonFrame, text=text, padx=LeftPane.BROWSER_BUTTON_PADX,
@@ -635,7 +635,8 @@ class LeftPane:
             label_type=label_type,
             text=" " + text,
             bootstyle='info',
-            width=PANE_WIDTH  # makes the highlight bar go fully across
+            # makes the highlight bar go fully across
+            width=browser.cget('width')
         )
         browserLabel.grid(
             column=0, row=row, rowspan=1, sticky=NW
