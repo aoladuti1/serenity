@@ -86,7 +86,7 @@ class LeftPane:
         self.__overriding_status = False
         Aplayer.player.observe_property('path', self.observe_title)
         edge_pad = Shield.edge_pad()
-
+        
     def drawAll(self):
         self.drawFrame()
         self.drawAllExceptFrame()

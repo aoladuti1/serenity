@@ -1,10 +1,8 @@
 # support
 import os
 import pathlib
-import screenery as scrn
 from tkinter import *
 import ttkbootstrap as ttk
-import math
 from typing import TypeVar
 from themes.user import USER_THEMES
 
@@ -110,12 +108,7 @@ def configureRoot(root: ttk.Window, expanded: bool = False):
     root.rowconfigure(1, weight=1)
     root.rowconfigure(2, weight=1)
     root.columnconfigure(0, weight=1)
-    root.protocol("WM_DELETE_WINDOW", Sword.on_closing)
-    Shield.init(root)
-    if not expanded:
-        Shield.last_normal_width == root.winfo_width()
-    else:
-        root.overrideredirect(1)
-    Shield.grid_root(expanded)
-    Shield.draw_header()
-    Shield.draw_size_button()
+    root.protocol("WM_DELETE_WINDOW", Shield.on_closing)
+    Shield.init(root, expanded)
+    Sword.init()
+
