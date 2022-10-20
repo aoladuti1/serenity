@@ -1,6 +1,5 @@
 from tkinter import *
 import ttkbootstrap as ttk
-from turtle import onclick
 from typing import Callable, Any
 from config import *
 

@@ -1,16 +1,12 @@
 #support
 import os
 import pathlib
-from turtle import back
+import screenery as scrn
+from tkinter import *
 import ttkbootstrap as ttk
 import math
-import screeninfo
 from typing import TypeVar
 from themes.user import USER_THEMES
-from ctypes import windll
-user32 = windll.user32
-user32.SetProcessDPIAware()
-
 
 def path_exists(path):
     return os.path.exists(os.path.expanduser(path))
@@ -49,12 +45,14 @@ PLAYLISTS_PATH = DIR_PATH + PLAYLIST_FOLDER_NAME + os.sep
 DL_FOLDER_NAME = '-downloads-'
 DOWNLOAD_PATH = DIR_PATH + DL_FOLDER_NAME + os.sep
 
+THEMES_PATH = DIR_PATH + 'themes' + os.sep
+
 #modifying PATH
-os.environ['PATH'] += DIR_PATH + os.sep + 'subprograms' +os.sep+'libmpv' + os.pathsep
-os.environ['PATH'] += DIR_PATH + 'subprograms' + os.sep + 'ffmpeg' + os.sep + 'bin' + os.pathsep
+os.environ['PATH'] = DIR_PATH + 'subprograms' + os.sep + 'libmpv' + os.pathsep + os.environ['PATH']
+os.environ['PATH'] = DIR_PATH + 'subprograms' + os.sep + 'ffmpeg' + os.sep + 'bin' + os.pathsep + os.environ['PATH']
 
 #file paths
-DEFAULT_ART = DIR_PATH + "themes" + os.sep + 'default_art.jpg'
+DEFAULT_ART = THEMES_PATH + 'default_art.jpg'
 DATABASE = DIR_PATH + "databases" + os.sep + "data.sqlite"
 
 #gui
@@ -65,10 +63,14 @@ UNSELECTED_LABEL_BG_HEX = '#000000'
 ACTIVE_BUTTON_BG_HEX = '#0b3740'
 CLICK_BUTTON_BG_HEX = '#2696ad'
 DEFAULT_FONT_FAMILY = 'Cascadia Code Light'
+EXPAND = 'expand'
+CONTRACT = 'contract'
 
-#misc
+# text
 SEARCH_ICON = u"\U0001F50E"
-GUIDE_TEXT = """Click 'Your Library' to add some music!
+CONVERSION_WARNING = ['Hold on!',
+    'Files are still converting/downloading. Quit?']
+GUIDE_TEXT = """Click 'More...' to add some music!
 
 Then, click [add library] if each song file is in an album-named folder, and each album-named folder is inside an artist-named folder. For example (assuming you add a directory called "Music") the full directory of the song "Don't" may be "Music/Bryson Tiller/T R A P S O U L/05 - Don't.mp3."
 
@@ -81,25 +83,13 @@ Don't worry too much about the EXACT file / folder names, Serenity is flexible!
 
 def LEFT_PANE_WIDTH(root, screen_width = None):
     if screen_width is None:
-        width, _ = get_screen_width_height(root)
+        width, _ = scrn.widget_monitor_geometry(root)
     else:
         width = screen_width
     if width < 2000:
         return math.floor(width / 2)
     else:
         return math.floor(width / 3)
-
-def get_screen_width_height(root):
-    current_screen = get_monitor_from_coord(root.winfo_x(), root.winfo_y())
-    return [current_screen.width, current_screen.height]
-
-def get_monitor_from_coord(x, y):
-    monitors = screeninfo.get_monitors()
-
-    for m in reversed(monitors):
-        if m.x <= x <= m.width + m.x and m.y <= y <= m.height + m.y:
-            return m
-    return monitors[0]
 
 def configureStyle():
     style = ttk.Style(THEME_NAME)
@@ -110,15 +100,21 @@ def configureStyle():
 def configureFont():
     DEFAULT_FONT = ttk.font.nametofont("TkDefaultFont")
     DEFAULT_FONT_SIZE = 14
-    DEFAULT_FONT.configure(family=DEFAULT_FONT_FAMILY, size = DEFAULT_FONT_SIZE)
+    DEFAULT_FONT.configure(family=DEFAULT_FONT_FAMILY, size=DEFAULT_FONT_SIZE)
     
-def configureRoot(root: ttk.Window):
-    width, height = get_screen_width_height(root)
-    maxwidth = LEFT_PANE_WIDTH(root, width)
-    root.geometry("%dx%d+0+0" % (maxwidth, 2 * height / 3))
-    root.update()
-    root.maxsize(width=maxwidth, height=0)
+def configureRoot(root: ttk.Window, expanded: bool = False):
+    from mastertools import Shield, Sword
+    root.iconbitmap(THEMES_PATH + "icon.ico")
+    root.title("serenity")
     root.configure(background=COLOUR_DICT['bg'])
     root.rowconfigure(1, weight=1)
+    root.rowconfigure(2, weight=1)
     root.columnconfigure(0, weight=1)
-    root.title("serenity")
+    root.protocol("WM_DELETE_WINDOW", Sword.on_closing)
+    Shield.init(root)
+    Shield.grid_root(expanded)
+    Shield.draw_header()
+    Shield.draw_size_button()
+
+    
+    
