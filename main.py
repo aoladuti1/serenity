@@ -1,8 +1,6 @@
 from config import *
 import records
 import db
-import tkintools
-from graphics import LeftPane
 from tkinter import *
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
@@ -15,10 +13,6 @@ def main():
     configureStyle()
     configureFont()
     configureRoot(root, False)
-    status_bar = tkintools.StatusBar(root)
-    leftPane = LeftPane(root, status_bar)
-    leftPane.drawAll()
-    root.update()
     root.mainloop()
 
 

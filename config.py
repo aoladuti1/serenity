@@ -101,14 +101,13 @@ def configureFont():
 
 
 def configureRoot(root: ttk.Window, expanded: bool = False):
-    from mastertools import Shield, Sword
+    from mastertools import init
     root.iconbitmap(THEMES_PATH + "icon.ico")
     root.title("serenity")
     root.configure(background=COLOUR_DICT['bg'])
     root.rowconfigure(1, weight=1)
     root.rowconfigure(2, weight=1)
     root.columnconfigure(0, weight=1)
-    root.protocol("WM_DELETE_WINDOW", Shield.on_closing)
-    Shield.init(root, expanded)
-    Sword.init()
+    init(root, expanded)
+    
 

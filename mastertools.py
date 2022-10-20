@@ -5,16 +5,24 @@ from tkinter import messagebox
 import screenery as scrn
 import math
 
-
 class Shield:
     """Must be initialised with init()."""
 
     grid_height = 0
     last_normal_width = 0
 
-    def init(master):
+    def _init(master: Toplevel, expanded: bool):
         global root
         root = master
+        if not expanded:
+            Shield.last_normal_width == root.winfo_width()
+        else:
+            root.overrideredirect(1)
+        Shield.grid_root(expanded)
+        Shield.draw_header()
+        Shield.draw_size_button()
+        root.update()
+        root.protocol("WM_DELETE_WINDOW", Shield.on_closing)
 
     def base_pane_width(root, screen_width=None):
         if screen_width is None:
@@ -38,13 +46,12 @@ class Shield:
             pw = Shield.base_pane_width(root, sw)
         else:
             pw = pane_width
-
         if sw < SMALL_SCREEN_CUTOFF:
             return pw * 2
         else:
             return math.ceil(pw * 1.5)
 
-    def grid_root(expanded: bool = False):
+    def grid_root(expanded: bool):
         width, height = scrn.widget_monitor_geometry(root)
         pane_width = Shield.base_pane_width(root, width)
         max_height = height - scrn.reserved_geometry()[1]
@@ -64,7 +71,7 @@ class Shield:
         root.update()
 
     def draw_header():
-        header = DarkLabelButton(root)
+        header = DarkLabelButton(root, clickFunc=Sword.switch_page)
         header.configure(
             font=(DEFAULT_FONT_FAMILY, 36), text='your library')
         header.grid(column=0, row=0, padx=15, pady=(0, 15), sticky=NW)
@@ -95,9 +102,6 @@ class Shield:
         expand_button.grid(
             column=0, row=0, padx=Shield.edge_pad(), sticky=E)
 
-
-class Sword:
-
     def on_closing():
         if Aplayer.converting_audio is True:
             res = messagebox.askyesno(
@@ -105,3 +109,26 @@ class Sword:
             if not res:
                 return
         os._exit(0)
+
+
+class Sword:
+
+    __pages = []
+    page_index = 0
+    current_pane = None
+
+    def _init():
+        from graphics import LeftPane
+        global current_pane
+        status_bar = StatusBar(root)
+        current_pane = LeftPane(root, status_bar)
+        Sword.__pages.append(current_pane)
+        current_pane.drawAll()
+
+    def switch_page(e: Event = None):
+        pass
+
+
+def init(root: Toplevel, expanded: bool = False):
+    Shield._init(root, expanded)
+    Sword._init()
