@@ -202,15 +202,16 @@ class Aplayer:
             download: if True, will download a stream if one is passed
         """
         online = filename.startswith('https:') is True
-        if online:
-            Aplayer.online_queue = online
-        else:
-            if not path_exists(filename):
-                return
+        if not online and not path_exists(filename):
+            return
         play_type = 'append-play'
         title = Aplayer.get_title_from_file(filename, scraped_title, download)
-        data = Aplayer.get_artist_track_trackNum(title)
+        if title is None:
+            return
         Aplayer.player.loadfile(filename, play_type)
+        if online:
+            Aplayer.online_queue = True
+        data = Aplayer.get_artist_track_trackNum(title)
         new_playlist_count = Aplayer.get_playlist_count()
         if queue is True and new_playlist_count > 1:
             Aplayer._queue_properly()
@@ -246,6 +247,8 @@ class Aplayer:
 
     def _validate_title(known_title: str = '') -> str:
         if known_title != '':
+            if known_title is None:
+                return None
             title = known_title.replace("|", "¦")
             return "".join(i for i in title if i not in r'\/:*?"<>')
 
@@ -262,17 +265,20 @@ class Aplayer:
             ).extract_info(url, download=False).get('title', None)
 
     def get_title_from_file(filename: str = '', scraped_title: str = '', downloading=False):
-        if filename == '':
-            filename = Aplayer.getFilename()
-        online = filename.startswith('http')
-        if online is True:
-            if downloading is True:
-                return Aplayer._validate_title(
-                    Aplayer.scrape_title(filename, scraped_title))
+        try:
+            if filename == '':
+                filename = Aplayer.getFilename()
+            online = filename.startswith('http')
+            if online is True:
+                if downloading is True:
+                    return Aplayer._validate_title(
+                        Aplayer.scrape_title(filename, scraped_title))
+                else:
+                    return Aplayer.scrape_title(filename, scraped_title)
             else:
-                return Aplayer.scrape_title(filename, scraped_title)
-        else:
-            return Path(filename).stem
+                return Path(filename).stem
+        except Exception:
+            return None
 
     def get_artist_track_trackNum(valid_title: str):
         options = {
