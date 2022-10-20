@@ -5,6 +5,7 @@ from tkinter import messagebox
 import screenery as scrn
 import math
 
+
 class Shield:
     """Must be initialised with init()."""
 
@@ -113,8 +114,8 @@ class Shield:
 
 class Sword:
 
-    __pages = []
-    page_index = 0
+    __panes = []
+    pane_index = 0
     current_pane = None
 
     def _init():
@@ -122,11 +123,14 @@ class Sword:
         global current_pane
         status_bar = StatusBar(root)
         current_pane = LeftPane(root, status_bar)
-        Sword.__pages.append(current_pane)
+        Sword.__panes.append(current_pane)
         current_pane.drawAll()
 
     def switch_page(e: Event = None):
         pass
+
+    def pane(index):
+        return Sword.__panes[index]
 
 
 def init(root: Toplevel, expanded: bool = False):
