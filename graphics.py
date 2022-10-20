@@ -76,7 +76,7 @@ class LeftPane:
         self.libToolsVisible = False
         self.entryBarVisible = False
         self.updating_entry_label = False
-        self.selectedContent = []
+        self.selectedContent = {}
         self.current_file = ''
         self.current_duration = ''
         self.playing_text = 'Now playing:'
@@ -246,27 +246,32 @@ class LeftPane:
             e.widget.configure(text='search')
 
     async def __search_yt_from_entry(self):
-        videosSearch = VideosSearch(self.entry.get(), limit=1)
-        videosResult = await videosSearch.next()
-        return [videosResult['result'][0]['link'],
-                videosResult['result'][0]['title']]
+        try:
+            videosSearch = VideosSearch(self.entry.get(), limit=1)
+            videosResult = await videosSearch.next()
+            return [videosResult['result'][0]['link'],
+                    videosResult['result'][0]['title']]
+        except Exception:
+            return [None, None]
 
     def __stream(self, queue: bool = False, download=False):
-        try:
-            entry_text = self.entry.get()
-            if entry_text.startswith('https://'):
+        entry_text = self.entry.get()
+        if entry_text.startswith('https://'):
+            try:
                 threading.Thread(target=Aplayer.loadfile,
-                                 args=(self.entry.get(), queue, '', download)).start()
+                                    args=(self.entry.get(), queue, '', download)).start()
                 return Aplayer.scrape_title(entry_text)
-            else:
-                loop = asyncio.new_event_loop()
-                link, title = loop.run_until_complete(
-                    self.__search_yt_from_entry())
-                threading.Thread(target=Aplayer.loadfile,
-                                 args=(link, queue, title, download)).start()
-                return title
-        except Exception:
-            pass
+            except Exception:
+                return None # TODO: ERROR MSG
+        else:
+            loop = asyncio.new_event_loop()
+            link, title = loop.run_until_complete(
+                self.__search_yt_from_entry())
+            if link is None:
+                return  # TODO: ERROR MSG
+            threading.Thread(target=Aplayer.loadfile,
+                                args=(link, queue, title, download)).start()
+            return title
 
     def __link_downloaded(self, data):
         artist, track, _, _ = data
@@ -278,11 +283,15 @@ class LeftPane:
         link = self.entry.get()
         if link.startswith('https://'):
             title = Aplayer.get_title_from_file(link, '', True)
+            if title is None:
+                return # TODO: ERROR MSG
         else:
             loop = asyncio.new_event_loop()
             link, title_rough = loop.run_until_complete(
                 self.__search_yt_from_entry())
             title = Aplayer._validate_title(title_rough)
+            if title is None:
+                return # TODO: ERROR MSG
         data = Aplayer.get_artist_track_trackNum(title)
         if not self.__link_downloaded(data):
             threading.Thread(target=self.put_dl_percent).start()
@@ -290,6 +299,7 @@ class LeftPane:
         else:
             # TODO: add new label to row saying that the file exists
             pass
+            
 
     def put_dl_percent(self):
         if self.downloading is True:
@@ -360,7 +370,7 @@ class LeftPane:
         self.loading = True
         for name in playlist_results:
             self.genBrowserLabel(
-                i, Path(name).stem, PLAYLISTS,
+                i, Path(name).stem, PLAYLISTS, None,
                 lambda e, pl=name: self.__go_to_playlist_songs(e, pl),
                 browser=browser)
             self.genBrowserButton(i, browser=browser)
@@ -374,8 +384,9 @@ class LeftPane:
             self.draw_browser_subtitle(ARTISTS, i, browser)
             i += 1
         for artist_tuple in artist_results:
+            name = artist_tuple[0]
             label = self.genBrowserLabel(
-                i, artist_tuple[0], ARTISTS, self.loadAlbums, browser)
+                i, name, ARTISTS, name, self.loadAlbums, browser)
             label_data = artist_tuple[0]
             self.genBrowserButton(
                 i, browser=browser,
@@ -414,9 +425,8 @@ class LeftPane:
             i += 1
         for tuple in track_results:
             label = self.genBrowserLabel(
-                i, tuple[0], TRACKS,
-                lambda e, file=tuple[1]:
-                    self.play(e, file), browser)
+                i, tuple[0], TRACKS, tuple[1],
+                self.play(e), browser)
             self.genBrowserButton(
                 i, browser=browser,
                 clickFunc=(
@@ -626,24 +636,23 @@ class LeftPane:
         button.grid()
         return buttonFrame
 
-    def genBrowserLabel(self, row: int, text: str, label_type: str,
-                        dblClickFunc=None, browser=None):
+    def genBrowserLabel(self, row: int, text: str, label_type: str, 
+                        data: str, dblClickFunc=None, browser=None):
         if browser is None:
             browser = self.browser
-        browserLabel = tkintools.TypedLabel(
+        b_label = tkintools.TypedLabel(
             browser,
             label_type=label_type,
             text=" " + text,
+            data=data,
             bootstyle='info',
             # makes the highlight bar go fully across
             width=browser.cget('width')
         )
-        browserLabel.grid(
-            column=0, row=row, rowspan=1, sticky=NW
-        )
-        browserLabel.bind('<Button-1>', lambda e: self.select(e))
-        browserLabel.bind('<Double-Button-1>', dblClickFunc)
-        return browserLabel
+        b_label.grid(column=0, row=row, rowspan=1, sticky=NW)
+        b_label.bind('<Button-1>', self.select)
+        b_label.bind('<Double-Button-1>', dblClickFunc)
+        return b_label
 
     def wrapSquares(self, e: Event):
         text = e.widget.cget('text')
@@ -696,7 +705,7 @@ class LeftPane:
         self.loading = True
         for name in Aplayer.get_playlist_names():
             self.genBrowserLabel(
-                i, Path(name).stem, PLAYLISTS,
+                i, Path(name).stem, PLAYLISTS, None,
                 lambda e, pl=name: self.__go_to_playlist_songs(e, pl),
                 browser=browser)
             self.genBrowserButton(i, browser=browser)
@@ -719,10 +728,10 @@ class LeftPane:
         chosen_playlist_files = open(chosen_playlist, 'r').readlines()
         chosen_playlist_title = self.strip_widget_text(e)
         playlist_length = len(chosen_playlist_files)
-        for song in chosen_playlist_files:
+        for path in chosen_playlist_files:
             self.genBrowserLabel(
-                i, Aplayer.get_title_from_file(song),
-                PLAYLIST_SONGS, browser=browser)
+                i, Aplayer.get_title_from_file(path),
+                TRACKS, path, browser=browser)
             self.__show_label_load_stats(
                 e, chosen_playlist_title, i, playlist_length)
             i += 1
@@ -789,13 +798,13 @@ class LeftPane:
         i = 0
         if Aplayer.get_number_of_playlists() > 0:
             l = self.genBrowserLabel(
-                i, PLAYLISTS, PLAYLISTS, self.__go_to_playlists)
+                i, PLAYLISTS, PLAYLISTS, None, self.__go_to_playlists)
             l.configure(foreground=COLOUR_DICT['light'])
             self.genBasicBrowserButton(i, text="open")
             i += 1
         for tuple in self.fetchedArtists:
             name = tuple[0]
-            l = self.genBrowserLabel(i, name, ARTISTS, self.loadAlbums)
+            l = self.genBrowserLabel(i, name, ARTISTS, name, self.loadAlbums)
             self.genBrowserButton(
                 i,
                 clickFunc=lambda e, data=name, label=l: self.play(e, data, label))
@@ -829,9 +838,9 @@ class LeftPane:
         i = 0
         text = " " + self.chosenArtist
         for album_tuple in self.fetchedAlbums:
-            label = self.genBrowserLabel(
-                i, album_tuple[0], ALBUMS, self.loadTracks, browser)
             label_data = album_tuple[0] + '|' + self.chosenArtist
+            label = self.genBrowserLabel(
+                i, album_tuple[0], ALBUMS, label_data, self.loadTracks, browser)
             self.genBrowserButton(
                 i, browser=browser,
                 clickFunc=(
@@ -876,7 +885,7 @@ class LeftPane:
         self.loading = True
         for tuple in self.fetchedTracksAndPaths:
             label = self.genBrowserLabel(
-                i, tuple[0], TRACKS,
+                i, tuple[0], TRACKS, tuple[1],
                 lambda e, file=tuple[1]:
                     self.play(e, file), browser)
             self.genBrowserButton(
@@ -898,5 +907,13 @@ class LeftPane:
         # makes it work for comparisons
         if str(clickedWidget.cget('background')) == SELECTED_LABEL_BG_HEX:
             clickedWidget.configure(background=COLOUR_DICT['bg'])
+            self.selectedContent.pop(e.widget.data)
         else:
             clickedWidget.configure(background=SELECTED_LABEL_BG_HEX)
+            self.selectedContent.update({e.widget.data : e.widget.label_type})
+
+
+            
+                    
+
+
