@@ -5,6 +5,7 @@ import tkintools
 import db
 import ttkbootstrap as ttk
 import records
+from mastertools import Shield
 from pathlib import Path
 from tkinter.font import BOLD, ITALIC
 from tkinter import *
@@ -86,7 +87,7 @@ class LeftPane:
         self.__overriding_status = False
         Aplayer.player.observe_property('path', self.observe_title)
         PANE_WIDTH = LEFT_PANE_WIDTH(self.root)
-        EDGE_PAD = math.floor(25 * root.winfo_screenwidth() / 3840)
+        EDGE_PAD = Shield.edge_pad()
 
     def drawAll(self):
         self.drawFrame()
@@ -560,7 +561,7 @@ class LeftPane:
     def genBrowser(self):
         browser = ScrolledFrame(
             self.frame, autohide=True,
-            height=self.root.winfo_screenheight(),
+            height=Shield.drawn_height,
             width=PANE_WIDTH
         )
         browser.columnconfigure(0, weight=1)
