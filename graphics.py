@@ -7,7 +7,7 @@ import ttkbootstrap as ttk
 import records
 from mastertools import Shield
 from pathlib import Path
-from tkinter.font import BOLD, ITALIC
+from tkinter.font import BOLD
 from tkinter import *
 from typing import Callable
 from aplayer import Aplayer
@@ -789,7 +789,7 @@ class LeftPane:
         i = 0
         if Aplayer.get_number_of_playlists() > 0:
             l = self.genBrowserLabel(
-                i, PLAYLISTS, ARTISTS, self.__go_to_playlists)
+                i, PLAYLISTS, PLAYLISTS, self.__go_to_playlists)
             l.configure(foreground=COLOUR_DICT['light'])
             self.genBasicBrowserButton(i, text="open")
             i += 1
