@@ -101,6 +101,8 @@ class Aplayer:
     _loading_list = False
     _is_shuffling = False
     _prog_hook_added = False
+    _last_batch_pos = -1
+    
 
     def _mpv_wait():
         time.sleep(0.001)
@@ -395,6 +397,10 @@ class Aplayer:
             Aplayer._mpv_wait()
         Aplayer._mpv_wait()
 
+    def _get_set_batch_pos():
+        Aplayer._last_batch_pos = Aplayer.get_playlist_pos()
+        return Aplayer.get_playlist_pos()
+
     def loadall(filenames: list, queue: bool = True):
         # offline tracks only
         element_count = len(filenames)
@@ -404,6 +410,8 @@ class Aplayer:
             Aplayer.clear_subqueue()
             if not Aplayer.is_paused():
                 Aplayer.pauseplay()
+        elif Aplayer._last_batch_pos < Aplayer._get_set_batch_pos():
+            Aplayer.clear_subqueue()
         Aplayer.loadfile(filenames[0], queue)
         if element_count > 1:
             for filename in filenames[1:-1]:
@@ -441,19 +449,23 @@ class Aplayer:
             Aplayer.get_current_playlist_title(), new_playlist_title)
         Aplayer._current_playlist_title = new_playlist_title
 
+    # no sort
     def get_playlist_names() -> list:
         ret = []
         for _, _, filenames in os.walk(PLAYLISTS_PATH):
             for filename in filenames:
                 ret.append(os.path.abspath(PLAYLISTS_PATH + filename))
-        return sorted(ret, key=lambda v: (v.casefold(), v))
+        return ret
 
     def get_playlist_titles() -> list:
         ret = []
         for _, _, filenames in os.walk(PLAYLISTS_PATH):
             for filename in filenames:
                 ret.append(Path(filename).stem)
-        return ret
+        return sorted(ret, key=lambda v: (v.casefold(), v))
+
+    def playlist_path(title: str):
+        return PLAYLISTS_PATH + title + PLAYLIST_EXTENSION
 
     def set_dl_on_stream(dl_on_stream=False):
         Aplayer.dl_on_stream = dl_on_stream
