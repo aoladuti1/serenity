@@ -278,7 +278,7 @@ class DBLink:
             WHERE album = ? AND artist = ?
             ORDER BY trackNum
             """, [album, artist])
-            return cursor.fetchall()
+            return [t[0] for t in cursor.fetchall()]
 
     def get_artist_filenames(self, artist: str):
         with self.conn as conn:
@@ -289,7 +289,7 @@ class DBLink:
             WHERE artist = ?
             ORDER BY album, trackNum
             """, [artist])
-            return cursor.fetchall()
+            return [t[0] for t in cursor.fetchall()]
 
     def del_song_if(self, conditions: dict,
                     negate_all: bool = False, conjunction: bool = True,
