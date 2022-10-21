@@ -101,13 +101,14 @@ def configureFont():
 
 
 def configureRoot(root: ttk.Window, expanded: bool = False):
-    from mastertools import init
+    import mastertools
+    root.attributes('-alpha', 0)
     root.iconbitmap(THEMES_PATH + "icon.ico")
     root.title("serenity")
     root.configure(background=COLOUR_DICT['bg'])
     root.rowconfigure(1, weight=1)
     root.rowconfigure(2, weight=1)
     root.columnconfigure(0, weight=1)
-    init(root, expanded)
+    mastertools.init(root, expanded)
     
 

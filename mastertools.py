@@ -7,7 +7,7 @@ import math
 
 
 class Shield:
-    """Must be initialised with init()."""
+    """Manages the graphics. Call mastertools.init() once before use."""
 
     grid_height = 0
     last_normal_width = 0
@@ -24,6 +24,7 @@ class Shield:
         Shield.draw_size_button()
         root.update()
         root.protocol("WM_DELETE_WINDOW", Shield.on_closing)
+        root.attributes('-alpha', 1)
 
     def base_pane_width(root, screen_width=None):
         if screen_width is None:
@@ -113,9 +114,10 @@ class Shield:
 
 
 class Sword:
+    """Manages the panes. Call mastertools.init() once before use."""
 
     __panes = []
-    pane_index = 0
+    pane_index = -1
     current_pane = None
 
     def _init():
@@ -123,8 +125,9 @@ class Sword:
         global current_pane
         status_bar = StatusBar(root)
         current_pane = LeftPane(root, status_bar)
-        Sword.__panes.append(current_pane)
         current_pane.drawAll()
+        Sword.__panes.append(current_pane)
+        pane_index = 0
 
     def switch_page(e: Event = None):
         pass
@@ -134,5 +137,8 @@ class Sword:
 
 
 def init(root: Toplevel, expanded: bool = False):
+    """Initialises all master tools."""
+    if Sword.pane_index != -1:
+        return
     Shield._init(root, expanded)
     Sword._init()
