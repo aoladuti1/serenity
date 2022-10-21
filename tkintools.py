@@ -42,7 +42,7 @@ class LabelButton(Label):
         defaultFG=COLOUR_DICT['primary'],
         onEnterFunc=None,
         onLeaveFunc=None,
-        buttonReleaseFunc=None,
+        unclickFunc=None,
         **kw
     ):
         # onClickFunc totally overrides clickFunc
@@ -59,7 +59,7 @@ class LabelButton(Label):
         self.clickFG = clickFG
         self.onEnterFunc = onEnterFunc
         self.onLeaveFunc = onLeaveFunc
-        self.buttonReleaseFunc = buttonReleaseFunc
+        self.unclickFunc = unclickFunc
         self.state = 0
         self.configure(cursor='hand2')
         if onClickFunc is None:
@@ -72,14 +72,14 @@ class LabelButton(Label):
             self.onEnterFunc = self.default_on_enter
         if onLeaveFunc is None:
             self.onLeaveFunc = self.default_on_leave
-        if buttonReleaseFunc is None:
-            self.buttonReleaseFunc = self.onLeaveFunc
+        if unclickFunc is None:
+            self.unclickFunc = self.onLeaveFunc
         self['background'] = defaultBG
         self['foreground'] = defaultFG
         self.bind("<Enter>", self.onEnterFunc)
         self.bind("<Leave>", self.onLeaveFunc)
         self.bind("<Button-1>", self.onClickFunc)
-        self.bind("<ButtonRelease-1>", self.buttonReleaseFunc)
+        self.bind("<ButtonRelease-1>", self.unclickFunc)
 
 
 class StatusBar(Frame):
@@ -101,7 +101,7 @@ class DarkLabelButton(LabelButton):
     def __init__(self, master, clickFunc=None, **kw):
         LabelButton.__init__(
             self, master=master,
-            buttonReleaseFunc=clickFunc,
+            unclickFunc=clickFunc,
             activeFG=COLOUR_DICT['info'],
             activeBG=COLOUR_DICT['bg'],
             clickFG=COLOUR_DICT['info'],

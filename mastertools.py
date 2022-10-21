@@ -11,6 +11,8 @@ class Shield:
 
     grid_height = 0
     last_normal_width = 0
+    small_screen = False
+    expanded = None
 
     def _init(master: Toplevel, expanded: bool):
         global root
@@ -32,8 +34,10 @@ class Shield:
         else:
             width = screen_width
         if width < SMALL_SCREEN_CUTOFF:
+            Shield.small_screen = True
             return math.floor(width / 2)
         else:
+            Shield.small_screen = False
             return math.floor(width / 3)
 
     def edge_pad():
@@ -69,6 +73,7 @@ class Shield:
             width=Shield.max_pane(width, pane_width), height=max_height)
         start_height = max_height if expanded else math.ceil(2 * max_height/3)
         Shield.drawn_height = start_height
+        Shield.expanded = expanded
         root.geometry("%dx%d+0+0" % (start_width, start_height))
         root.update()
 

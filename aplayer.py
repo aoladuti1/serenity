@@ -396,6 +396,7 @@ class Aplayer:
         else:
             Aplayer._mpv_wait()
         Aplayer._mpv_wait()
+        Aplayer.savelist('tony')
 
     def _get_set_batch_pos():
         Aplayer._last_batch_pos = Aplayer.get_playlist_pos()
@@ -426,10 +427,11 @@ class Aplayer:
         playlist_name = playlist_title
         if not playlist_title.endswith(PLAYLIST_EXTENSION):
             playlist_name = playlist_title + PLAYLIST_EXTENSION
+        dest = PLAYLISTS_PATH + playlist_name
         with open(PLAYLISTS_PATH + playlist_name, 'w') as pl:
             for filename in Aplayer.player.playlist_filenames:
-                os.makedirs(os.path.dirname(pl), exist_ok=True)
-                pl.write(filename)
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                pl.write(filename + '\n')
 
     def save_current_playlist():
         Aplayer.savelist(Aplayer.get_current_playlist_title())
