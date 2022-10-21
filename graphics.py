@@ -106,7 +106,6 @@ class LeftPane:
         self.loadArtists()
 
     def drawFrame(self):
-        print(Shield.drawn_height)
         self.frame = Frame(
             self.root,
             width=Shield.max_pane())
@@ -207,14 +206,12 @@ class LeftPane:
         buttonFrame.configure(
             highlightcolor=COLOUR_DICT['light'],
             highlightbackground=COLOUR_DICT['light'],
-            highlightthickness=1
-        )
+            highlightthickness=1)
         button = tkintools.LabelButton(
             buttonFrame, text=text,
             pady=0,
             clickFunc=lambda e, q=queue: self.entry_button_command(e, q),
-            font=(DEFAULT_FONT_FAMILY, 13, BOLD)
-        )
+            font=(DEFAULT_FONT_FAMILY, 13, BOLD))
         if not queue:
             button.bind('<Button-3>', self.__alter_search_button)
         button.grid()
@@ -376,11 +373,14 @@ class LeftPane:
             i += 1
         self.loading = True
         for title in playlist_results:
-            self.genBrowserLabel(
+            label = self.genBrowserLabel(
                 i, title, PLAYLISTS, title,
                 self.__go_to_playlist_songs,
                 browser=browser)
-            self.genBrowserButton(i, browser=browser)
+            self.genBrowserButton(
+                i, browser=browser,
+                clickFunc=(lambda e, d=title, l=label:
+                           self.play(e, d, l)))
             i += 1
         return i
 
@@ -476,7 +476,7 @@ class LeftPane:
         self.controls = Frame(self.frame)
         self.controls.grid(row=3, pady=5, rowspan=1)
         shuffle = self.genControlButton(
-            clickFunc=lambda e: Aplayer.shuffle, text=' ¿? ',
+            clickFunc=lambda e: Aplayer.shuffle(), text=' ¿? ',
             unclickFunc=self.toggle_highlight)
         seek_pos = self.genControlButton(
             clickFunc=lambda e, t=10: self.seek(e, t), text=' ++> ')
@@ -825,12 +825,19 @@ class LeftPane:
         self.updateSubheader(PLAYLISTS)
         i = 0
         self.loading = True
-        for title in Aplayer.get_playlist_titles():
-            self.genBrowserLabel(
+        playlist_titles = Aplayer.get_playlist_titles()
+        title_count = len(playlist_titles)
+        for title in playlist_titles:
+            label = self.genBrowserLabel(
                 i, title, PLAYLISTS, title,
                 self.__go_to_playlist_songs,
                 browser=browser)
-            self.genBrowserButton(i, browser=browser)
+            self.genBrowserButton(
+                i, browser=browser,
+                clickFunc=(lambda e, d=title, l=label:
+                           self.play(e, d, l)))
+            self.__show_label_load_stats(
+                e, ' ' + PLAYLISTS_TEXT, i, title_count)
             i += 1
         self.drawBrowser(browser)
 
