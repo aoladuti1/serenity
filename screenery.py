@@ -6,12 +6,12 @@ by using these functions. Many online solutions have been weird, annoying
 convoluted, or some mix of the three. Why do you think I put this together?
 
 The motivation of this library was to abstract away problems
-that come part-and-parcel with things such as Apple Retina
-displays, DPI Scaling, Windows being Windows, multi-monitor setups, and
-the pain of programming.
+that come part-and-parcel with common screen-related entities,
+such as Apple Retina displays, DPI Scaling, Windows being Windows, 
+multi-monitor setups, and the overbearing pain of programming.
 
 This module can be integrated quite well with tkinter (by design),
-and somewhat well with PyQt.
+and somewhat well with PyQt (by necessity).
 
 Note that the Monitor objects will ACCURATELY report the fluctuating
 (apparent) change in resolution of a display
@@ -30,7 +30,7 @@ import sys as _sys
 import math as _math
 import tkinter as _tk
 import ctypes as _ctypes
-import cython as _cython  # for mac OSX screeninfo compatability
+import cython as _cython  # for mac OSX screeninfo compatability at this time
 from screeninfo import Monitor
 from PyQt5.QtWidgets import QApplication as _QApplication
 from PyQt5.QtWidgets import QDesktopWidget as _QDesktopWidget
@@ -126,7 +126,8 @@ def mouse_coords() -> tuple[int, int]:
 
 
     Returns:
-        tuple[int, int]: _description_
+        tuple[int, int]: (x, y) pixel coordinates
+        of the mouse pointer
     """
     pos = pyautogui.position()
     return __DPR_ceil(pos.x, pos.y)
@@ -140,7 +141,14 @@ def test_mouse_and_RGB():
     pyautogui.displayMousePosition()
 
 
-def mouse_monitor() -> tuple[int, int]:
+def mouse_monitor() -> Monitor:
+    """Returns the Monitor object for the monitor which is currently
+    displaying the mouse pointer.
+
+    Returns:
+        Monitor: the Monitor object for the monitor with the mouse 
+        pointer on it
+    """
     x, y = mouse_coords()
     return monitor_from_coords(x, y)
 
@@ -154,7 +162,7 @@ def tuplefy_coord(x: int = None, y: int = None) -> tuple[int, int]:
         y (int, optional): the y coordinate. Defaults to None.
 
     Returns:
-        tuple[int, int]: a tuple of x and y pixel coordinates/dimensions,
+        tuple[int, int]: (x, y) pixel coordinates/dimensions,
         in which the non-specified coordinate is 0 in the returned tuple.
     """
     if x is not None:
@@ -174,7 +182,7 @@ def available_geometry(
         QDesktopWidget will be generated.
 
     Returns:
-        tuple: (width, height) in pixels
+        tuple[int, int]: (width, height) in pixels
     """
     if desktop is None:
         app = _QApplication(_sys.argv)
@@ -196,7 +204,8 @@ def reserved_geometry(
         QDesktopWidget will be generated.
 
     Returns:
-        tuple: (width, height) in pixels
+        tuple[int, int]: (width, height) pixel geometry of OS-reserved desktop
+        space
     """
     if desktop is None:
         app = _QApplication(_sys.argv)
@@ -219,7 +228,8 @@ def widget_monitor_geometry(widget: _tk.Widget) -> tuple[int, int]:
         monitor (Monitor, optional): the monitor selected. Defaults to None.
 
     Returns:
-        tuple[int, int]: the geometry of the primary monitor
+        tuple[int, int]: (width, height) pixel geometry of the monitor
+        displaying the widget
     """
     try:
         m = monitor_from_coords(widget.winfo_x(), widget.winfo_y())
@@ -306,7 +316,8 @@ def monitor_geometry(monitor: Monitor) -> tuple[int, int]:
         monitor (Monitor): the Monitor object for a chosen monitor
 
     Returns:
-        tuple[int, int]: the geometry of the specified monitor
+        tuple[int, int]: (width, height) pixel geometry
+        of the specified monitor
     """
     return (monitor.width, monitor.height)
 
@@ -319,7 +330,7 @@ def primary_monitor_geometry():
         monitor (Monitor): the Monitor object for a chosen monitor
 
     Returns:
-        tuple[int, int]: the geometry of the primary monitor
+        tuple[int, int]: (width, height) pixel geometry of the primary monitor
     """
     return monitor_geometry(primary_monitor())
 
@@ -332,7 +343,7 @@ def primary_geometry():
         monitor (Monitor): the Monitor object for a chosen monitor
 
     Returns:
-        tuple[int, int]: the geometry of the primary monitor
+        tuple[int, int]: (width, height) pixel geometry of the primary monitor
     """
     return monitor_geometry(primary_monitor())
 
