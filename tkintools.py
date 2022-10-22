@@ -1,5 +1,9 @@
+from math import ceil
+import threading
+import time
 from tkinter import *
 import ttkbootstrap as ttk
+from aplayer import Aplayer
 from typing import Callable, Any
 from config import *
 
@@ -86,7 +90,7 @@ class StatusBar(Frame):
     def __init__(self, master, **kw):
         from mastertools import Shield
         Frame.__init__(self, master, **kw)
-        self.configure(width=Shield.base_pane_width(master))
+        self.configure(width=Shield.base_pane_width())
         self.columnconfigure(1, weight=0)
         self.columnconfigure(0, weight=1)
         self.label = ttk.Label(
@@ -95,6 +99,49 @@ class StatusBar(Frame):
         self.time = ttk.Label(
             self, font=(DEFAULT_FONT_FAMILY, 12), padding='0 4 4 4',
             background=COLOUR_DICT['dark'])
+
+
+class SeekBar(Frame):
+    def __init__(self, master, **kw):
+        from mastertools import Shield
+        Frame.__init__(self, master, **kw)
+        self.sliding = False
+        self.pos = ttk.Label(
+            self, font=(DEFAULT_FONT_FAMILY, 12), padding='0 0 10 0')
+        self.pos.pack(side=LEFT)
+        self.new_position = DoubleVar()
+        self.slider = ttk.Scale(
+            self, from_=0, to_=100, orient=HORIZONTAL,
+            variable=self.new_position,
+            command=self.seek_percent,
+            length=int(Shield.base_pane_width() * 4/9))
+        self.slider.bind('<Button-1>', self.set_value)  
+        self.slider.pack(side=LEFT, expand=True, fill=X, anchor=CENTER)
+        self.duration = ttk.Label(
+            self, font=(DEFAULT_FONT_FAMILY, 12), padding='10 0 0 0')
+        self.duration.pack(side=LEFT)
+        
+    
+    def unset_sliding(self, secs):
+        time.sleep(secs)
+        self.sliding = False
+
+        
+    def set_value(self, e: Event):
+        self.slider.event_generate('<Button-3>', x=e.x, y=e.y)
+        return 'break'
+
+    def seek_percent(self, p: float):
+        if self.sliding is True:
+            return
+        self.sliding = True
+        percent = ceil(float(p))
+        Aplayer.seek_percent(percent)
+        secs = 0.15
+        if percent == 100:
+            secs = 1
+        threading.Thread(
+            target=self.unset_sliding, args=(secs,)).start()
 
 
 class DarkLabelButton(LabelButton):

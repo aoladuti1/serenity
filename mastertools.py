@@ -28,7 +28,7 @@ class Shield:
         root.protocol("WM_DELETE_WINDOW", Shield.on_closing)
         root.attributes('-alpha', 1)
 
-    def base_pane_width(root, screen_width=None):
+    def base_pane_width(screen_width=None):
         if screen_width is None:
             width, _ = scrn.widget_monitor_geometry(root)
         else:
@@ -49,7 +49,7 @@ class Shield:
         else:
             sw = screen_width
         if pane_width is None:
-            pw = Shield.base_pane_width(root, sw)
+            pw = Shield.base_pane_width(sw)
         else:
             pw = pane_width
         if sw < SMALL_SCREEN_CUTOFF:
@@ -59,7 +59,7 @@ class Shield:
 
     def grid_root(expanded: bool):
         width, height = scrn.widget_monitor_geometry(root)
-        pane_width = Shield.base_pane_width(root, width)
+        pane_width = Shield.base_pane_width(width)
         max_height = height - scrn.reserved_geometry()[1]
         if expanded is False:
             max_height -= scrn.title_bar_height(root, maximised=False)
@@ -128,6 +128,7 @@ class Sword:
     def _init():
         from graphics import LeftPane
         global current_pane
+        global pane_index
         status_bar = StatusBar(root)
         current_pane = LeftPane(root, status_bar)
         current_pane.drawAll()

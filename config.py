@@ -93,6 +93,8 @@ def configureStyle():
         'TButton')['background'])
     style.configure('TFrame', background='black')
 
+    
+
 
 def configureFont():
     DEFAULT_FONT = ttk.font.nametofont("TkDefaultFont")

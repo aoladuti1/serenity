@@ -1,4 +1,6 @@
 import asyncio
+from concurrent.futures import thread
+import math
 import threading
 import time
 import tkintools
@@ -38,7 +40,7 @@ dbLink = db.DBLink()
 
 class LeftPane:
 
-    PAUSE_LABELS = [' || ', ' |> ']
+    PAUSE_LABELS = ['||', '|>']
     BROWSER_BUTTON_PADX = 4
     BACK_TEXT = '<--'
     NO_BACK_TEXT = '---'
@@ -46,6 +48,7 @@ class LeftPane:
     DEFAULT_SUBHEADER = ' More...'
     STARTING_TEXT = ' ..starting..'
     QUEUING_TEXT = ' ..queuing..'
+    ADDING_TEXT = ' ..adding..'
     SUBHEADER_TEXT_MAX_WIDTH = 999  # TODO make it fit 1080p, 2k and 4k
 
     def __init__(self, root: ttk.Window, status: tkintools.StatusBar):
@@ -58,6 +61,7 @@ class LeftPane:
         self.libTools = None
         self.loading = False
         self.controls = None
+        self.control_buttons = None
         self.backButton = None
         self.pauseButton = None
         self.selCount = 0
@@ -81,11 +85,13 @@ class LeftPane:
         self.updating_entry_label = False
         self.selectedContent = {}
         self.current_file = ''
-        self.current_duration = ''
+        self.duration_str = ''
         self.playing_text = 'Now playing:'
         self.status = status
         self.adding_music_label = None
+        self.seekBar = None
         self.downloading = False
+        self.monitoring_time = False
         self.__overriding_status = False
         Aplayer.player.observe_property('path', self.observe_title)
         _edge_pad = Shield.edge_pad()
@@ -472,26 +478,42 @@ class LeftPane:
         Aplayer._mpv_wait()
         self.__update_status_time()
 
+
     def drawControls(self):
         self.controls = Frame(self.frame)
         self.controls.grid(row=3, pady=5, rowspan=1)
+        self.control_buttons = Frame(self.controls)
+        self.control_buttons.grid(row=0)
         shuffle = self.genControlButton(
-            clickFunc=lambda e: Aplayer.shuffle(), text=' ¿? ',
+            clickFunc=lambda e: Aplayer.shuffle(), text='¿?',
             unclickFunc=self.toggle_highlight)
+        repeat = self.genControlButton(
+            clickFunc=lambda e: Aplayer.change_loop(), text='{0}',
+            unclickFunc=self.highlight_replay)
         seek_pos = self.genControlButton(
-            clickFunc=lambda e, t=10: self.seek(e, t), text=' ++> ')
+            clickFunc=lambda e, t=10: self.seek(e, t), text='++>')
         seek_neg = self.genControlButton(
-            clickFunc=lambda e, t=-10: self.seek(e, t), text=' <++ ')
+            clickFunc=lambda e, t=-10: self.seek(e, t), text='<++')
         pause = self.genControlButton(
             clickFunc=lambda e: self.controlThreader(e, Aplayer.pauseplay),
-            text=' |> ')
-        shuffle.grid(column=0, row=0, sticky=S, pady=5)
-        seek_neg.grid(column=1, row=0, sticky=S, pady=5)
-        pause.grid(column=2, row=0, sticky=S, pady=5)
-        seek_pos.grid(column=3, row=0, sticky=S, pady=5)
-
+            text='|>')
+        count = self.cgrid([shuffle, seek_neg, pause, seek_pos, repeat])
+        self.seekBar = tkintools.SeekBar(self.controls)
         self.pauseButton = pause
+        self.seekBar.grid(row=1)
+        self.seekBar.bind('<Button-1>', lambda e: self.__update_status_time)
         threading.Thread(target=self.monitorPlaystate, daemon=True).start()
+       
+
+    def cgrid(self, controls: list):
+        i = 0
+        for control in controls:
+            control.grid(
+                column=i, row=0, sticky=S, pady=5, rowspan=1, columnspan=1)
+            self.control_buttons.columnconfigure(i, weight=1)
+            i += 1
+        return i
+
 
     def monitorPlaystate(self):
         while True:
@@ -505,52 +527,88 @@ class LeftPane:
     def observe_title(self, path, file):
         if file is None:
             self.current_file = ''
-            self.current_duration = ''
+            self.duration_str = ''
             self.status.grid_remove()
         else:
-            self.status.grid(row=5)
-            self.status.label.grid(column=0, row=0)
-            self.status.time.grid(column=1, row=0)
-            self.status.configure(background=COLOUR_DICT['bg'])
+
             if Aplayer.online_queue is True:
                 self.current_file = Aplayer.get_title_from_file(file)
                 self.playing_text = 'Now streaming:'
             else:
                 self.current_file = Path(file).name
                 self.playing_text = 'Now playing:'
-            threading.Thread(target=self.monitor_pos, daemon=True).start()
+            self.status.grid(row=5)
+            self.status.label.grid(column=0, row=0)
+            self.status.time.grid(column=1, row=0)
+            self.status.configure(background=COLOUR_DICT['bg'])
+            self.status.label.configure(
+                text='{} {}'.format(self.playing_text, self.current_file))
+            if not self.monitoring_time:
+                self.monitoring_time = True
+                threading.Thread(target=self.monitor_pos, daemon=True).start()
+            
 
-    def toggle_highlight(
-            self, e: Event, replay_button=False):
+    def toggle_highlight(self, e: Event):
         states = [COLOUR_DICT['primary'], COLOUR_DICT['info']]
         e.widget.state = 1 - e.widget.state
         self.controlRelease(e)
         e.widget.configure(foreground=states[e.widget.state])
 
-    def get_time_pos(self):
-        secs = Aplayer.get_time_pos()
+    def highlight_replay(self, e: Event):
+        states = [
+            COLOUR_DICT['primary'], COLOUR_DICT['light'], COLOUR_DICT['info']]
+        self.controlRelease(e)
+        e.widget.state += 1
+        state = e.widget.state
+        if state > len(states) - 1:
+            e.widget.state = 0
+            state = 0
+        if state == 1:
+            e.widget.configure(text='{1}')
+        elif state == 2:
+            e.widget.configure(text='{+}')
+        else:
+            e.widget.configure(text='{0}')
+        e.widget.configure(foreground=states[state])
+
+    def str_pos(self, secs: float):
         if secs < 0 or secs is None:
             return '00:00:00'
         else:
             return time.strftime("%H:%M:%S", time.gmtime(secs))
 
     def __update_status_time(self):
-        if Aplayer.get_duration() >= 0:
-            self.current_duration = time.strftime(
-                "%H:%M:%S", time.gmtime(Aplayer.get_duration()))
+        duration = math.floor(Aplayer.get_duration())
+        secs = Aplayer.get_time_pos()
+        if duration < 0:
+            prcnt = 0
+        else:
+            prcnt = math.ceil(100 * secs / duration)
+        str_pos = self.str_pos(secs)
+        if duration >= 0:
+            self.duration_str = time.strftime(
+                "%H:%M:%S", time.gmtime(duration))
         self.status.time.configure(text=' | [{}/{}]'.format(
-            self.get_time_pos(), self.current_duration))
+            str_pos, self.duration_str))
+        self.seekBar.pos.configure(text = str_pos)
+        if self.duration_str != '':
+            self.seekBar.duration.configure(text = self.duration_str)
+        else:
+            self.seekBar.duration.configure(text='--:--:--')
+        self.seekBar.new_position.set(prcnt)
+        self.root.update()
 
     def monitor_pos(self):
-        self.status.label.configure(
-            text='{} {}'.format(self.playing_text, self.current_file))
         self.status.time.configure(
             text=' | [{}/{}]'.format('00:00:00', '...?'))
+        self.seekBar.pos.configure(text='00:00:00')
+        self.seekBar.duration.configure(text='--:--:--')
         self.root.update()
         while not self.current_file == '':
-            time.sleep(1)
+            time.sleep(0.4)
             if self.__overriding_status is False:
                 self.__update_status_time()
+            self.monitoring_time = False
         self.root.update()
 
     def genControlButton(self, text: str, clickFunc: Callable,
@@ -560,7 +618,7 @@ class LeftPane:
         else:
             func = unclickFunc
         return tkintools.LabelButton(
-            self.controls,
+            self.control_buttons,
             onEnterFunc=self.wrapSquares,
             onLeaveFunc=self.unwrapSquares,
             clickFG=COLOUR_DICT['info'],
@@ -568,6 +626,7 @@ class LeftPane:
             clickFunc=clickFunc,
             unclickFunc=func,
             text=text,
+            padx=30,
             font=(DEFAULT_FONT_FAMILY, 16, BOLD)
         )
 
@@ -700,15 +759,18 @@ class LeftPane:
         m.configure(font=(DEFAULT_FONT_FAMILY, 12))
         m.add_command(
             label="Play all",
-            command=threading.Thread(target=self.__play_all, args=(False,)).start)
+            command=lambda queue=False: self.play_all(queue))
         m.add_command(
             label="Queue all",
-            command=threading.Thread(target=self.__play_all, args=(True,)).start)
+            command=lambda queue=True: self.play_all(queue))
         m.add_separator()
         m.add_cascade(label="Add to playlist...", menu=self.playlist_menu)
         m.add_separator()
         m.add_command(label="Clear selection", command=self.clear_selection)
         return m
+
+    def play_all(self, queue_all):
+        threading.Thread(target=self.__play_all, args=(queue_all,)).start()
 
     def do_popup(self, e: Event):
         if e.widget.cget('text') == PLAYLISTS_TEXT:
@@ -746,6 +808,7 @@ class LeftPane:
                 target=self._temp_mark_label,
                 args=(widget, queue, prefix), daemon=True).start()
             queue = True
+            Aplayer._mpv_wait()
             i += 1
 
     def __add_to_playlist(self, playlist_title):
@@ -763,9 +826,9 @@ class LeftPane:
                 elif widget.label_type == PLAYLISTS:
                     with open(Aplayer.playlist_path(key), mode='r') as sel:
                         for file in sel.readlines():
-                            playlist.write(file + '\n')
+                            playlist.write(file)
                 elif widget.label_type == PLAYLIST_SONGS:
-                    playlist.write('\n' + key.split('|')[0])
+                    playlist.write(key.split('|')[0] + '\n')
                 elif widget.label_type is None:
                     continue
                 prefix = ' [{}] {}'.format(i + 1, '..adding..')
@@ -836,8 +899,9 @@ class LeftPane:
                 i, browser=browser,
                 clickFunc=(lambda e, d=title, l=label:
                            self.play(e, d, l)))
-            self.__show_label_load_stats(
-                e, ' ' + PLAYLISTS_TEXT, i, title_count)
+            if e is not None:
+                self.__show_label_load_stats(
+                    e, ' ' + PLAYLISTS_TEXT, i, title_count)
             i += 1
         self.drawBrowser(browser)
 
@@ -997,6 +1061,8 @@ class LeftPane:
             text = text[len(LeftPane.STARTING_TEXT):]
         elif text.startswith(LeftPane.QUEUING_TEXT):
             text = text[len(LeftPane.QUEUING_TEXT):]
+        if text.endswith('%]'):
+            text = text.rsplit(' [')[-1]
         return text.lstrip()
 
     def loadAlbums(self, e: Event = None):
