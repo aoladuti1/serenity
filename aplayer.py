@@ -128,6 +128,7 @@ class Aplayer:
         Aplayer.player.quit(code=0)
 
     def getFilename() -> dict:
+        print(Aplayer.player._get_property('path'))
         return Aplayer.player._get_property('path')
 
     def getDownloadingTitle() -> str:
@@ -196,7 +197,7 @@ class Aplayer:
             return 'append-play'
 
 
-    def loadfile(filename: str, queue=False, scraped_title='', download=False):
+    def loadfile(filename: str, queue=False, scraped_title='', download=False, force_append_play=False):
         """Load/play a file. If queue == False, the file is played immediately
         in a new playlist. If queue == True, the file is appended
         to the current playlist, or loaded in a paused state if there isn't
@@ -219,7 +220,10 @@ class Aplayer:
         online = filename.startswith('https:') is True
         if not online and not path_exists(filename):
             return
-        play_type = Aplayer.__get_play_type()
+        if not force_append_play:
+            play_type = Aplayer.__get_play_type()
+        else:
+            play_type = 'append'
         title = Aplayer.get_title_from_file(filename, scraped_title, download)
         if title is None:
             return
@@ -425,8 +429,8 @@ class Aplayer:
                 Aplayer.pauseplay()
         elif Aplayer._last_batch_pos < Aplayer._get_set_batch_pos():
             Aplayer.clear_subqueue()
-        if queue:
-            Aplayer.loadfile(filenames[0], queue, True)
+        fap = Aplayer.get_playlist_count() > 0
+        Aplayer.loadfile(filenames[0], queue, force_append_play=fap)
         if element_count > 1:
             for filename in filenames[1:-1]:
                 Aplayer.player.loadfile(filename, 'append')

@@ -808,7 +808,6 @@ class LeftPane:
                 target=self._temp_mark_label,
                 args=(widget, queue, prefix), daemon=True).start()
             queue = True
-            Aplayer._mpv_wait()
             i += 1
 
     def __add_to_playlist(self, playlist_title):
