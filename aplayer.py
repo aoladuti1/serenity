@@ -137,6 +137,8 @@ class Aplayer:
             return Aplayer._download_queue_titles[Aplayer._download_index]
 
     def next():
+        if Aplayer.is_looping_track():
+            Aplayer.player.seek(0, 'absolute')
         Aplayer.player.playlist_next('force')
 
     def _should_rewind_to_zero() -> bool:
@@ -183,6 +185,17 @@ class Aplayer:
         if Aplayer.subqueue_length == 1:
             Aplayer.subqueue_creation_pos = Aplayer.get_playlist_pos()
 
+    def __get_play_type():
+        if (not Aplayer.is_active()
+            or (int(Aplayer.get_time_pos()) == int(Aplayer.get_duration())
+                and Aplayer.get_playlist_pos() == Aplayer.get_playlist_count() - 1
+                and not Aplayer.is_looping_queue()
+                and not Aplayer.is_looping_track())):
+            return 'replace'
+        else:
+            return 'append-play'
+
+
     def loadfile(filename: str, queue=False, scraped_title='', download=False):
         """Load/play a file. If queue == False, the file is played immediately
         in a new playlist. If queue == True, the file is appended
@@ -206,7 +219,7 @@ class Aplayer:
         online = filename.startswith('https:') is True
         if not online and not path_exists(filename):
             return
-        play_type = 'append-play'
+        play_type = Aplayer.__get_play_type()
         title = Aplayer.get_title_from_file(filename, scraped_title, download)
         if title is None:
             return
@@ -396,7 +409,6 @@ class Aplayer:
         else:
             Aplayer._mpv_wait()
         Aplayer._mpv_wait()
-        Aplayer.savelist('tony')
 
     def _get_set_batch_pos():
         Aplayer._last_batch_pos = Aplayer.get_playlist_pos()
@@ -413,12 +425,15 @@ class Aplayer:
                 Aplayer.pauseplay()
         elif Aplayer._last_batch_pos < Aplayer._get_set_batch_pos():
             Aplayer.clear_subqueue()
-        Aplayer.loadfile(filenames[0], queue)
+        if queue:
+            Aplayer.loadfile(filenames[0], queue, True)
         if element_count > 1:
             for filename in filenames[1:-1]:
                 Aplayer.player.loadfile(filename, 'append')
                 Aplayer._queue_properly()
-            Aplayer._mpv_wait()
+                Aplayer._mpv_wait()
+        Aplayer._mpv_wait()
+
 
     def savelist(playlist_title: str):
         if (playlist_title == Aplayer.DEFAULT_QUEUE
@@ -503,8 +518,18 @@ class Aplayer:
         Aplayer.player.wait_for_playback()
         return
 
+    def seek_percent(percent):
+        duration = Aplayer.get_duration()
+        if duration == -1 or not Aplayer.is_active():
+            return
+        if percent == 100 and Aplayer.is_looping_track():
+            Aplayer.player.seek(0, 'absolute')
+        else:
+            Aplayer.player.seek(percent, 'absolute-percent')
+
+
     def seek(seconds: float, relative=True):
-        """Seek types are either relative or absolute
+        """Seek types are either relative or absolute seconds.
 
         Args:
             seconds (int): _description_
