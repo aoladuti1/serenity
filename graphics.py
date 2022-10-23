@@ -49,6 +49,7 @@ class LeftPane:
     STARTING_TEXT = ' ..starting..'
     QUEUING_TEXT = ' ..queuing..'
     ADDING_TEXT = ' ..adding..'
+    PREFIXES = [STARTING_TEXT, QUEUING_TEXT, ADDING_TEXT]
     SUBHEADER_TEXT_MAX_WIDTH = 999  # TODO make it fit 1080p, 2k and 4k
 
     def __init__(self, root: ttk.Window, status: tkintools.StatusBar):
@@ -487,18 +488,24 @@ class LeftPane:
         shuffle = self.genControlButton(
             clickFunc=lambda e: Aplayer.shuffle(), text='¿?',
             unclickFunc=self.toggle_highlight)
-        repeat = self.genControlButton(
-            clickFunc=lambda e: Aplayer.change_loop(), text='{0}',
-            unclickFunc=self.highlight_replay)
-        seek_pos = self.genControlButton(
-            clickFunc=lambda e, t=10: self.seek(e, t), text='++>')
+        prev = self.genControlButton(
+            clickFunc=lambda e: Aplayer.prev(),
+            text='|<<')
         seek_neg = self.genControlButton(
             clickFunc=lambda e, t=-10: self.seek(e, t), text='<++')
         pause = self.genControlButton(
             clickFunc=lambda e: self.controlThreader(e, Aplayer.pauseplay),
             text='|>')
-        count = self.cgrid([shuffle, seek_neg, pause, seek_pos, repeat])
-        self.seekBar = tkintools.SeekBar(self.controls)
+        seek_pos = self.genControlButton(
+            clickFunc=lambda e, t=10: self.seek(e, t), text='++>')
+        next = self.genControlButton(
+            clickFunc=lambda e: Aplayer.next(),
+            text='>>|')
+        repeat = self.genControlButton(
+            clickFunc=lambda e: Aplayer.change_loop(), text='{0}',
+            unclickFunc=self.highlight_replay)
+        self.cgrid([shuffle, prev, seek_neg, pause, seek_pos, next, repeat])
+        self.seekBar = tkintools.SeekBar(self.controls, pady=int(3 * _edge_pad / 8))
         self.pauseButton = pause
         self.seekBar.grid(row=1)
         self.seekBar.bind('<Button-1>', lambda e: self.__update_status_time)
@@ -511,6 +518,7 @@ class LeftPane:
             control.grid(
                 column=i, row=0, sticky=S, pady=5, rowspan=1, columnspan=1)
             self.control_buttons.columnconfigure(i, weight=1)
+            self.controls.columnconfigure(i, weight=1)
             i += 1
         return i
 
@@ -1056,10 +1064,11 @@ class LeftPane:
 
     def strip_widget_text(self, e: Event):
         text = e.widget.cget('text')
-        if text.startswith(LeftPane.STARTING_TEXT):
-            text = text[len(LeftPane.STARTING_TEXT):]
-        elif text.startswith(LeftPane.QUEUING_TEXT):
-            text = text[len(LeftPane.QUEUING_TEXT):]
+        for prefix in LeftPane.PREFIXES:
+            index = text.find(prefix)
+            if index != -1:
+                text = text[index:]
+                break
         if text.endswith('%]'):
             text = text.rsplit(' [')[-1]
         return text.lstrip()

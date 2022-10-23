@@ -114,7 +114,7 @@ class SeekBar(Frame):
             self, from_=0, to_=100, orient=HORIZONTAL,
             variable=self.new_position,
             command=self.seek_percent,
-            length=int(Shield.base_pane_width() * 4/9))
+            length=int(Shield.base_pane_width() * 6/10))
         self.slider.bind('<Button-1>', self.set_value)  
         self.slider.pack(side=LEFT, expand=True, fill=X, anchor=CENTER)
         self.duration = ttk.Label(

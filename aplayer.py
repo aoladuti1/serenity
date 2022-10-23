@@ -242,6 +242,8 @@ class Aplayer:
                     Aplayer.pauseplay()
         elif queue is False and new_playlist_count > 1:
             pos = Aplayer.get_playlist_pos()
+            if pos == -1:
+                pos = Aplayer.get_playlist_count() - 1
             Aplayer.playlist_move(Aplayer.get_playlist_count() - 1, pos + 1)
             Aplayer.player._set_property('playlist-pos', pos + 1)
             Aplayer.player.playlist_remove(pos)
