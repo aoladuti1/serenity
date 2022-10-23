@@ -137,10 +137,14 @@ class Aplayer:
         else:
             return Aplayer._download_queue_titles[Aplayer._download_index]
 
-    def next():
-        if Aplayer.is_looping_track():
-            Aplayer.player.seek(0, 'absolute')
-        Aplayer.player.playlist_next('force')
+    def next(called_from_seek = False):
+        if Aplayer.is_looping_track() and not called_from_seek:
+            if not called_from_seek:
+                Aplayer.player._set_property('playlist-pos', Aplayer.get_playlist_pos() + 1)
+            else:
+                Aplayer.player.seek(0, 'absolute')
+        else:
+            Aplayer.player.playlist_next('force')
 
     def _should_rewind_to_zero() -> bool:
         return (
@@ -547,20 +551,26 @@ class Aplayer:
             return
         if relative is True:
             if time_pos + seconds >= duration - 1:
-                Aplayer.next()
+                Aplayer.next(True)
             elif time_pos + seconds <= 0.1:  # 0.1 in case of minor defects
                 Aplayer.prev()
             else:
                 Aplayer.player.seek(seconds, 'relative')
         else:
             if seconds >= duration:
-                Aplayer.next()
+                Aplayer.next(True)
             elif seconds < 0:
                 Aplayer.prev()
             else:
                 Aplayer.player.seek(seconds, 'absolute')
 
     def get_duration() -> float:
+        """Returns the duration position of the currently playling file,
+        or -1 if there is no currently playing file.
+
+        Returns:
+            float: the duration of the current file
+        """
         ret = Aplayer.player._get_property('duration')
         if ret is None:
             ret = -1
@@ -579,6 +589,12 @@ class Aplayer:
         return Aplayer.player._get_property('playlist-pos')
 
     def get_time_pos() -> float:
+        """Returns the time position of the currently playling file,
+        or -1 if there is no currently playing file.
+
+        Returns:
+            float: the time position of the current file
+        """
         ret = Aplayer.player._get_property('time-pos')
         if ret is None:
             ret = -1
@@ -590,7 +606,7 @@ class Aplayer:
     def get_number_of_playlists():
         count = 0
         for _, _, filenames in os.walk(PLAYLISTS_PATH):
-            for filename in filenames:
+            for _ in filenames:
                 count += 1
         return count
 
