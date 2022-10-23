@@ -13,6 +13,7 @@ class Shield:
     last_normal_width = 0
     small_screen = False
     expanded = None
+    welcome_button = None
 
     def _init(master: Toplevel, expanded: bool):
         global root
@@ -21,9 +22,12 @@ class Shield:
             Shield.last_normal_width == root.winfo_width()
         else:
             root.overrideredirect(1)
+        root.rowconfigure(0, weight=1)
+        root.update()
+        Shield.welcome_button = Label(
+            root, text='welcome', font=(DEFAULT_FONT_FAMILY, 20))
+        Shield.welcome_button.grid(row=0)
         Shield.grid_root(expanded)
-        Shield.draw_header()
-        Shield.draw_size_button()
         root.update()
         root.protocol("WM_DELETE_WINDOW", Shield.on_closing)
         root.attributes('-alpha', 1)
@@ -77,13 +81,6 @@ class Shield:
         root.geometry("%dx%d+0+0" % (start_width, start_height))
         root.update()
 
-    def draw_header():
-        header = DarkLabelButton(root, clickFunc=Sword.switch_page)
-        header.configure(
-            font=(DEFAULT_FONT_FAMILY, 34), text='serenity /library/')
-        header.grid(column=0, row=0, padx=15, pady=(0, 15), sticky=NW)
-        return header
-
     def flip_screen_fill(e: Event):
         r = root.overrideredirect()
         if r is True:  # we in big mode
@@ -101,13 +98,6 @@ class Shield:
         if i == 1:  # window manager just enabled
             root.update()
         root.attributes('-alpha', 1)
-
-    def draw_size_button():
-        expand_button = DarkLabelButton(
-            root, Shield.flip_screen_fill, text=EXPAND)
-        expand_button.configure(font=(DEFAULT_FONT_FAMILY, 13))
-        expand_button.grid(
-            column=0, row=0, padx=Shield.edge_pad(), sticky=E)
 
     def on_closing():
         if Aplayer.converting_audio is True:
@@ -129,10 +119,17 @@ class Sword:
         from graphics import LeftPane
         global current_pane
         global pane_index
+        Shield.welcome_button.destroy()
+        root.rowconfigure(0, weight=0)
+        root.rowconfigure(1, weight=1)
+        root.rowconfigure(2, weight=1)
+        Sword.draw_size_button()
+        Sword.draw_header()
+        root.update()
         status_bar = StatusBar(root)
         current_pane = LeftPane(root, status_bar)
         current_pane.drawAll()
-        Sword.__panes.append(current_pane)
+        Sword.__panes.append(current_pane) 
         pane_index = 0
 
     def switch_page(e: Event = None):
@@ -140,8 +137,23 @@ class Sword:
 
     def pane(index):
         return Sword.__panes[index]
+    
+    def draw_header():
+        header = DarkLabelButton(root, clickFunc=Sword.switch_page)
+        header.configure(
+            font=(DEFAULT_FONT_FAMILY, 34), text='serenity /library/')
+        header.grid(column=0, row=0, padx=15, pady=(0, 15), sticky=NW)
+        return header
+
+    def draw_size_button():
+        expand_button = DarkLabelButton(
+            root, Shield.flip_screen_fill, text=EXPAND)
+        expand_button.configure(font=(DEFAULT_FONT_FAMILY, 13))
+        expand_button.grid(
+            column=0, row=0, padx=Shield.edge_pad(), sticky=E)
 
 
+##############################################################################
 def init(root: Toplevel, expanded: bool = False):
     """Initialises all master tools."""
     if Sword.pane_index != -1:
