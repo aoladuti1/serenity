@@ -80,7 +80,7 @@ class Shield:
     def draw_header():
         header = DarkLabelButton(root, clickFunc=Sword.switch_page)
         header.configure(
-            font=(DEFAULT_FONT_FAMILY, 36), text='serenity / library')
+            font=(DEFAULT_FONT_FAMILY, 34), text='serenity /library/')
         header.grid(column=0, row=0, padx=15, pady=(0, 15), sticky=NW)
         return header
 
