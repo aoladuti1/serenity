@@ -101,9 +101,7 @@ class Aplayer:
     _loading_list = False
     _is_shuffling = False
     _prog_hook_added = False
-    _last_batch_pos = -1
-    __maxed_duration = False
-    
+    _last_batch_pos = -1    
 
     def _mpv_wait():
         time.sleep(0.001)
@@ -140,19 +138,21 @@ class Aplayer:
     def playlist_filenames():
         return Aplayer.player.playlist_filenames
 
-    def next(called_from_seek = False):
-        if Aplayer.is_looping_track() and not called_from_seek:
-            if not called_from_seek and Aplayer.get_playlist_pos() != Aplayer.get_playlist_count() - 1:
-                Aplayer.player._set_property('playlist-pos', Aplayer.get_playlist_pos() + 1)
+    def next():
+        pl_pos = Aplayer.get_playlist_pos()
+        count = Aplayer.get_playlist_count()
+        if Aplayer.is_looping_track():
+            if pl_pos != count - 1:
+                Aplayer.player._set_property('playlist-pos', pl_pos + 1)
             else:
                 Aplayer.player.seek(0, 'absolute')
-        elif not Aplayer.is_looping_queue() and not called_from_seek:
-            Aplayer.seek_percent(100)
-            Aplayer.__maxed_duration = True
+        elif pl_pos == count - 1:
+            if not math.ceil(100 * Aplayer.get_time_pos() / Aplayer.get_duration()) == 100:
+                Aplayer.player.seek(100, 'absolute-percent')
         else:
-            Aplayer.player.playlist_next('force')
-            if Aplayer.get_playlist_pos() == -1:
-                Aplayer.mark_playlist_change()
+            Aplayer.player.playlist_next()
+        if Aplayer.get_playlist_pos() == -1:
+            Aplayer.mark_playlist_change()   
 
     def _should_rewind_to_zero() -> bool:
         return (
@@ -234,10 +234,8 @@ class Aplayer:
                 will use online_title as an already scraped value for the title
             download: if True, will download a stream if one is passed
         """
-        if Aplayer.__maxed_duration is True:
-            if Aplayer.is_active() is True:
-                Aplayer.seek(0)
-            Aplayer.__maxed_duration = False
+        if not queue:
+            Aplayer.seek(0, False)
         online = filename.startswith('https:') is True
         if not online and not path_exists(filename):
             return
@@ -298,7 +296,9 @@ class Aplayer:
 
     def observe_playlist_changes(observer):
         Aplayer.player.observe_property('window-scale', observer)
-
+    
+    def observe_playlist_pos(observer):
+        Aplayer.player.observe_property('playlist-playing-pos', observer)
         
     def gen_online_song():
         pass  # TODO: IMPLEMENT
@@ -410,15 +410,18 @@ class Aplayer:
         if not path_exists(full_path):
             os.makedirs(os.path.dirname(full_path), exist_ok=True)
             with downloader as dl:
+                appended = False
                 try:
                     dl.add_progress_hook(Aplayer._prog_hook)
                     Aplayer._download_index += 1
                     Aplayer._download_queue_titles.append(title)
+                    appended = True
                     Aplayer.converting_audio = True
                     Aplayer.downloading_audio = True
                     dl.download(urls)
                 except Exception:
-                    pass
+                    if appended is True:
+                        Aplayer._download_queue_titles.pop()     
         if len(Aplayer._download_queue_titles) == 0:
             Aplayer.downloading_audio = False
         dbLink = db.DBLink()
@@ -568,8 +571,8 @@ class Aplayer:
         duration = Aplayer.get_duration()
         if duration == -1 or not Aplayer.is_active():
             return
-        if percent == 100 and Aplayer.is_looping_track():
-            Aplayer.player.seek(0, 'absolute')
+        if percent == 100:
+            Aplayer.next()
         else:
             Aplayer.player.seek(percent, 'absolute-percent')
 
@@ -587,14 +590,14 @@ class Aplayer:
             return
         if relative is True:
             if time_pos + seconds >= duration - 1:
-                Aplayer.next(True)
+                Aplayer.next()
             elif time_pos + seconds <= 0.1:  # 0.1 in case of minor defects
                 Aplayer.prev()
             else:
                 Aplayer.player.seek(seconds, 'relative')
         else:
             if seconds >= duration:
-                Aplayer.next(True)
+                Aplayer.next()
             elif seconds < 0:
                 Aplayer.prev()
             else:
