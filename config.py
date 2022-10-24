@@ -6,6 +6,27 @@ import ttkbootstrap as ttk
 from typing import TypeVar
 from themes.user import USER_THEMES
 
+# useful functions 
+def is_past_list(index, list) -> bool:
+    return index > len(list) - 1
+
+def is_last_index(index, list) -> bool:
+    return index == len(list) - 1
+
+def next_valid_index(from_index: int, circular_list: list) -> int:
+    if from_index < len(circular_list) - 1:
+        return from_index + 1
+    else:
+        return 0
+
+def rellipsis(text) -> str:
+    return text + '...'
+
+def lspace(text) -> str:
+    return ' ' + text
+
+def wrap_dots(text) -> str:
+    return '..{}..'.format(text)
 
 def path_exists(path):
     return os.path.exists(os.path.expanduser(path))
