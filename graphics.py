@@ -213,7 +213,8 @@ class LeftPane:
     def genEntryBar(self):
         states = ['search', 'stream', 'stream + download', 'download']
         self.entryBar = tkintools.EntryBar(
-            self.frame, self.root, 'search', self.search_hit, states)
+            self.frame, self.root, self.search_hit, states,
+            entry_placeholder='search...')
         self.entryBar.add_button(
             'queue', lambda e, q=True: self.search_hit(e, q))
 

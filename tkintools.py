@@ -158,14 +158,17 @@ class DarkLabelButton(LabelButton):
 class QueueListbox(Listbox):
     """ A tk listbox with drag'n'drop reordering of entries. """
 
-    def __init__(self, master, root, set_fg = COLOUR_DICT['light'], **kw):
+    def __init__(self, master, root, set_fg = COLOUR_DICT['light'], 
+                 current_song_fg = COLOUR_DICT['primary'], **kw):
         from mastertools import Shield
-        kw['selectmode'] = MULTIPLE
         Listbox.__init__(self, master, **kw)
+        kw['selectmode'] = MULTIPLE
+        kw['foreground'] = set_fg
+        self.config(selectforeground=COLOUR_DICT['info'])
         self.root = root
         self.cur_index = None
         self.cur_state = None
-        self.foreground = set_fg
+        self.current_song_fg = current_song_fg
         self.__last_playing_pos = -1
         self.config(foreground=set_fg)
         self.bind('<Button-1>', self.get_state, add='+')
@@ -174,7 +177,7 @@ class QueueListbox(Listbox):
         self.bind('<ButtonRelease-1>', self.moved_item)
         self.bind('<Double-Button-1>',
                   lambda e: Aplayer.player.playlist_play_index(self.cur_index))
-        self.config(width=55, height=int(Shield.drawn_height / 55),
+        self.config(width=50, height=int(Shield.drawn_height / 55),
                     background=COLOUR_DICT['bg'])
         Aplayer.observe_playlist_changes(self.refresh_queue)
         Aplayer.observe_playlist_pos(self.update)
@@ -182,7 +185,6 @@ class QueueListbox(Listbox):
     def moved_item(self, e: Event = None):
         if self.cur_index != self.last_cur_index:
             Aplayer.playlist_move(self.last_cur_index, self.cur_index, True)
-        self.update(None, pos=Aplayer.get_playlist_pos())
 
     def set_current(self, event):
         ''' gets the current index of the clicked item in the listbox '''
@@ -219,17 +221,19 @@ class QueueListbox(Listbox):
                 self.selection_set(i-1)
             self.cur_index = i
 
-    def update(self, _, pos):
+    def update(self, _, playlist_pos):
         Aplayer._mpv_wait()
+        pos = Aplayer.get_playlist_pos()
         size = self.size()
         if ((pos is None or pos < 0
-            or pos > size - 1 or self.__last_playing_pos > size - 1)):
+            or pos > size - 1
+            or self.__last_playing_pos > size - 1)):
                 return
         valid_pos = pos if pos < size else size - 1
         if self.__last_playing_pos != -1:
-            self.itemconfig(self.__last_playing_pos, {'fg': self.foreground})
+            self.itemconfig(self.__last_playing_pos, {'fg': self['foreground']})
         else:
-            self.itemconfig(self.size() - 1, {'fg': self.foreground})
+            self.itemconfig(self.size() - 1, {'fg': self['foreground']})
         self.itemconfig(valid_pos, {'fg': COLOUR_DICT['primary']})
         self.__last_playing_pos = valid_pos
 
@@ -243,11 +247,10 @@ class QueueListbox(Listbox):
         self.update(None, self.__last_playing_pos)
         self.root.update()
 
-
 class EntryBar(Frame):
 
-    def __init__(self, master, root, main_button_text, main_func, states,
-                 entry_placeholder='', smartxpad=6, **kw):
+    def __init__(self, master, root, main_func, states: list[str],
+                 main_alterable=True, entry_placeholder='', smartxpad=6, **kw):
         Frame.__init__(self, master, **kw)
         self.root = root
         self.state = 0
@@ -255,17 +258,17 @@ class EntryBar(Frame):
         self.__padx = smartxpad
         self.button_frames = []
         main_button_widgets = self.add_button(
-            main_button_text, main_func, alterable=True)
+            self.states[0], main_func, alterable=main_alterable)
         self.main_button_frame = main_button_widgets[0]
         self.main_button = main_button_widgets[1]
         self.side_label = ttk.Label(self, font=(DEFAULT_FONT_FAMILY, 12))
-        self.entry = Entry(self, width=30)
-        self.entry.grid(row=0, column=0, padx=smartxpad)
+        self.entry = Entry(self, width=27)
+        self.entry.grid(row=0, column=0, padx=(0,smartxpad))
         self.entry.configure(
             font=(DEFAULT_FONT_FAMILY, 13),
-            background=COLOUR_DICT['dark'])
-        self.entry.bind(
-            '<Return>', lambda e, b=self.main_button: self.click_sim(b))
+            background=COLOUR_DICT['dark'],
+            selectbackground=COLOUR_DICT['selectbg'])
+        self.entry.bind('<Return>', self.click_sim)
         self.entry.insert(0, entry_placeholder)
 
     def __grid_new_button(self, button_frame):
@@ -292,11 +295,11 @@ class EntryBar(Frame):
         self.__grid_new_button(button_frame)
         return [button_frame, button]
 
-    def click_sim(self, button):
-        button.event_generate('<Button-1>')
+    def click_sim(self, e: Event = None):
+        self.main_button.event_generate('<Button-1>')
         self.root.update()
-        time.sleep(0.075)
-        button.event_generate('<ButtonRelease-1>')
+        time.sleep(0.08)
+        self.main_button.event_generate('<ButtonRelease-1>')
         self.root.update()
 
     def alter_button(self, e: Event):
@@ -305,6 +308,11 @@ class EntryBar(Frame):
 
     def focus_entry(self):
         self.entry.focus_force()
+        self.entry.select_range(0, 'end')
+        self.entry.icursor('end')
+
+    def set_entry_bg(self, colour):
+        self.entry['background'] = colour
 
     def get(self):
         return self.entry.get()
