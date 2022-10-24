@@ -97,6 +97,13 @@ class LeftPane:
         Aplayer.player.observe_property('path', self.observe_title)
         _edge_pad = Shield.edge_pad()
 
+    def undrawAll(self):
+        self.frame.grid_remove()
+    
+    def redrawAll(self):
+        self.frame.grid(column=0, row=1, sticky='nsw', columnspan=1)
+
+
     def drawAll(self):
         self.drawFrame()
         self.drawAllExceptFrame()
@@ -222,25 +229,32 @@ class LeftPane:
         if not queue:
             button.bind('<Button-3>', self.__alter_search_button)
         button.grid()
-        return buttonFrame
+        return [buttonFrame, button]
 
     def genEntryBar(self):
         self.entryBar = Frame(self.frame)
-        search_button = self.genEntryButton('search')
-        queue_button = self.genEntryButton('queue', True)
+        search_button, internal = self.genEntryButton('search')
+        queue_button, _ = self.genEntryButton('queue', True)
         self.entry_label = ttk.Label(
             self.entryBar,
             font=(DEFAULT_FONT_FAMILY, 12))
-        self.entry = Entry(self.entryBar)
+        self.entry = Entry(self.entryBar, width=30)
         self.entry.grid(row=0, column=0, padx=7)
         self.entry.configure(
             font=(DEFAULT_FONT_FAMILY, 13),
             background=COLOUR_DICT['bg'])
         self.entry.bind(
-            '<Return>', lambda e: self.search_hit(e))
-        self.entry.insert(0, '1. type 2. hit Enter')
+            '<Return>', lambda e, b=internal: self.click_sim(b))
+        self.entry.insert(0, 'Try right-clicking that button -->')
         search_button.grid(row=0, column=1, sticky=S)
         queue_button.grid(row=0, column=2, sticky=S, padx=6)
+
+    def click_sim(self, button):
+        button.event_generate('<Button-1>')
+        self.root.update()
+        time.sleep(0.1)
+        button.event_generate('<ButtonRelease-1>')
+        self.root.update()
 
     def __alter_search_button(self, e: Event):
         if self.entry_mode == SEARCH_MODE:
@@ -613,7 +627,7 @@ class LeftPane:
         self.seekBar.duration.configure(text='--:--:--')
         self.root.update()
         while not self.current_file == '':
-            time.sleep(0.4)
+            time.sleep(0.33)
             if self.__overriding_status is False:
                 self.__update_status_time()
             self.monitoring_time = False
@@ -660,9 +674,9 @@ class LeftPane:
         else:
             height = int(0.8 * Shield.drawn_height)
         if Shield.small_screen is True:
-                height *=  1.4 * screenery.primary_geometry()[1] / 2160
-                if Shield.expanded is True:
-                    height *= 1.2
+            height *=  1.4 * screenery.primary_geometry()[1] / 2160
+            if Shield.expanded is True:
+                height *= 1.2
         browser = ScrolledFrame(
             self.frame, autohide=True,
             width=Shield.max_pane(),
@@ -742,8 +756,7 @@ class LeftPane:
             data=data,
             bootstyle='info',
             # makes the highlight bar go fully across
-            width=browser.cget('width')
-        )
+            width=browser.cget('width'))
         b_label.grid(column=0, row=row, rowspan=1, sticky=NW)
         b_label.bind('<Button-1>', self.select)
         b_label.bind('<Double-Button-1>', dblClickFunc)
@@ -817,6 +830,7 @@ class LeftPane:
                 args=(widget, queue, prefix), daemon=True).start()
             queue = True
             i += 1
+            Aplayer._mpv_wait()
 
     def __add_to_playlist(self, playlist_title):
         with open(Aplayer.playlist_path(playlist_title), mode='a') as playlist:

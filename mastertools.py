@@ -112,13 +112,18 @@ class Sword:
     """Manages the panes. Call mastertools.init() once before use."""
 
     __panes = []
+    __pane_titles = ['library', 'queue']
     pane_index = -1
     current_pane = None
+    header = None
 
     def _init():
         from graphics import LeftPane
-        global current_pane
-        global pane_index
+        from secondpane import SecondPane
+        global current_pane, pane_index
+        status_bar = StatusBar(root)
+        libPane = LeftPane(root, status_bar)
+        queuePane = SecondPane(root)
         Shield.welcome_button.destroy()
         root.rowconfigure(0, weight=0)
         root.rowconfigure(1, weight=1)
@@ -126,22 +131,32 @@ class Sword:
         Sword.draw_size_button()
         Sword.draw_header()
         root.update()
-        status_bar = StatusBar(root)
-        current_pane = LeftPane(root, status_bar)
-        current_pane.drawAll()
-        Sword.__panes.append(current_pane) 
+        Sword.__panes.append(libPane)
+        Sword.__panes.append(queuePane)
         pane_index = 0
+        current_pane = Sword.__panes[pane_index]
+        current_pane.drawAll()
 
     def switch_page(e: Event = None):
-        pass
+        global current_pane, pane_index
+        current_pane.undrawAll()
+        pane_index += 1
+        if pane_index > len(Sword.__panes) - 1:
+            pane_index = 0
+        current_pane = Sword.__panes[pane_index]
+        header.configure(
+            text='serenity /{}/'.format(Sword.__pane_titles[pane_index]))
+        current_pane.drawAll()
 
     def pane(index):
         return Sword.__panes[index]
-    
+
     def draw_header():
+        global header
         header = DarkLabelButton(root, clickFunc=Sword.switch_page)
         header.configure(
-            font=(DEFAULT_FONT_FAMILY, 34), text='serenity /library/')
+            font=(DEFAULT_FONT_FAMILY, 34),
+            text='serenity /{}/'.format(Sword.__pane_titles[0]))
         header.grid(column=0, row=0, padx=15, pady=(0, 15), sticky=NW)
         return header
 
