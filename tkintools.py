@@ -2,11 +2,11 @@ from math import ceil
 import threading
 import time
 from tkinter import *
+from tkinter.font import BOLD
 import ttkbootstrap as ttk
 from aplayer import Aplayer
 from typing import Callable, Any
 from config import *
-
 
 
 class TypedLabel(ttk.Label):
@@ -106,7 +106,7 @@ class SeekBar(Frame):
     def __init__(self, master, **kw):
         from mastertools import Shield
         Frame.__init__(self, master, **kw)
-        self.columnconfigure((1,2,3,4,5,6,7,8,9,10), weight=1)
+        self.columnconfigure((1, 2, 3, 4, 5, 6, 7, 8, 9, 10), weight=1)
         self.sliding = False
         self.pos = ttk.Label(
             self, font=(DEFAULT_FONT_FAMILY, 12), padding='0 0 10 0')
@@ -158,31 +158,36 @@ class DarkLabelButton(LabelButton):
 class QueueListbox(Listbox):
     """ A tk listbox with drag'n'drop reordering of entries. """
 
-    def __init__(self, master, root, **kw):
+    def __init__(self, master, root, set_fg = COLOUR_DICT['light'], **kw):
         from mastertools import Shield
         kw['selectmode'] = MULTIPLE
         Listbox.__init__(self, master, **kw)
         self.root = root
         self.cur_index = None
         self.cur_state = None
+        self.foreground = set_fg
+        self.__last_playing_pos = -1
+        self.config(foreground=set_fg)
         self.bind('<Button-1>', self.get_state, add='+')
         self.bind('<Button-1>', self.set_current, add='+')
         self.bind('<B1-Motion>', self.shift_selection)
         self.bind('<ButtonRelease-1>', self.moved_item)
-        self.bind('<Double-Button-1>', lambda e: Aplayer.player.playlist_play_index(self.cur_index))
-        self.config(width=55, height=int(Shield.drawn_height / 55), background=COLOUR_DICT['bg'])
+        self.bind('<Double-Button-1>',
+                  lambda e: Aplayer.player.playlist_play_index(self.cur_index))
+        self.config(width=55, height=int(Shield.drawn_height / 55),
+                    background=COLOUR_DICT['bg'])
         Aplayer.observe_playlist_changes(self.refresh_queue)
+        Aplayer.observe_playlist_pos(self.update)
 
     def moved_item(self, e: Event = None):
         if self.cur_index != self.last_cur_index:
             Aplayer.playlist_move(self.last_cur_index, self.cur_index, True)
-
+        self.update(None, pos=Aplayer.get_playlist_pos())
 
     def set_current(self, event):
         ''' gets the current index of the clicked item in the listbox '''
         self.cur_index = self.nearest(event.y)
         self.last_cur_index = self.cur_index
-        
 
     def get_state(self, event):
         ''' checks if the clicked item in listbox is selected '''
@@ -214,14 +219,92 @@ class QueueListbox(Listbox):
                 self.selection_set(i-1)
             self.cur_index = i
 
+    def update(self, _, pos):
+        Aplayer._mpv_wait()
+        size = self.size()
+        if ((pos is None or pos < 0
+            or pos > size - 1 or self.__last_playing_pos > size - 1)):
+                return
+        valid_pos = pos if pos < size else size - 1
+        if self.__last_playing_pos != -1:
+            self.itemconfig(self.__last_playing_pos, {'fg': self.foreground})
+        else:
+            self.itemconfig(self.size() - 1, {'fg': self.foreground})
+        self.itemconfig(valid_pos, {'fg': COLOUR_DICT['primary']})
+        self.__last_playing_pos = valid_pos
+
     def refresh_queue(self, _, count):
+        if count == 1:
+            self.update(None, 0)
         self.delete(0, END)
         if count > 0:
             for path in Aplayer.playlist_filenames():
                 self.insert(END, Aplayer.get_title_from_file(path))
+        self.update(None, self.__last_playing_pos)
         self.root.update()
-        
 
 
+class EntryBar(Frame):
 
+    def __init__(self, master, root, main_button_text, main_func, states,
+                 entry_placeholder='', smartxpad=6, **kw):
+        Frame.__init__(self, master, **kw)
+        self.root = root
+        self.state = 0
+        self.states = states
+        self.__padx = smartxpad
+        self.button_frames = []
+        main_button_widgets = self.add_button(
+            main_button_text, main_func, alterable=True)
+        self.main_button_frame = main_button_widgets[0]
+        self.main_button = main_button_widgets[1]
+        self.side_label = ttk.Label(self, font=(DEFAULT_FONT_FAMILY, 12))
+        self.entry = Entry(self, width=30)
+        self.entry.grid(row=0, column=0, padx=smartxpad)
+        self.entry.configure(
+            font=(DEFAULT_FONT_FAMILY, 13),
+            background=COLOUR_DICT['dark'])
+        self.entry.bind(
+            '<Return>', lambda e, b=self.main_button: self.click_sim(b))
+        self.entry.insert(0, entry_placeholder)
 
+    def __grid_new_button(self, button_frame):
+        i = len(self.button_frames)
+        if i == 0:
+            button_frame.grid(row=0, column=i, sticky=S)
+        else:
+            button_frame.grid(row=0, column=i, sticky=S, padx=self.__padx)
+
+    def add_button(self, text, clickFunc=None, alterable=False):
+        button_frame = Frame(self)
+        button_frame.configure(
+            highlightcolor=COLOUR_DICT['light'],
+            highlightbackground=COLOUR_DICT['light'],
+            highlightthickness=1)
+        button = LabelButton(
+            button_frame, text=text,
+            clickFunc=clickFunc,
+            font=(DEFAULT_FONT_FAMILY, 13, BOLD))
+        if alterable:
+            button.bind('<Button-3>', self.alter_button)
+        button.grid()
+        self.button_frames.append(button_frame)
+        self.__grid_new_button(button_frame)
+        return [button_frame, button]
+
+    def click_sim(self, button):
+        button.event_generate('<Button-1>')
+        self.root.update()
+        time.sleep(0.075)
+        button.event_generate('<ButtonRelease-1>')
+        self.root.update()
+
+    def alter_button(self, e: Event):
+        self.state = next_valid_index(self.state, self.states)
+        e.widget.configure(text=self.states[self.state])
+
+    def focus_entry(self):
+        self.entry.focus_force()
+
+    def get(self):
+        return self.entry.get()
