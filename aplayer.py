@@ -175,10 +175,9 @@ class Aplayer:
     def playlist_move(fromIndex: int, toIndex: int, from_gui: bool = False):
         if not Aplayer.is_loaded():
             return
-        if not from_gui:
-            Aplayer.mark_playlist_change()
         final_index = toIndex if fromIndex > toIndex else toIndex + 1
         Aplayer.player.playlist_move(fromIndex, final_index)
+        Aplayer.mark_playlist_change()
 
     def _get_next_queue_index():
         return Aplayer.subqueue_creation_pos + Aplayer.subqueue_length
@@ -198,8 +197,7 @@ class Aplayer:
         final_queue_insert_pos = Aplayer._get_next_queue_index()
         Aplayer.playlist_move(
             Aplayer.get_playlist_count() - 1,
-            final_queue_insert_pos
-        )
+            final_queue_insert_pos)
         if Aplayer.subqueue_length == 1:
             Aplayer.subqueue_creation_pos = Aplayer.get_playlist_pos()
 
