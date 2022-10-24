@@ -55,7 +55,7 @@ class LeftPane:
     def __init__(self, root: ttk.Window, status: tkintools.StatusBar):
         global _edge_pad
         self.root = root
-        self.frame = None
+        self.frame = Frame(self.root,width=Shield.max_pane())
         self.browser = None
         self.header = None
         self.subheader = None
@@ -76,9 +76,6 @@ class LeftPane:
         self.currentPage = ARTISTS
         self.subframe = None
         self.entryBar = None
-        self.entry_label = None
-        self.entry = None
-        self.entry_mode = SEARCH_MODE
         self.popup_menu = None
         self.playlist_menu = None
         self.libToolsVisible = False
@@ -94,8 +91,11 @@ class LeftPane:
         self.downloading = False
         self.monitoring_time = False
         self.__overriding_status = False
+        self.frame.rowconfigure(5, weight=1)  # browser is stretchy!
+        self.frame.columnconfigure(0, weight=1)
         Aplayer.player.observe_property('path', self.observe_title)
         _edge_pad = Shield.edge_pad()
+        self.gen_all()
 
     def undrawAll(self):
         self.frame.grid_remove()
@@ -103,6 +103,8 @@ class LeftPane:
     def redrawAll(self):
         self.frame.grid(column=0, row=1, sticky='nsw', columnspan=1)
 
+    def gen_all(self):
+        self.gen_subheader()
 
     def drawAll(self):
         self.drawFrame()
@@ -120,24 +122,18 @@ class LeftPane:
         self.loadArtists()
 
     def drawFrame(self):
-        self.frame = Frame(
-            self.root,
-            width=Shield.max_pane())
+        self.frame.configure(width=Shield.max_pane())
         self.frame.grid(column=0, row=1, sticky='nsw', columnspan=1)
-        self.frame.rowconfigure(5, weight=1)  # browser is stretchy!
-        self.frame.columnconfigure(0, weight=1)
 
 
-    def drawSubheader(self):
-        self.subheader = tkintools.LabelButton(
-            self.frame, text=LeftPane.DEFAULT_SUBHEADER,
-            activeFG=COLOUR_DICT['info'],
-            activeBG=COLOUR_DICT['bg'],
-            clickFG=COLOUR_DICT['info'],
-            clickBG=COLOUR_DICT['bg'],
-            clickFunc=self.showHideExtras,
-            unclickFunc=lambda e: self.controlRelease(e),
+
+    def gen_subheader(self):
+        self.subheader = tkintools.DarkLabelButton(
+            self.frame, clickFunc=self.showHideExtras,
+            text=LeftPane.DEFAULT_SUBHEADER,
             font=(DEFAULT_FONT_FAMILY, 14))
+    
+    def drawSubheader(self):
         self.subheader.grid(column=0, row=0, sticky=W)
 
     def drawBackbutton(self):
@@ -167,7 +163,7 @@ class LeftPane:
     def __showHideEntryBar(self):
         if self.entryBarVisible is False:
             self.entryBar.grid(row=1, rowspan=1, pady=5)
-            self.entry.focus_force()
+            self.entryBar.focus_entry()
         else:
             self.entryBar.grid_remove()
             self.root.focus_force()
@@ -199,8 +195,7 @@ class LeftPane:
             clickBG=COLOUR_DICT['bg'],
             clickFunc=lambda e, AAT=True: self.add_folders(e, AAT),
             text='[add library]',
-            font=(DEFAULT_FONT_FAMILY, 12, BOLD)
-        )
+            font=(DEFAULT_FONT_FAMILY, 12, BOLD))
         add_songs = tkintools.LabelButton(
             self.libTools,
             clickFG=COLOUR_DICT['info'],
@@ -215,77 +210,29 @@ class LeftPane:
         add_library.grid(column=0, row=2, sticky=S, padx=padx)
         add_songs.grid(column=1, row=2, sticky=S, padx=padx)
 
-    def genEntryButton(self, text, queue=False):
-        buttonFrame = Frame(self.entryBar)
-        buttonFrame.configure(
-            highlightcolor=COLOUR_DICT['light'],
-            highlightbackground=COLOUR_DICT['light'],
-            highlightthickness=1)
-        button = tkintools.LabelButton(
-            buttonFrame, text=text,
-            pady=0,
-            clickFunc=lambda e, q=queue: self.entry_button_command(e, q),
-            font=(DEFAULT_FONT_FAMILY, 13, BOLD))
-        if not queue:
-            button.bind('<Button-3>', self.__alter_search_button)
-        button.grid()
-        return [buttonFrame, button]
-
     def genEntryBar(self):
-        self.entryBar = Frame(self.frame)
-        search_button, internal = self.genEntryButton('search')
-        queue_button, _ = self.genEntryButton('queue', True)
-        self.entry_label = ttk.Label(
-            self.entryBar,
-            font=(DEFAULT_FONT_FAMILY, 12))
-        self.entry = Entry(self.entryBar, width=30)
-        self.entry.grid(row=0, column=0, padx=7)
-        self.entry.configure(
-            font=(DEFAULT_FONT_FAMILY, 13),
-            background=COLOUR_DICT['bg'])
-        self.entry.bind(
-            '<Return>', lambda e, b=internal: self.click_sim(b))
-        self.entry.insert(0, 'Try right-clicking that button -->')
-        search_button.grid(row=0, column=1, sticky=S)
-        queue_button.grid(row=0, column=2, sticky=S, padx=6)
-
-    def click_sim(self, button):
-        button.event_generate('<Button-1>')
-        self.root.update()
-        time.sleep(0.1)
-        button.event_generate('<ButtonRelease-1>')
-        self.root.update()
-
-    def __alter_search_button(self, e: Event):
-        if self.entry_mode == SEARCH_MODE:
-            self.entry_mode = STREAM_MODE
-            e.widget.configure(text='stream')
-        elif self.entry_mode == STREAM_MODE:
-            self.entry_mode = STREAM_DOWNLOAD_MODE
-            e.widget.configure(text='stream + download')
-        elif self.entry_mode == STREAM_DOWNLOAD_MODE:
-            self.entry_mode = DOWNLOAD_MODE
-            e.widget.configure(text='download')
-        else:
-            self.entry_mode = SEARCH_MODE
-            e.widget.configure(text='search')
+        states = ['search', 'stream', 'stream + download', 'download']
+        self.entryBar = tkintools.EntryBar(
+            self.frame, self.root, 'search', self.search_hit, states)
+        self.entryBar.add_button(
+            'queue', lambda e, q=True: self.search_hit(e, q))
 
     async def __search_yt_from_entry(self):
         try:
-            videosSearch = VideosSearch(self.entry.get(), limit=1)
+            videosSearch = VideosSearch(self.entryBar.get(), limit=1)
             videosResult = await videosSearch.next()
             return [videosResult['result'][0]['link'],
                     videosResult['result'][0]['title']]
         except Exception:
             return [None, None]
 
-    def __stream(self, queue: bool = False, download=False):
-        entry_text = self.entry.get()
+    def __stream(self, queue: bool = False):
+        entry_text = self.entryBar.get()
         if entry_text.startswith('https://'):
             try:
                 threading.Thread(
                     target=Aplayer.loadfile,
-                    args=(self.entry.get(), queue, '', download)).start()
+                    args=(self.entryBar.get(), queue, '')).start()
                 return Aplayer.scrape_title(entry_text)
             except Exception:
                 return None  # TODO: ERROR MSG
@@ -296,7 +243,7 @@ class LeftPane:
             if link is None:
                 return  # TODO: ERROR MSG
             threading.Thread(target=Aplayer.loadfile,
-                             args=(link, queue, title, download)).start()
+                             args=(link, queue, title)).start()
             return title
 
     def __link_downloaded(self, data):
@@ -306,7 +253,7 @@ class LeftPane:
         return path_exists(full_path)
 
     def __download_and_display(self):
-        link = self.entry.get()
+        link = self.entryBar.get()
         if link.startswith('https://'):
             title = Aplayer.get_title_from_file(link, '', True)
             if title is None:
@@ -332,8 +279,9 @@ class LeftPane:
             if self.downloading is True:
                 return
         self.downloading = True
-        self.entry_label.config(text='...')
-        self.entry_label.grid(row=0, column=3, sticky=E)
+        side_label = self.entryBar.side_label
+        side_label.config(text='...')
+        side_label.grid(row=0, column=3, sticky=E)
         self.root.update()
         while len(Aplayer._download_queue_titles) == 0:
             time.sleep(0.01)
@@ -341,7 +289,7 @@ class LeftPane:
                     and len(Aplayer._download_queue_titles) > 0):
                 break
         while len(Aplayer._download_queue_titles) > 0:
-            self.entry_label.config(
+            side_label.config(
                 text='downloading...' + str(Aplayer._current_download_percent) + '%')
             self.root.update()
             time.sleep(0.001)
@@ -351,13 +299,14 @@ class LeftPane:
                         or Aplayer._current_download_percent == 100):
                     break
         self.downloading = False
-        self.entry_label.grid_remove()
+        side_label.grid_remove()
         self.root.update()
 
     def search_hit(self, e: Event = None, queue=False):
-        if self.entry_mode == SEARCH_MODE:
+        mode = self.entryBar.state
+        if mode == SEARCH_MODE:
             self.search_library()
-        elif self.entry_mode == STREAM_MODE:
+        elif mode == STREAM_MODE:
             title = self.__stream(queue)
             if self.status.label.cget('text') == '':
                 text = 'queuing... \"' + title + '\"' if queue else 'loading...'
@@ -367,14 +316,13 @@ class LeftPane:
                     threading.Thread(
                         target=self.__override_status,
                         args=('queuing... \"' + title + '\"',)).start()
-        elif self.entry_mode == STREAM_DOWNLOAD_MODE:
-            threading.Thread(target=self.__stream, args=(queue, True)).start()
+        elif mode == STREAM_DOWNLOAD_MODE:
+            threading.Thread(target=self.__stream, args=(queue,)).start()
             threading.Thread(target=self.__download_and_display).start()
             if self.status.label.cget('text') == '':
                 self.status.label.configure(text='loading and downloading...')
-        elif self.entry_mode == DOWNLOAD_MODE:
+        elif mode == DOWNLOAD_MODE:
             threading.Thread(target=self.__download_and_display).start()
-
         self.root.update()
 
     def draw_browser_subtitle(self, text, row, browser):
@@ -464,7 +412,7 @@ class LeftPane:
         return i
 
     def search_library(self):
-        query = self.entry.get()
+        query = self.entryBar.get()
         if self.loading is True:
             return
         self.updateSubheader(SEARCH_RESULTS, ' Search results for: ' + query)
@@ -670,7 +618,7 @@ class LeftPane:
         global _edge_pad
         _edge_pad = Shield.edge_pad()
         if not Shield.expanded:
-            height = int(0.7 * Shield.drawn_height)
+            height = int(2 * Shield.drawn_height / 3)
         else:
             height = int(0.8 * Shield.drawn_height)
         if Shield.small_screen is True:
