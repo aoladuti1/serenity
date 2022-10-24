@@ -58,6 +58,9 @@ os.environ['PATH'] = DIR_PATH + 'subprograms' + os.sep + \
 DEFAULT_ART = THEMES_PATH + 'default_art.jpg'
 DATABASE = DIR_PATH + "databases" + os.sep + "data.sqlite"
 
+# special
+FIRST_USE = not path_exists(DATABASE)
+
 # gui
 THEME_NAME = 'serenity'
 COLOUR_DICT = USER_THEMES['serenity']['colors']
