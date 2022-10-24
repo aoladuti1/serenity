@@ -102,6 +102,7 @@ class Aplayer:
     _is_shuffling = False
     _prog_hook_added = False
     _last_batch_pos = -1
+    __maxed_duration = False
     
 
     def _mpv_wait():
@@ -128,7 +129,6 @@ class Aplayer:
         Aplayer.player.quit(code=0)
 
     def getFilename() -> dict:
-        print(Aplayer.player._get_property('path'))
         return Aplayer.player._get_property('path')
 
     def getDownloadingTitle() -> str:
@@ -137,14 +137,22 @@ class Aplayer:
         else:
             return Aplayer._download_queue_titles[Aplayer._download_index]
 
+    def playlist_filenames():
+        return Aplayer.player.playlist_filenames
+
     def next(called_from_seek = False):
         if Aplayer.is_looping_track() and not called_from_seek:
-            if not called_from_seek:
+            if not called_from_seek and Aplayer.get_playlist_pos() != Aplayer.get_playlist_count() - 1:
                 Aplayer.player._set_property('playlist-pos', Aplayer.get_playlist_pos() + 1)
             else:
                 Aplayer.player.seek(0, 'absolute')
+        elif not Aplayer.is_looping_queue() and not called_from_seek:
+            Aplayer.seek_percent(100)
+            Aplayer.__maxed_duration = True
         else:
             Aplayer.player.playlist_next('force')
+            if Aplayer.get_playlist_pos() == -1:
+                Aplayer.mark_playlist_change()
 
     def _should_rewind_to_zero() -> bool:
         return (
@@ -164,8 +172,13 @@ class Aplayer:
         Aplayer.subqueue_creation_pos = 0
         Aplayer.subqueue_length = 0
 
-    def playlist_move(fromIndex: int, toIndex: int):
-        Aplayer.player.playlist_move(fromIndex, toIndex)
+    def playlist_move(fromIndex: int, toIndex: int, from_gui: bool = False):
+        if not Aplayer.is_loaded():
+            return
+        if not from_gui:
+            Aplayer.mark_playlist_change()
+        final_index = toIndex if fromIndex > toIndex else toIndex + 1
+        Aplayer.player.playlist_move(fromIndex, final_index)
 
     def _get_next_queue_index():
         return Aplayer.subqueue_creation_pos + Aplayer.subqueue_length
@@ -221,6 +234,10 @@ class Aplayer:
                 will use online_title as an already scraped value for the title
             download: if True, will download a stream if one is passed
         """
+        if Aplayer.__maxed_duration is True:
+            if Aplayer.is_active() is True:
+                Aplayer.seek(0)
+            Aplayer.__maxed_duration = False
         online = filename.startswith('https:') is True
         if not online and not path_exists(filename):
             return
@@ -246,11 +263,14 @@ class Aplayer:
                     Aplayer.pauseplay()
         elif queue is False and new_playlist_count > 1:
             pos = Aplayer.get_playlist_pos()
+            pl_count = Aplayer.get_playlist_count()
             if pos == -1:
-                pos = Aplayer.get_playlist_count() - 1
-            Aplayer.playlist_move(Aplayer.get_playlist_count() - 1, pos + 1)
-            Aplayer.player._set_property('playlist-pos', pos + 1)
-            Aplayer.player.playlist_remove(pos)
+                pos = pl_count - 1
+            Aplayer._mpv_wait()
+            Aplayer.playlist_move(pl_count -1, pos + 1)
+            Aplayer.next()
+            if pl_count == 2:
+                Aplayer.player.playlist_remove(pos)
         if online is True and download is True:
             if Aplayer.download_thumbnail([filename], data) != '':
                 t = threading.Thread(
@@ -262,11 +282,24 @@ class Aplayer:
         if not queue:
             if Aplayer.is_paused() is True or Aplayer.is_active() is False:
                 Aplayer.pauseplay()
+        Aplayer.mark_playlist_change()
 
     def download(filename, data):
         if Aplayer.download_thumbnail([filename], data) != '':
             Aplayer.download_to_audio([filename], data)
 
+
+    def mark_playlist_change():
+        ''' do not use this with an mpv overlay. '''
+        if Aplayer.player._get_property('window-scale') == 1:
+            Aplayer.player._set_property('window-scale', 0.9)
+        else:
+            Aplayer.player._set_property('window-scale', 1)
+
+    def observe_playlist_changes(observer):
+        Aplayer.player.observe_property('window-scale', observer)
+
+        
     def gen_online_song():
         pass  # TODO: IMPLEMENT
 
@@ -419,6 +452,7 @@ class Aplayer:
         else:
             Aplayer._mpv_wait()
         Aplayer._mpv_wait()
+        Aplayer.mark_playlist_change()
 
     def _get_set_batch_pos():
         Aplayer._last_batch_pos = Aplayer.get_playlist_pos()
@@ -443,6 +477,8 @@ class Aplayer:
                 Aplayer._queue_properly()
                 Aplayer._mpv_wait()
         Aplayer._mpv_wait()
+        Aplayer.clear_subqueue()
+        Aplayer.mark_playlist_change()
 
 
     def savelist(playlist_title: str):
@@ -663,6 +699,7 @@ class Aplayer:
         else:
             Aplayer.player.playlist_unshuffle()
         Aplayer._is_shuffling = not Aplayer._is_shuffling
+        Aplayer.mark_playlist_change()
         return Aplayer._is_shuffling
 
     def set_volume(volume: int):
