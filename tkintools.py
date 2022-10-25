@@ -314,5 +314,20 @@ class EntryBar(Frame):
     def set_entry_bg(self, colour):
         self.entry['background'] = colour
 
+    def show_side_label(self, text):
+        self.side_label.configure(text=text)
+        self.side_label.grid(row=0, column=len(self.button_frames) + 1, sticky=E)
+
+    def hide_side_label(self, text = ''):
+        self.side_label.grid_remove()
+        if text != '':
+            self.side_label.configure(text=text)
+
+    def set_side_label_text(self, text):
+        self.side_label.configure(text=text)
+
+    def get_side_label_text(self):
+        return self.side_label.cget('text')
+
     def get(self):
         return self.entry.get()

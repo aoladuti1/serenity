@@ -1,4 +1,5 @@
 import threading
+from tkinter import messagebox
 import ttkbootstrap as ttk
 import tkintools
 import time
@@ -16,9 +17,10 @@ class SecondPane:
         self.frame = Frame(self.root, width=Shield.max_pane()) 
         self.queue_frame = ttk.Frame(
             self.frame, padding='{0} 0 {0} 0'.format(Shield.edge_pad()))
+        self.queue_frame.columnconfigure(0, weight = 0)
         self.entry_bar = self.__gen_entry_bar()
         self.queue_box = self.__gen_queue_box()
-        
+        self.saving = False
 
     def drawAll(self):
         self.frame.grid(column=0, row=1, sticky='nsw', columnspan=1)
@@ -38,6 +40,7 @@ class SecondPane:
             [text], entry_placeholder=rellipsis(text),
             pady=Shield.edge_pad())
         entry_bar.set_entry_bg(ENTRY_BG)
+        entry_bar.add_button('save', self.save_playlist)
         entry_bar.grid(column=0, row=3, sticky=W)
         return entry_bar
 
@@ -68,4 +71,39 @@ class SecondPane:
         else:
             revert_colour = self.queue_box.current_song_fg
         self.queue_box.itemconfig(index, {'fg': revert_colour})
+        
+
+    def __dotdraw_side_label(self, text):
+        old_text = self.entry_bar.get_side_label_text()
+        new_text = text
+        for i in range(3):
+            new_text += '.'
+            self.entry_bar.show_side_label(new_text)
+            time.sleep(0.5)
+        while self.saving is True:
+            time.sleep(1)
+        self.entry_bar.hide_side_label(old_text)
+    
+    def save_playlist(self, e: Event = None):
+        if self.saving is True:
+            return
+        dest_title = Aplayer._validate_title(self.entry_bar.get())
+        temp_text = '{} {}'.format('saving to', dest_title)
+        self.saving = True
+        threading.Thread(
+            target=self.__dotdraw_side_label, args=(temp_text,)).start()
+        rejects = Aplayer.savelist(dest_title)
+        if rejects:
+            msg = """
+            The following titles could not be added to '{}'
+            (titles may be wrong) likely because streams are not permitted
+            in saved playlists:
+            """.format(dest_title)
+            for i, filename in rejects:
+                msg += '\n{} [{}]'.format(self.queue_box.get(i,i)[0], filename)
+            messagebox.showinfo(
+                'Files unable to be added to {}'.format(dest_title), msg, icon)
+        Aplayer._mpv_wait()
+        self.saving = False
+
         
