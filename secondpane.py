@@ -20,6 +20,7 @@ class SecondPane:
         self.queue_frame.columnconfigure(0, weight = 0)
         self.entry_bar = self.__gen_entry_bar()
         self.queue_box = self.__gen_queue_box()
+        self.queue_tools = self.__gen_queue_tools()
         self.saving = False
 
     def drawAll(self):
@@ -43,6 +44,25 @@ class SecondPane:
         entry_bar.add_button('save', self.save_playlist)
         entry_bar.grid(column=0, row=3, sticky=W)
         return entry_bar
+
+    def __gen_queue_tools(self):
+        queue_tools = Frame(self.queue_frame)
+        clear_playlist_button = tkintools.DarkLabelButton(
+            queue_tools, self.queue_box.playlist_clear,
+            text='[clear queue]')
+        clear_selection_button = tkintools.DarkLabelButton(
+            queue_tools, self.queue_box.unselect_all,
+            text='[clear selection]')
+        remove_selection_button = tkintools.DarkLabelButton(
+            queue_tools, self.queue_box.playlist_remove_selection,
+            text='[remove selection]')
+        clear_playlist_button.grid(column=0, row=0)
+        clear_selection_button.grid(column=1, row=0)
+        remove_selection_button.grid(column=2, row=0)
+        queue_tools.grid(row=1, sticky=W)
+        return queue_tools
+                
+
 
     def __draw_queue_frame(self):
         self.queue_frame.grid(column=0)
@@ -88,6 +108,8 @@ class SecondPane:
         if self.saving is True:
             return
         dest_title = Aplayer._validate_title(self.entry_bar.get())
+        if dest_title is None:
+            return
         temp_text = '{} {}'.format('saving to', dest_title)
         self.saving = True
         threading.Thread(
