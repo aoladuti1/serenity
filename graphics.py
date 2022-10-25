@@ -37,9 +37,6 @@ DOWNLOAD_MODE = 3
 CORAL = '#ff4040'
 HIGHLIGHT_HEX = COLOUR_DICT['primary']
 
-dbLink = db.DBLink()
-
-
 class LeftPane:
 
     PAUSE_LABELS = ['||', '|>']
@@ -94,6 +91,7 @@ class LeftPane:
         self.downloading = False
         self.monitoring_time = False
         self.__overriding_status = False
+        self.__refreshing = False
         self.frame.rowconfigure(5, weight=1)  # browser is stretchy!
         self.frame.columnconfigure(0, weight=1)
         Aplayer.player.observe_property('path', self.observe_title)
@@ -199,7 +197,7 @@ class LeftPane:
             clickFunc=lambda e, AAT=True: self.add_folders(e, AAT),
             text='[add library]',
             font=(DEFAULT_FONT_FAMILY, 12, BOLD))
-        add_songs = tkintools.LabelButton(
+        add_folders = tkintools.LabelButton(
             self.libTools,
             clickFG=COLOUR_DICT['info'],
             clickBG=COLOUR_DICT['bg'],
@@ -207,11 +205,21 @@ class LeftPane:
             text='[add songs]',
             font=(DEFAULT_FONT_FAMILY, 12, BOLD)
         )
+        refresh_button = tkintools.LabelButton(
+            self.libTools,
+            clickFG=COLOUR_DICT['info'],
+            clickBG=COLOUR_DICT['bg'],
+            clickFunc=lambda e: self.refresh_page(e),
+            text='[refresh]',
+            font=(DEFAULT_FONT_FAMILY, 12, BOLD)
+        )
         self.adding_music_label = ttk.Label(self.libTools,
                                             font=(DEFAULT_FONT_FAMILY, 12))
         padx = 7
         add_library.grid(column=0, row=2, sticky=S, padx=padx)
-        add_songs.grid(column=1, row=2, sticky=S, padx=padx)
+        add_folders.grid(column=1, row=2, sticky=S, padx=padx)
+        refresh_button.grid(column=2, row=2, sticky=S, padx=padx)
+
 
     def genEntryBar(self):
         states = ['search', 'stream', 'stream + download', 'download']
@@ -759,7 +767,7 @@ class LeftPane:
                 target=self._temp_mark_label,
                 args=(widget, False, wrap_dots('deleting'), True, CORAL),
                 daemon=True).start()
-        self.refresh_page(1.25)
+        self.refresh_page()
 
     def do_popup(self, e: Event):
         if e.widget.cget('text') == PLAYLISTS_TEXT:
@@ -870,10 +878,18 @@ class LeftPane:
         elif self.currentPage == PLAYLIST_SONGS:
             self.__go_to_playlists()
 
-    def __refresh_page(self, after):
+    def __refresh_page(self, lbutton_event: Event, sleep_secs: float):
+        if self.__refreshing is True:
+            return
+        self.__refreshing = True
+        if lbutton_event is not None:
+            widget = lbutton_event.widget
+            widget.defaultFG = COLOUR_DICT['light']
+            self.root.update()
         page = self.currentPage
-        time.sleep(after)
-        if self.currentPage == page:
+        time.sleep(sleep_secs)
+        self.browser.grid_remove()
+        if self.currentPage != page:
             return
         elif self.currentPage == TRACKS:
             self.loadTracks()
@@ -887,9 +903,14 @@ class LeftPane:
             self.__go_to_playlists()
         elif self.currentPage == SEARCH_RESULTS:
             self.search_hit()
+        if lbutton_event is not None:
+            widget.defaultFG = COLOUR_DICT['primary']
+            widget['foreground'] = COLOUR_DICT['primary']
+            self.root.update()
+        self.__refreshing = False
 
-    def refresh_page(self, after = 0.0):
-        threading.Thread(target=self.__refresh_page, args=(after,)).start()
+    def refresh_page(self, e: Event = None, after = 1.15):
+        threading.Thread(target=self.__refresh_page, args=(e, after)).start()
 
 
     def __go_to_playlists(self, e: Event = None):
@@ -970,7 +991,7 @@ class LeftPane:
                 args=(self.chosenPlaylist, index, queue)).start()
 
     def __get_album_filenames(self, album_artist: str, custom_dblink=None):
-        link = custom_dblink if custom_dblink is not None else dbLink
+        link = custom_dblink if custom_dblink is not None else db.DBLink()
         album, artist = album_artist.split('|')
         return link.get_album_filenames(album, artist)
 
@@ -980,7 +1001,7 @@ class LeftPane:
             target=Aplayer.loadall, args=(track_list, queue)).start()
 
     def __get_artist_filenames(self, artist: str, custom_dblink=None):
-        link = custom_dblink if custom_dblink is not None else dbLink
+        link = custom_dblink if custom_dblink is not None else db.DBLink()
         return link.get_artist_filenames(artist)
 
     def __play_artist(self, artist, queue, custom_dblink=None):
@@ -1056,7 +1077,7 @@ class LeftPane:
         self.drawBrowser()
         self.updateSubheader(ARTISTS)
         if self.fetchedArtists is None:
-            self.fetchedArtists = dbLink.get_artists()
+            self.fetchedArtists = db.DBLink().get_artists()
         i = 0
         if Aplayer.get_number_of_playlists() > 0:
             pl = self.genBrowserLabel(
@@ -1096,7 +1117,7 @@ class LeftPane:
             return
         if e is not None:
             self.chosenArtist = self.strip_widget_text(e)
-        self.fetchedAlbums = dbLink.get_albums(self.chosenArtist)
+        self.fetchedAlbums = db.DBLink().get_albums(self.chosenArtist)
         self.updateSubheader(ALBUMS)
         album_count = len(self.fetchedAlbums)
         browser = self.genBrowser()
@@ -1134,14 +1155,18 @@ class LeftPane:
         if self.loading is True:
             return
         text = ''
+        album = ''
         if e is not None:
             text = e.widget.cget('text')
             album = self.strip_widget_text(e)
-        if artist != '':
-            self.chosenArtist = artist
-            album = album.split(' | ')[0]
-        self.chosenAlbum = album
-        self.fetchedTracksAndPaths = dbLink.get_all_tracks_and_paths(
+            if artist != '':
+                self.chosenArtist = artist
+                album = album.split(' | ')[0]
+            self.chosenAlbum = album 
+        else:
+            artist = self.chosenArtist
+            album = self.chosenAlbum
+        self.fetchedTracksAndPaths = db.DBLink().get_all_tracks_and_paths(
             self.chosenAlbum, self.chosenArtist)
         self.updateSubheader(TRACKS)
         song_count = len(self.fetchedTracksAndPaths)
