@@ -235,6 +235,8 @@ class Aplayer:
         if not queue:
             Aplayer.seek(0, False)
         online = filename.startswith('https:') is True
+        if not Aplayer.online_queue is True:
+            Aplayer.online_queue = online
         if not online and not path_exists(filename):
             return
         if not force_append_play:
@@ -482,18 +484,21 @@ class Aplayer:
         Aplayer.mark_playlist_change()
 
 
-    def savelist(playlist_title: str):
-        if (playlist_title == Aplayer.DEFAULT_QUEUE
-                or Aplayer.online_queue is True):
-            return
+    def savelist(playlist_title: str) -> list:
+        if (playlist_title == Aplayer.DEFAULT_QUEUE):
+            return []
         playlist_name = playlist_title
         if not playlist_title.endswith(PLAYLIST_EXTENSION):
             playlist_name = playlist_title + PLAYLIST_EXTENSION
         dest = PLAYLISTS_PATH + playlist_name
+        rejects = []
         with open(PLAYLISTS_PATH + playlist_name, 'w') as pl:
-            for filename in Aplayer.player.playlist_filenames:
+            for i, filename in enumerate(Aplayer.player.playlist_filenames):
+                if filename.startswith('https://'):
+                    rejects.append((i, filename))
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
                 pl.write(filename + '\n')
+        return rejects
 
     def save_current_playlist():
         Aplayer.savelist(Aplayer.get_current_playlist_title())
