@@ -532,12 +532,12 @@ class Aplayer:
         Aplayer.__mark_playlist_change()
 
 
-    def savelist(playlist_title: str) -> list:
-        if (playlist_title == Aplayer.DEFAULT_QUEUE):
+    def savelist(new_playlist_title: str) -> list:
+        if (new_playlist_title == Aplayer.DEFAULT_QUEUE):
             return []
-        playlist_name = playlist_title
-        if not playlist_title.endswith(PLAYLIST_EXTENSION):
-            playlist_name = playlist_title + PLAYLIST_EXTENSION
+        playlist_name = new_playlist_title
+        if not new_playlist_title.endswith(PLAYLIST_EXTENSION):
+            playlist_name = new_playlist_title + PLAYLIST_EXTENSION
         dest = PLAYLISTS_PATH + playlist_name
         rejects = []
         with open(PLAYLISTS_PATH + playlist_name, 'w') as pl:
@@ -546,6 +546,8 @@ class Aplayer:
                     rejects.append((i, filename))
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
                 pl.write(filename + '\n')
+        Aplayer._current_playlist_title = new_playlist_title
+        Aplayer.__mark_playlist_title_change()
         return rejects
 
     def save_current_playlist():
