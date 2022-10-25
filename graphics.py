@@ -777,29 +777,27 @@ class LeftPane:
         queue = queue_all
         i = 0
         link = db.DBLink()
+        songlist = []
         for key, widget in self.selectedContent.items():
             if widget.label_type == TRACKS:
-                self.__play_track(key, queue)
+                songlist.extend([key.split('|')[0]])
             elif widget.label_type == ALBUMS:
-                self.__play_album(key, queue, link)
+                songlist.append(self.__get_album_filenames(key, link))
             elif widget.label_type == ARTISTS:
-                self.__play_artist(key, queue, link)
+                songlist.extend(self.__get_artist_filenames(key, link))
             elif widget.label_type == PLAYLISTS:
-                self.__play_playlist(key, queue)
+                songlist.extend(self.__get_playlist_filenames(key))
             elif widget.label_type == PLAYLIST_SONGS:
-                self.__play_playlist_track(key, True)
-                if queue is False:
-                    if Aplayer.is_paused():
-                        Aplayer.pauseplay()
+                songlist.extend([key.split('|')[0]])
             elif widget.label_type is None:
                 continue
             prefix = ' [{}]'.format(i + 1)
             threading.Thread(
                 target=self._temp_mark_label,
                 args=(widget, queue, prefix), daemon=True).start()
-            queue = True
             i += 1
-            Aplayer._mpv_wait()
+        Aplayer.loadall(songlist, queue_all)
+
 
     def __add_to_playlist(self, playlist_title):
         with open(Aplayer.playlist_path(playlist_title), mode='a') as playlist:
@@ -998,6 +996,10 @@ class LeftPane:
             files = open(Aplayer.playlist_path(title), 'r').readlines()
             threading.Thread(
                 target=Aplayer.loadall, args=(files, True)).start()
+
+    def __get_playlist_filenames(self, title):
+        files = open(Aplayer.playlist_path(title), 'r').readlines()
+        return files
 
     def play(self, e: Event = None, data: str = None,
              external_label=None, queue_files=False):

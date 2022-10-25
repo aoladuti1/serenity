@@ -257,6 +257,8 @@ class Aplayer:
             Aplayer.online_queue = True
         data = Aplayer.get_artist_track_trackNum(title)
         new_playlist_count = Aplayer.get_playlist_count()
+        if Aplayer._last_batch_pos < Aplayer._get_set_batch_pos():
+            Aplayer.clear_subqueue()
         if queue is True and new_playlist_count > 1:
             Aplayer._queue_properly()
         elif new_playlist_count == 1:
@@ -265,22 +267,25 @@ class Aplayer:
             if queue is True:
                 if not Aplayer.is_paused():
                     Aplayer.pauseplay()
-        elif queue is False and new_playlist_count > 1:
+        elif queue is False and new_playlist_count > 2:
             pos = Aplayer.get_playlist_pos()
             pl_count = Aplayer.get_playlist_count()
             if pos == -1:
                 pos = pl_count - 1
             Aplayer._mpv_wait()
-            Aplayer.playlist_move(pl_count -1, pos + 1)
+            Aplayer.playlist_move(pl_count - 1, pos + 1)
             Aplayer.next()
             if pl_count == 2:
                 Aplayer.player.playlist_remove(pos)
+        elif queue is False and new_playlist_count == 2:
+            Aplayer._mpv_wait()
+            Aplayer.player.playlist_next('force')
+            Aplayer.player.playlist_remove(0)
         if online is True and download is True:
             if Aplayer.download_thumbnail([filename], data) != '':
                 t = threading.Thread(
                     target=Aplayer.download_to_audio,
-                    args=([filename], data), daemon=True
-                )
+                    args=([filename], data), daemon=True)
                 t.start()
         Aplayer._mpv_wait()
         if not queue:
@@ -469,29 +474,39 @@ class Aplayer:
         Aplayer.mark_playlist_change()
 
     def _get_set_batch_pos():
-        Aplayer._last_batch_pos = Aplayer.get_playlist_pos()
-        return Aplayer.get_playlist_pos()
+        pl_pos = Aplayer.get_playlist_pos()
+        Aplayer._last_batch_pos = pl_pos
+        return pl_pos
 
-    def loadall(filenames: list, queue: bool = True):
+    def __load_one_of_many(filename, play_type, zero_playlist_pos = False, queue = False):
+        Aplayer.player.loadfile(filename, play_type)
+        if zero_playlist_pos:
+            if queue and not Aplayer.is_paused():
+                Aplayer.pauseplay()
+            Aplayer.set_playlist_pos(0)
+        Aplayer._queue_properly()
+        Aplayer._mpv_wait()
+
+    def loadall(filenames: list, queue: bool = False):
         # offline tracks only
         element_count = len(filenames)
         if element_count == 0:
             return
-        if Aplayer.get_playlist_count() < 1:
+        if Aplayer._last_batch_pos < Aplayer._get_set_batch_pos():
             Aplayer.clear_subqueue()
-            if not Aplayer.is_paused():
-                Aplayer.pauseplay()
-        elif Aplayer._last_batch_pos < Aplayer._get_set_batch_pos():
-            Aplayer.clear_subqueue()
-        fap = Aplayer.get_playlist_count() > 0
-        Aplayer.loadfile(filenames[0], queue, force_append_play=fap)
+        old_pl_count = Aplayer.get_playlist_count()
+        first_playtype = 'replace' if Aplayer.get_playlist_count() == 0 else 'append'
+        set_to_zero = old_pl_count < 1
+        Aplayer.__load_one_of_many(filenames[0], first_playtype, set_to_zero, queue)
         if element_count > 1:
-            for filename in filenames[1:-1]:
-                Aplayer.player.loadfile(filename, 'append')
-                Aplayer._queue_properly()
-                Aplayer._mpv_wait()
+            for f in filenames[1:]:
+                Aplayer.__load_one_of_many(f, 'append')
+        if queue is False:
+            if Aplayer.is_paused():
+                Aplayer.pauseplay()
+            if old_pl_count > 0:
+                Aplayer.next()
         Aplayer._mpv_wait()
-        Aplayer.clear_subqueue()
         Aplayer.mark_playlist_change()
 
     
@@ -681,6 +696,9 @@ class Aplayer:
             int: currently playing position
         """
         return Aplayer.player._get_property('playlist-pos')
+
+    def set_playlist_pos(index):
+        Aplayer.player._set_property('playlist-pos', index)
 
     def is_active():
         return not Aplayer.get_playlist_pos() == -1
