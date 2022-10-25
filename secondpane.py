@@ -102,7 +102,7 @@ class SecondPane:
             for i, filename in rejects:
                 msg += '\n{} [{}]'.format(self.queue_box.get(i,i)[0], filename)
             messagebox.showinfo(
-                'Files unable to be added to {}'.format(dest_title), msg, icon)
+                'Files unable to be added to {}'.format(dest_title), msg)
         Aplayer._mpv_wait()
         self.saving = False
 
