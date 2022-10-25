@@ -742,6 +742,9 @@ class LeftPane:
     def play_all(self, queue_all):
         threading.Thread(target=self.__play_all, args=(queue_all,)).start()
 
+    def delete_all_playlists(self):
+        pass 
+
     def do_popup(self, e: Event):
         if e.widget.cget('text') == PLAYLISTS_TEXT:
             return
@@ -892,7 +895,12 @@ class LeftPane:
         playlist_file = Aplayer.playlist_path(playlist_title)
         chosen_playlist_files = open(playlist_file, 'r').readlines()
         playlist_length = len(chosen_playlist_files)
-        i = 0
+        del_pl_button = tkintools.DarkLabelButton(
+            browser, self.delete_playlist, text='--delete playlist--',
+            font=(DEFAULT_FONT_FAMILY, 14, BOLD),
+            defaultFG='#ff4040', pady=10)
+        del_pl_button.grid(row=0)
+        i = 1
         for path in chosen_playlist_files:
             data = "{}|{}".format(path, i)
             label = self.genBrowserLabel(
@@ -906,6 +914,10 @@ class LeftPane:
                 e, ' ' + playlist_title, i, playlist_length)
             i += 1
         self.drawBrowser(browser)
+
+    def delete_playlist(self, e: Event):
+        Aplayer.delete_playlist(self.chosenPlaylist)
+        self.goBack()
 
     def __play_track(self, FQFN, queue):
         threading.Thread(target=Aplayer.loadfile, args=(FQFN, queue)).start()
@@ -1118,6 +1130,7 @@ class LeftPane:
                     widget.config(background=COLOUR_DICT['bg'])
                 if len(self.selectedContent) == 0:
                     break
+        self.playlists_in_selection = 0
 
     def select(self, e: Event, force: bool = False):
         clickedWidget = e.widget
@@ -1127,6 +1140,10 @@ class LeftPane:
                 and force is False):
             clickedWidget.configure(background=COLOUR_DICT['bg'])
             self.selectedContent.pop(e.widget.data)
+            if e.widget.label_type == PLAYLISTS:
+                self.playlist_in_selection -= 1
         else:
             clickedWidget.configure(background=SELECTED_LABEL_BG_HEX)
             self.selectedContent.update({e.widget.data: e.widget})
+            if e.widget.label_type == PLAYLISTS:
+                self.playlist_in_selections += 1

@@ -145,10 +145,12 @@ class SeekBar(Frame):
 
 
 class DarkLabelButton(LabelButton):
-    def __init__(self, master, clickFunc=None, **kw):
+    def __init__(self, master, clickFunc=None,
+                defaultFG = COLOUR_DICT['primary'], **kw):
         LabelButton.__init__(
             self, master=master,
             unclickFunc=clickFunc,
+            defaultFG=defaultFG,
             activeFG=COLOUR_DICT['info'],
             activeBG=COLOUR_DICT['bg'],
             clickFG=COLOUR_DICT['info'],

@@ -286,6 +286,11 @@ class Aplayer:
         if Aplayer.download_thumbnail([filename], data) != '':
             Aplayer.download_to_audio([filename], data)
 
+    def delete_playlist(title):
+        pl_file = Aplayer.playlist_path(title)
+        if path_exists(pl_file):
+            os.remove(pl_file)
+
 
     def mark_playlist_change():
         ''' do not use this with an mpv overlay. '''
