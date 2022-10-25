@@ -240,12 +240,11 @@ class QueueListbox(Listbox):
         self.__last_playing_pos = valid_pos
 
     def refresh_queue(self, _, count):
-        if count == 1:
-            self.update(None, 0)
         self.delete(0, END)
-        if count > 0:
-            for path in Aplayer.playlist_filenames():
-                self.insert(END, Aplayer.get_title_from_file(path))
+        for path in Aplayer.playlist_filenames():
+            self.insert(END, Aplayer.get_title_from_file(path))
+        if count == 1:
+            self.__last_playing_pos = 0
         self.update(None, self.__last_playing_pos)
         self.root.update()
 

@@ -1,12 +1,13 @@
 import threading
 from tkinter import messagebox
+from tkinter.font import BOLD
 import ttkbootstrap as ttk
 import tkintools
 import time
 from aplayer import Aplayer
 from mastertools import Shield
 from tkinter import *
-from config import rellipsis, COLOUR_DICT
+from config import rellipsis, COLOUR_DICT, DEFAULT_FONT_FAMILY
 
 ENTRY_BG = '#17012e'
 
@@ -21,12 +22,16 @@ class SecondPane:
         self.entry_bar = self.__gen_entry_bar()
         self.queue_box = self.__gen_queue_box()
         self.queue_tools = self.__gen_queue_tools()
+        self.subheader = self.__gen_sub_header()
         self.saving = False
 
     def drawAll(self):
         self.frame.grid(column=0, row=1, sticky='nsw', columnspan=1)
         self.__draw_queue_frame()
         self.entry_bar.focus_entry()
+
+    def undrawAll(self):
+        self.frame.grid_remove()
 
     def __gen_queue_box(self):  
         queue_box = tkintools.QueueListbox(self.queue_frame, self.root)
@@ -62,7 +67,16 @@ class SecondPane:
         queue_tools.grid(row=1, sticky=W)
         return queue_tools
                 
+    def __gen_sub_header(self):
+        subheader = ttk.Label(
+            self.queue_frame, font=(DEFAULT_FONT_FAMILY, 19, BOLD))
+        subheader.grid(column=0, row=0)
+        Aplayer.observe_playlist_title(self.update_subheader)
+        return subheader
 
+    def update_subheader(self, _, _2):
+        self.subheader.configure(
+            text='Currently playing: {}'.format(Aplayer.get_current_playlist_title()))
 
     def __draw_queue_frame(self):
         self.queue_frame.grid(column=0)
@@ -79,9 +93,6 @@ class SecondPane:
             self.queue_box.see(index)
             threading.Thread(
                 target=self.__highlight_short, args=(index,)).start()
-
-    def undrawAll(self):
-        self.frame.grid_remove()
         
     def __highlight_short(self, index):
         self.queue_box.itemconfig(index, {'fg': '#FFD700'})
@@ -91,7 +102,6 @@ class SecondPane:
         else:
             revert_colour = self.queue_box.current_song_fg
         self.queue_box.itemconfig(index, {'fg': revert_colour})
-        
 
     def __dotdraw_side_label(self, text):
         old_text = self.entry_bar.get_side_label_text()
