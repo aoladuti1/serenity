@@ -34,6 +34,8 @@ SEARCH_MODE = 0
 STREAM_MODE = 1
 STREAM_DOWNLOAD_MODE = 2
 DOWNLOAD_MODE = 3
+CORAL = '#ff4040'
+HIGHLIGHT_HEX = COLOUR_DICT['primary']
 
 dbLink = db.DBLink()
 
@@ -44,7 +46,7 @@ class LeftPane:
     BROWSER_BUTTON_PADX = 4
     BACK_TEXT = '<--'
     NO_BACK_TEXT = '---'
-    SPECIAL_HEX = COLOUR_DICT['primary']
+    
     DEFAULT_SUBHEADER = ' More...'
     STARTING_TEXT = ' ..starting..'
     QUEUING_TEXT = ' ..queuing..'
@@ -82,6 +84,7 @@ class LeftPane:
         self.entryBarVisible = False
         self.updating_entry_label = False
         self.selectedContent = {}
+        self.playlists_in_selection = 0
         self.current_file = ''
         self.duration_str = ''
         self.playing_text = 'Now playing:'
@@ -336,7 +339,7 @@ class LeftPane:
         pl_titles = Aplayer.get_playlist_titles()
         playlist_results = [
             title for title in pl_titles
-            if query.casefold() in map(str.casefold, title)]
+            if query.casefold() in title]
         i = insert_row
         if len(playlist_results) > 0:
             self.draw_browser_subtitle(PLAYLISTS, i, browser)
@@ -723,7 +726,7 @@ class LeftPane:
                 label=title, command=lambda t=title: self.__add_to_playlist(t))
 
     def DropDownMenu(self):
-        m = Menu(self.frame, tearoff=0)
+        m = ttk.Menu(self.frame, tearoff=0)
         m.configure(background=COLOUR_DICT['dark'],
                     activeforeground=COLOUR_DICT['info'])
         m.configure(font=(DEFAULT_FONT_FAMILY, 12))
@@ -735,21 +738,35 @@ class LeftPane:
             command=lambda queue=True: self.play_all(queue))
         m.add_separator()
         m.add_cascade(label="Add to playlist...", menu=self.playlist_menu)
+        if self.playlists_in_selection > 0:   
+            m.add_command(label="Delete playlists...", command=self.delete_playlists) 
         m.add_separator()
         m.add_command(label="Clear selection", command=self.clear_selection)
         return m
 
     def play_all(self, queue_all):
         threading.Thread(target=self.__play_all, args=(queue_all,)).start()
-
-    def delete_all_playlists(self):
-        pass 
+        
+    def delete_playlists(self):
+        widgets = []
+        for data, widget in self.selectedContent.items():
+            if widget.label_type != PLAYLISTS:
+                continue
+            widgets.append(widget)
+            Aplayer.delete_playlist(data)
+        for widget in widgets:
+            threading.Thread(
+                target=self._temp_mark_label,
+                args=(widget, False, wrap_dots('deleting'), True, CORAL),
+                daemon=True).start()
+        self.refresh_page(1.5)
 
     def do_popup(self, e: Event):
         if e.widget.cget('text') == PLAYLISTS_TEXT:
             return
         self.select(e, force=True)
         self.genPlaylistMenu()
+        self.popup_menu = self.DropDownMenu()
         m = self.popup_menu
         try:
             m.tk_popup(e.x_root, e.y_root)
@@ -820,6 +837,7 @@ class LeftPane:
             e.widget.configure(text=text[1:-1])
 
     def updateSubheader(self, new_page: str, subheader: str = ''):
+        self.clear_selection()
         if self.currentPage != new_page:
             self.selectedContent.clear()
         self.currentPage = new_page
@@ -853,6 +871,28 @@ class LeftPane:
             self.loadArtists()
         elif self.currentPage == PLAYLIST_SONGS:
             self.__go_to_playlists()
+
+    def __refresh_page(self, after):
+        page = self.currentPage
+        time.sleep(after)
+        if self.currentPage == page:
+            return
+        elif self.currentPage == TRACKS:
+            self.loadTracks()
+        elif self.currentPage == ALBUMS:
+            self.loadAlbums()
+        elif self.currentPage == ARTISTS:
+            self.loadArtists()
+        elif self.currentPage == PLAYLIST_SONGS:
+            self.__go_to_playlist_songs()
+        elif self.currentPage == PLAYLISTS:
+            self.__go_to_playlists()
+        elif self.currentPage == SEARCH_RESULTS:
+            self.search_hit()
+
+    def refresh_page(self, after = 0.0):
+        threading.Thread(target=self.__refresh_page, args=(after,)).start()
+
 
     def __go_to_playlists(self, e: Event = None):
         if self.loading is True:
@@ -898,7 +938,7 @@ class LeftPane:
         del_pl_button = tkintools.DarkLabelButton(
             browser, self.delete_playlist, text='--delete playlist--',
             font=(DEFAULT_FONT_FAMILY, 14, BOLD),
-            defaultFG='#ff4040', pady=10)
+            defaultFG=CORAL, pady=10)
         del_pl_button.grid(row=0)
         i = 1
         for path in chosen_playlist_files:
@@ -989,9 +1029,9 @@ class LeftPane:
         threading.Thread(target=self._temp_mark_label,
                          args=(widget, queue), daemon=True).start()
 
-    def _temp_mark_label(self, widget, queue, prefix='', prefix_overrides=False):
+    def _temp_mark_label(self, widget, queue, prefix='', prefix_overrides=False, fg=HIGHLIGHT_HEX):
         old_fg = widget.cget('foreground')
-        if str(old_fg) == str(LeftPane.SPECIAL_HEX):
+        if str(old_fg) == str(fg):
             return
         old_text = widget.cget('text')
         if prefix_overrides is False:
@@ -999,12 +1039,13 @@ class LeftPane:
             new_text = prefix + new_text
         else:
             new_text = prefix
-        widget.configure(foreground=LeftPane.SPECIAL_HEX)
+        widget.configure(foreground=fg)
         widget.configure(text=new_text + old_text)
         self.root.update()
         time.sleep(1.25)
         widget.configure(foreground=old_fg)
         widget.configure(text=old_text)
+
 
     def loadArtists(self):
         if self.loading is True:
@@ -1141,9 +1182,9 @@ class LeftPane:
             clickedWidget.configure(background=COLOUR_DICT['bg'])
             self.selectedContent.pop(e.widget.data)
             if e.widget.label_type == PLAYLISTS:
-                self.playlist_in_selection -= 1
+                self.playlists_in_selection -= 1
         else:
             clickedWidget.configure(background=SELECTED_LABEL_BG_HEX)
             self.selectedContent.update({e.widget.data: e.widget})
             if e.widget.label_type == PLAYLISTS:
-                self.playlist_in_selections += 1
+                self.playlists_in_selection += 1
