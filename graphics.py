@@ -759,7 +759,7 @@ class LeftPane:
                 target=self._temp_mark_label,
                 args=(widget, False, wrap_dots('deleting'), True, CORAL),
                 daemon=True).start()
-        self.refresh_page(1.5)
+        self.refresh_page(1.25)
 
     def do_popup(self, e: Event):
         if e.widget.cget('text') == PLAYLISTS_TEXT:
@@ -1171,6 +1171,7 @@ class LeftPane:
                     widget.config(background=COLOUR_DICT['bg'])
                 if len(self.selectedContent) == 0:
                     break
+        self.selectedContent.clear()
         self.playlists_in_selection = 0
 
     def select(self, e: Event, force: bool = False):
