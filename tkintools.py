@@ -163,8 +163,8 @@ class QueueListbox(Listbox):
     def __init__(self, master, root, set_fg = COLOUR_DICT['light'], 
                  current_song_fg = COLOUR_DICT['primary'], **kw):
         from mastertools import Shield
-        Listbox.__init__(self, master, **kw)
         kw['selectmode'] = MULTIPLE
+        Listbox.__init__(self, master, **kw)
         kw['foreground'] = set_fg
         self.config(selectforeground=COLOUR_DICT['info'])
         self.root = root
@@ -223,7 +223,7 @@ class QueueListbox(Listbox):
                 self.selection_set(i-1)
             self.cur_index = i
 
-    def update(self, _, playlist_pos):
+    def update(self, _, _2):
         Aplayer._mpv_wait()
         pos = Aplayer.get_playlist_pos()
         size = self.size()
@@ -236,7 +236,7 @@ class QueueListbox(Listbox):
             self.itemconfig(self.__last_playing_pos, {'fg': self['foreground']})
         else:
             self.itemconfig(self.size() - 1, {'fg': self['foreground']})
-        self.itemconfig(valid_pos, {'fg': COLOUR_DICT['primary']})
+        self.itemconfig(valid_pos, {'fg': self.current_song_fg})
         self.__last_playing_pos = valid_pos
 
     def refresh_queue(self, _, count):
@@ -248,6 +248,23 @@ class QueueListbox(Listbox):
                 self.insert(END, Aplayer.get_title_from_file(path))
         self.update(None, self.__last_playing_pos)
         self.root.update()
+
+    # event should be from a DarkLabelButton
+    def unselect_all(self, e: Event):
+        self.selection_clear(0, END)
+        e.widget['foreground'] = e.widget.defaultFG
+
+
+    # event should be from a DarkLabelButton
+    def playlist_clear(self, e: Event):
+        Aplayer.clear_queue()
+        e.widget['foreground'] = e.widget.defaultFG
+        self.update(None,None)
+
+    # event should be from a DarkLabelButton
+    def playlist_remove_selection(self, e: Event):
+        Aplayer.batch_clear(self.curselection())
+
 
 class EntryBar(Frame):
 
