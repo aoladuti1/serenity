@@ -172,6 +172,12 @@ class Aplayer:
         Aplayer.subqueue_creation_pos = 0
         Aplayer.subqueue_length = 0
 
+    def clear_queue():
+        Aplayer.player.playlist_clear()
+        Aplayer.clear_subqueue()
+        Aplayer._current_playlist_title = Aplayer.DEFAULT_QUEUE
+        Aplayer.mark_playlist_change()
+
     def playlist_move(fromIndex: int, toIndex: int, from_gui: bool = False):
         if not Aplayer.is_loaded():
             return
@@ -486,6 +492,16 @@ class Aplayer:
                 Aplayer._mpv_wait()
         Aplayer._mpv_wait()
         Aplayer.clear_subqueue()
+        Aplayer.mark_playlist_change()
+
+    
+    def batch_clear(indices: list[int]):
+        for i in indices:
+            if i == Aplayer.get_playlist_pos():
+                continue
+            else:
+                Aplayer.player.playlist_remove(i)
+                Aplayer._mpv_wait()
         Aplayer.mark_playlist_change()
 
 
