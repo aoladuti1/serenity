@@ -20,6 +20,8 @@ from ttkbootstrap.scrolled import ScrolledFrame
 from config import *
 from youtubesearchpython.__future__ import VideosSearch
 
+# TODO: Split up generation and drawing because
+# things keep regenerating which glitches the program!!!
 
 ARTISTS = 'artists'
 ALBUMS = 'albums'
