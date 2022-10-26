@@ -12,6 +12,7 @@ SONG_COLUMNS = (
 
 SONGS = 'Songs'
 
+
 def init():
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
@@ -49,7 +50,7 @@ def init():
     )
     conn.commit()
     conn.close()
-    try:    
+    try:
         if platform == "linux" or platform == "linux2":
             if not path_exists(DATABASE):
                 print('Attempting ffmpeg install.')
@@ -62,7 +63,7 @@ class DBLink:
 
     def __init__(self):
         self.conn = sqlite3.connect(DATABASE)
-    
+
     def quick_commit(self, string: str, bindings: Sequence = []):
         with self.conn as conn:
             conn.cursor().execute(string, bindings)
@@ -76,26 +77,25 @@ class DBLink:
                 WHERE FQFN = ?
                 LIMIT 1
                 """.format(table), [FQFN]
-                ) 
+            )
             return cursor.fetchone() != None
-        
+
     def del_all_absent_songs(self, table: str = SONGS):
         fetch = []
         list = []
         with self.conn as conn:
             cursor = conn.cursor()
             cursor.execute(
-            """
+                """
             SELECT FQFN from {}
             """.format(table)
             )
-            fetch = cursor.fetchall()  
+            fetch = cursor.fetchall()
         for path_tuple in fetch:
             if not path_exists(path_tuple[0]):
                 list.append(path_tuple[0])
         for path in list:
             self.del_song(path)
-
 
     def directory_registered(self, path: str):
         with self.conn as conn:
@@ -106,7 +106,7 @@ class DBLink:
                 WHERE directory = ?
                 LIMIT 1
                 """, [path]
-            ) 
+            )
             return cursor.fetchone() != None
 
     def get_artists(self, table: str = SONGS) -> list[tuple[str]]:
@@ -120,7 +120,7 @@ class DBLink:
         with self.conn as conn:
             cursor = conn.cursor()
             cursor.execute(
-            """
+                """
             SELECT artist from {}
             GROUP BY artist
             """.format(table)
@@ -206,7 +206,7 @@ class DBLink:
         ret = [{} for _ in range(fetchLen)]
         for i in range(fetchLen):
             for j in range(len(SONG_COLUMNS)):
-                ret[i][SONG_COLUMNS[j]] = fetchedRows[i][j]    
+                ret[i][SONG_COLUMNS[j]] = fetchedRows[i][j]
         return ret
 
     def get_songs_by_artist(self, artist: str, table: str = SONGS) -> list[dict]:
@@ -243,15 +243,15 @@ class DBLink:
         with self.conn as conn:
             cursor = conn.cursor()
             cursor.execute(
-            """
+                """
             SELECT * from Songs
             WHERE album = ? AND artist = ?
             """,
-            [album, artist]
+                [album, artist]
             )
             fetch = cursor.fetchall()
             return self.__gen_song_dicts(fetch)
-   
+
     def get_all_tracks_and_paths(self, album: str, artist: str):
         """
         Returns:
@@ -260,37 +260,36 @@ class DBLink:
         with self.conn as conn:
             cursor = conn.cursor()
             cursor.execute(
-            """
+                """
             SELECT track, FQFN from Songs
             WHERE album = ? AND artist = ?
             ORDER BY trackNum
             """,
-            [album, artist]
+                [album, artist]
             )
             return cursor.fetchall()
-    
+
     def get_album_filenames(self, album: str, artist: str):
         with self.conn as conn:
             cursor = conn.cursor()
             cursor.execute(
-            """
+                """
             SELECT FQFN from Songs
             WHERE album = ? AND artist = ?
             ORDER BY trackNum
             """, [album, artist])
-            return cursor.fetchall()
-
+            return [t[0] for t in cursor.fetchall()]
 
     def get_artist_filenames(self, artist: str):
         with self.conn as conn:
             cursor = conn.cursor()
             cursor.execute(
-            """
+                """
             SELECT FQFN from Songs
             WHERE artist = ?
             ORDER BY album, trackNum
             """, [artist])
-            return cursor.fetchall()
+            return [t[0] for t in cursor.fetchall()]
 
     def del_song_if(self, conditions: dict,
                     negate_all: bool = False, conjunction: bool = True,
@@ -306,7 +305,7 @@ class DBLink:
         "WHERE NOT artist = 'Bryson Tiller' AND NOT album = 'T R A P S O U L'"
 
         Parameters:
-        
+
         conditions: the dictionary of conditions
         negateConditions: if True then NOT is prepended to each boolean operator
         conjunction: if True, the main boolean operator between conditions is "AND", otherwise it is "OR"
@@ -334,15 +333,15 @@ class DBLink:
         self.quick_commit(
             "DELETE FROM Directories " +
             "WHERE directory = ?", [path]
-        )    
+        )
 
-    def del_song_if_absent(self, FQFN: PathLike) -> bool: 
+    def del_song_if_absent(self, FQFN: PathLike) -> bool:
         """
         Deletes songs from the database that do not exist
         based off their primary key 'FQFN' (Fully Qualified Filename)
 
         Parameters:
-        
+
         FQFN: the Fully Qualified Filename of the song in question
 
         Returns:
@@ -357,13 +356,13 @@ class DBLink:
         )
         return True
 
-    def del_directory_if_absent(self, path: PathLike) -> bool: 
+    def del_directory_if_absent(self, path: PathLike) -> bool:
         """
         Deletes directories from the database that do not exist
         based off their primary key 'path'
 
         Parameters:
-        
+
         path: the full path to the directory in question
 
         Returns:
@@ -378,9 +377,9 @@ class DBLink:
     def del_song(self, FQFN: str, table: str = SONGS):
         """
         Deletes a song from the database
-        
+
         Parameters:
-        
+
         path: the fully qualified filename of the song to delete
         """
         self.quick_commit(
@@ -399,7 +398,6 @@ class DBLink:
     def table_is_empty(self, table: str = SONGS):
         return self.get_row_count() == 0
 
-
     def update_song(self, newData: dict, table: str = SONGS):
         """
         Updates a song record.
@@ -409,7 +407,7 @@ class DBLink:
         newData: a dict containing key-value pairings 
         in which the key corresponds directly to a column name
         in Songs. FQFN must be a present key.
-        """ 
+        """
         body = ''
         for key, val in newData.items():
             body += key + ' = :' + key + ',\n'
@@ -428,7 +426,7 @@ class DBLink:
         Parameters:
 
         songData: a dict where each key corresponds to a Song table column
-            
+
         """
         if songData == None:
             return
@@ -448,7 +446,7 @@ class DBLink:
             )
             """.format(table),
             songData
-        ) 
+        )
 
     def add_directory(
             self, path: str, AAT_structure: bool = False):
@@ -464,7 +462,7 @@ class DBLink:
         path: directory to add (ensure it ends with os.sep)
         """
         self.quick_commit(
-            "INSERT INTO Directories VALUES (?,?)", 
+            "INSERT INTO Directories VALUES (?,?)",
             [path, i]
         )
 
@@ -472,4 +470,4 @@ class DBLink:
         with self.conn as conn:
             cursor = conn.cursor()
             cursor.execute('SELECT directory, structure from Directories')
-            return cursor.fetchall() 
+            return cursor.fetchall()
