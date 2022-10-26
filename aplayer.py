@@ -1,10 +1,8 @@
-
-import subprocess
-from sys import platform
 from typing import Sequence
 from config import *
 from PIL import Image
 from pathlib import Path
+import emoji
 import math
 import os
 import db
@@ -104,6 +102,7 @@ class Aplayer:
     _last_batch_pos = -1
     __pl_change_prop = 'brightness'
     __pl_title_prop = 'contrast'
+    
 
     def _mpv_wait():
         time.sleep(0.001)
@@ -531,6 +530,9 @@ class Aplayer:
                 Aplayer._mpv_wait()
         Aplayer.__mark_playlist_change()
 
+    def __remove_emojis(text):
+        return emoji.replace_emoji(text)
+
 
     def savelist(new_playlist_title: str) -> list:
         if (new_playlist_title == Aplayer.DEFAULT_QUEUE):
@@ -542,10 +544,11 @@ class Aplayer:
         rejects = []
         with open(PLAYLISTS_PATH + playlist_name, 'w') as pl:
             for i, filename in enumerate(Aplayer.player.playlist_filenames):
+                file = Aplayer.__remove_emojis(filename)
                 if filename.startswith('https://'):
-                    rejects.append((i, filename))
+                    rejects.append((i, file))
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
-                pl.write(filename + '\n')
+                pl.write(file + '\n')
         Aplayer._current_playlist_title = new_playlist_title
         Aplayer.__mark_playlist_title_change()
         return rejects
