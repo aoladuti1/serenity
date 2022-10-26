@@ -530,10 +530,6 @@ class Aplayer:
                 Aplayer._mpv_wait()
         Aplayer.__mark_playlist_change()
 
-    def __remove_emojis(text):
-        return emoji.replace_emoji(text)
-
-
     def savelist(new_playlist_title: str) -> list:
         if (new_playlist_title == Aplayer.DEFAULT_QUEUE):
             return []
@@ -544,8 +540,8 @@ class Aplayer:
         rejects = []
         with open(PLAYLISTS_PATH + playlist_name, 'w') as pl:
             for i, filename in enumerate(Aplayer.player.playlist_filenames):
-                file = Aplayer.__remove_emojis(filename)
-                if filename.startswith('https://'):
+                file = emoji.replace_emoji(filename)
+                if file.startswith('https://'):
                     rejects.append((i, file))
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
                 pl.write(file + '\n')
