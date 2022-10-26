@@ -577,7 +577,7 @@ class LeftPane:
             self.seekBar.duration.configure(text = self.duration_str)
         else:
             self.seekBar.duration.configure(text='--:--:--')
-        self.seekBar.new_position.set(prcnt)
+        self.seekBar.set_position(prcnt)
         self.root.update()
 
     def monitor_pos(self):

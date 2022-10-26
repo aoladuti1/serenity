@@ -131,17 +131,27 @@ class SeekBar(Frame):
         self.slider.event_generate('<Button-3>', x=e.x, y=e.y)
         return 'break'
 
+    def set_position(self, percent):
+        if self.sliding:
+            return
+        else:
+            self.new_position.set(percent)  
+
     def seek_percent(self, p: float):
         if self.sliding is True:
             return
         self.sliding = True
-        percent = ceil(float(p))
+        time.sleep(0.09)
+        self.slider.update()
+        self.new_position.set(self.slider.get())
+        percent = ceil(float(self.new_position.get()))
+        print(percent)
         Aplayer.seek_percent(percent)
-        secs = 0.15
+        sleep_secs = 0.15
         if percent == 100:
-            secs = 1
+            sleep_secs = 1
         threading.Thread(
-            target=self.unset_sliding, args=(secs,)).start()
+            target=self.unset_sliding, args=(sleep_secs,)).start()
 
 
 class DarkLabelButton(LabelButton):
