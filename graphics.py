@@ -961,7 +961,7 @@ class LeftPane:
         del_pl_button.grid(row=0)
         i = 1
         for path in chosen_playlist_files:
-            data = "{}|{}".format(path, i)
+            data = "{}|{}".format(path, i - 1)
             label = self.genBrowserLabel(
                 i, Aplayer.get_title_from_file(path),
                 PLAYLIST_SONGS, data, self.play, browser=browser)

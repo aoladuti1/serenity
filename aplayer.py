@@ -329,12 +329,13 @@ class Aplayer:
     def gen_online_song():
         pass  # TODO: IMPLEMENT
 
-    def _validate_title(known_title: str = '') -> str:
-        if known_title != '':
-            if known_title is None:
-                return None
-            title = known_title.replace("|", "¦")
-            return "".join(i for i in title if i not in r'\/:*?"<>')
+    def _validate_title(title: str) -> str:
+        if title is None:
+            return None
+        txt = title.replace("|", "¦")
+        txt = txt.encode('ascii', 'ignore').decode()
+        return "".join(i for i in txt if i not in r'\/:*?"<>')
+
 
     def scrape_title(url: str, force_title: str = ''):
         if force_title != '':
@@ -530,7 +531,7 @@ class Aplayer:
                 Aplayer._mpv_wait()
         Aplayer.__mark_playlist_change()
 
-    def savelist(new_playlist_title: str) -> list:
+    def savelist(new_playlist_title: str) -> list[tuple[int, PathLike]]:
         if (new_playlist_title == Aplayer.DEFAULT_QUEUE):
             return []
         playlist_name = new_playlist_title
@@ -538,15 +539,21 @@ class Aplayer:
             playlist_name = new_playlist_title + PLAYLIST_EXTENSION
         dest = PLAYLISTS_PATH + playlist_name
         rejects = []
+        accept_list = []
         with open(PLAYLISTS_PATH + playlist_name, 'w') as pl:
-            for i, filename in enumerate(Aplayer.player.playlist_filenames):
+            enu_pl_files = enumerate(Aplayer.player.playlist_filenames)
+            for i, filename in enu_pl_files:
                 file = emoji.replace_emoji(filename)
                 if file.startswith('https://'):
                     rejects.append((i, file))
+                else:
+                    accept_list.append(file)
+            if len(accept_list) > 0:
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
-                pl.write(file + '\n')
-        Aplayer._current_playlist_title = new_playlist_title
-        Aplayer.__mark_playlist_title_change()
+                for good_file in accept_list:
+                    pl.write(good_file + '\n')
+                Aplayer._current_playlist_title = new_playlist_title
+                Aplayer.__mark_playlist_title_change()
         return rejects
 
     def save_current_playlist():
