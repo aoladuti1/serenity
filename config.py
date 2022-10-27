@@ -7,12 +7,16 @@ import ttkbootstrap as ttk
 from typing import TypeVar
 from themes.user import USER_THEMES
 
-# useful functions 
+# useful functions
+
+
 def is_past_list(index, list) -> bool:
     return index > len(list) - 1
 
+
 def is_last_index(index, list) -> bool:
     return index == len(list) - 1
+
 
 def next_valid_index(from_index: int, circular_list: list) -> int:
     if from_index < len(circular_list) - 1:
@@ -20,24 +24,29 @@ def next_valid_index(from_index: int, circular_list: list) -> int:
     else:
         return 0
 
+
 def rellipsis(text) -> str:
     return text + '...'
+
 
 def lspace(text) -> str:
     return ' ' + text
 
+
 def wrap_dots(text) -> str:
     return '..{}..'.format(text)
+
 
 def path_exists(path):
     return os.path.exists(os.path.expanduser(path))
 
+
 def light_wait():
     sleep(0.001)
 
-def is_netpath(path):
-    return '://' in path[0:13] 
 
+def is_netpath(path):
+    return '://' in path[0:13]
 
 
 # typing
@@ -108,14 +117,21 @@ CONVERSION_WARNING = ['Hold on!',
                       'Files are still converting/downloading. Quit?']
 GUIDE_TEXT = """Click 'More...' to add some music!
 
-Then, click [add library] if each song file is in an album-named folder, and each album-named folder is inside an artist-named folder. For example (assuming you add a directory called "Music") the full directory of the song "Don't" may be "Music/Bryson Tiller/T R A P S O U L/05 - Don't.mp3."
+Then, click [add library] if each song file is in an album-named folder, and \
+each album-named folder is inside an artist-named folder.
+For example (assuming you add a directory called "Music") 
+the full directory of the song "Don't" may be 
+"Music/Bryson Tiller/T R A P S O U L/05 - Don't.mp3." 
 
-Otherwise, click [add songs] and we'll try our best to get all your music added and organised nicely :-)
+Otherwise, click [add folders] and we'll try our best to get all your music \
+added and organised nicely :-)
 
-When you choose a directory all music files in its subdirectories will be added to the database.
+When you choose a directory all music files in its subdirectories will be \
+added to the database.
 
 Don't worry too much about the EXACT file / folder names, Serenity is flexible!
-[Note: Serenity does not use metadata at all. Things like track number can be signalled by being present in the filename like .../01 - Intro.mp3.]"""
+[Note: Serenity does not use metadata at all. Things like track number can be 
+signalled by being present in the filename like .../01 - Intro.mp3.]"""
 
 
 def configureStyle():
@@ -124,8 +140,6 @@ def configureStyle():
     style.configure('TButton', focuscolor=style.configure(
         'TButton')['background'])
     style.configure('TFrame', background='black')
-
-    
 
 
 def configureFont():
@@ -142,5 +156,3 @@ def configureRoot(root: ttk.Window, expanded: bool = False):
     root.configure(background=COLOUR_DICT['bg'])
     root.columnconfigure(0, weight=1)
     mastertools.init(root, expanded)
-    
-

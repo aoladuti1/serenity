@@ -2,6 +2,7 @@ import math
 import os
 import threading
 import time
+from audiodl import AudioDL
 from pathlib import Path
 
 import emoji
@@ -23,7 +24,7 @@ class Aplayer:
     DEFAULT_QUEUE = 'Queue'
     MAX_SECS_NO_PREV = 3  # If get_time_pos < max, prev() = rewind to 0 secs
     player = gen_MPV()
-    online_queue = False
+    __online_queue = False
     __playlist_title = DEFAULT_QUEUE
     __loading_list = False
     __is_shuffling = False
@@ -36,7 +37,7 @@ class Aplayer:
     def kill():
         Aplayer.player.quit(code=0)
 
-    def filename() -> dict:
+    def filename() -> str:
         return Aplayer.player._get_property('path')
 
     def playlist_filenames():
@@ -71,6 +72,9 @@ class Aplayer:
         else:
             Aplayer.player.playlist_prev('force')
 
+    def is_online():
+        return Aplayer.__online_queue
+
     def clear_subqueue():
         Aplayer.__subqueue_creation_pos = 0
         Aplayer.__subqueue_length = 0
@@ -88,6 +92,9 @@ class Aplayer:
         final_index = toIndex if fromIndex > toIndex else toIndex + 1
         Aplayer.player.playlist_move(fromIndex, final_index)
         Aplayer.__mark_playlist_change()
+
+    def play_index(index):
+        Aplayer.player.playlist_play_index(index)
 
     def _get_next_queue_index():
         return Aplayer.__subqueue_creation_pos + Aplayer.__subqueue_length
@@ -180,14 +187,30 @@ class Aplayer:
     def __load_one_of_many(
             filename, play_type, zero_playlist_pos=False, queue=False):
         Aplayer.player.loadfile(filename, play_type)
-        if not Aplayer.online_queue:
-            Aplayer.online_queue = is_netpath(filename)
+        if not Aplayer.__online_queue:
+            Aplayer.__online_queue = is_netpath(filename)
         if zero_playlist_pos:
             if queue and not Aplayer.is_paused():
                 Aplayer.pauseplay()
             Aplayer.set_playlist_pos(0)
             Aplayer.__mark_playlist_title_change()
         Aplayer.__queue_properly()
+
+    def get_title_from_file(
+            filename: str = '', scraped_title: str = '', downloading=False):
+        try:
+            file = filename if filename != '' else Aplayer.filename()
+            online = is_netpath(file)
+            if online is True:
+                if downloading is True:
+                    return AudioDL.validate_title(
+                        AudioDL.scrape_title(file, scraped_title))
+                else:
+                    return AudioDL.scrape_title(file, scraped_title)
+            else:
+                return Path(file).stem
+        except Exception:
+            return None
 
     def loadall(filenames: list, queue: bool = False):
         element_count = len(filenames)
@@ -228,18 +251,18 @@ class Aplayer:
             playlist_name = new_playlist_title + PLAYLIST_EXTENSION
         dest = PLAYLISTS_PATH + playlist_name
         rejects = []
-        accept_list = []
+        files_accepted = []
         with open(PLAYLISTS_PATH + playlist_name, 'w') as pl:
-            enu_pl_files = enumerate(Aplayer.player.playlist_filenames)
-            for i, filename in enu_pl_files:
+            indexed_files = enumerate(Aplayer.player.playlist_filenames)
+            for i, filename in indexed_files:
                 file = emoji.replace_emoji(filename)
                 if file.startswith('https://'):
                     rejects.append((i, file))
                 else:
-                    accept_list.append(file)
-            if len(accept_list) > 0:
+                    files_accepted.append(file)
+            if files_accepted:
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
-                for good_file in accept_list:
+                for good_file in files_accepted:
                     pl.write(good_file + '\n')
                 Aplayer.__playlist_title = new_playlist_title
                 Aplayer.__mark_playlist_title_change()

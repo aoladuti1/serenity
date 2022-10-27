@@ -135,7 +135,7 @@ class SeekBar(Frame):
         if self.sliding:
             return
         else:
-            self.new_position.set(percent)  
+            self.new_position.set(percent)
 
     def seek_percent(self, p: float):
         if self.sliding is True:
@@ -145,7 +145,6 @@ class SeekBar(Frame):
         self.slider.update()
         self.new_position.set(self.slider.get())
         percent = ceil(float(self.new_position.get()))
-        print(percent)
         Aplayer.seek_percent(percent)
         sleep_secs = 0.15
         if percent == 100:
@@ -156,7 +155,7 @@ class SeekBar(Frame):
 
 class DarkLabelButton(LabelButton):
     def __init__(self, master, clickFunc=None,
-                defaultFG = COLOUR_DICT['primary'], **kw):
+                 defaultFG=COLOUR_DICT['primary'], **kw):
         LabelButton.__init__(
             self, master=master,
             unclickFunc=clickFunc,
@@ -170,8 +169,8 @@ class DarkLabelButton(LabelButton):
 class QueueListbox(Listbox):
     """ A tk listbox with drag'n'drop reordering of entries. """
 
-    def __init__(self, master, root, set_fg = COLOUR_DICT['light'], 
-                 current_song_fg = COLOUR_DICT['primary'], **kw):
+    def __init__(self, master, root, set_fg=COLOUR_DICT['light'],
+                 current_song_fg=COLOUR_DICT['primary'], **kw):
         from mastertools import Shield
         kw['selectmode'] = MULTIPLE
         Listbox.__init__(self, master, **kw)
@@ -188,7 +187,7 @@ class QueueListbox(Listbox):
         self.bind('<B1-Motion>', self.shift_selection)
         self.bind('<ButtonRelease-1>', self.moved_item)
         self.bind('<Double-Button-1>',
-                  lambda e: Aplayer.player.playlist_play_index(self.cur_index))
+                  lambda e: Aplayer.play_index(self.cur_index))
         self.config(width=50, height=int(Shield.drawn_height / 55),
                     background=COLOUR_DICT['bg'])
         Aplayer.observe_playlist_changes(self.refresh_queue)
@@ -234,16 +233,17 @@ class QueueListbox(Listbox):
             self.cur_index = i
 
     def update(self, _, _2):
-        Aplayer._mpv_wait()
+        light_wait()
         pos = Aplayer.get_playlist_pos()
         size = self.size()
         if ((pos is None or pos < 0
             or pos > size - 1
-            or self.__last_playing_pos > size - 1)):
-                return
+                or self.__last_playing_pos > size - 1)):
+            return
         valid_pos = pos if pos < size else size - 1
         if self.__last_playing_pos != -1:
-            self.itemconfig(self.__last_playing_pos, {'fg': self['foreground']})
+            self.itemconfig(self.__last_playing_pos, {
+                            'fg': self['foreground']})
         else:
             self.itemconfig(self.size() - 1, {'fg': self['foreground']})
         self.itemconfig(valid_pos, {'fg': self.current_song_fg})
@@ -263,12 +263,12 @@ class QueueListbox(Listbox):
         self.selection_clear(0, END)
         e.widget['foreground'] = e.widget.defaultFG
 
-
     # event should be from a DarkLabelButton
+
     def playlist_clear(self, e: Event):
         Aplayer.clear_queue()
         e.widget['foreground'] = e.widget.defaultFG
-        self.update(None,None)
+        self.update(None, None)
 
     # event should be from a DarkLabelButton
     def playlist_remove_selection(self, e: Event):
@@ -291,7 +291,7 @@ class EntryBar(Frame):
         self.main_button = main_button_widgets[1]
         self.side_label = ttk.Label(self, font=(DEFAULT_FONT_FAMILY, 12))
         self.entry = Entry(self, width=27)
-        self.entry.grid(row=0, column=0, padx=(0,smartxpad))
+        self.entry.grid(row=0, column=0, padx=(0, smartxpad))
         self.entry.configure(
             font=(DEFAULT_FONT_FAMILY, 13),
             background=COLOUR_DICT['dark'],
@@ -344,9 +344,10 @@ class EntryBar(Frame):
 
     def show_side_label(self, text):
         self.side_label.configure(text=text)
-        self.side_label.grid(row=0, column=len(self.button_frames) + 1, sticky=E)
+        self.side_label.grid(row=0, column=len(
+            self.button_frames) + 1, sticky=E)
 
-    def hide_side_label(self, text = ''):
+    def hide_side_label(self, text=''):
         self.side_label.grid_remove()
         if text != '':
             self.side_label.configure(text=text)

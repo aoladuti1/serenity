@@ -303,9 +303,6 @@ def add_downloaded_song(FQFN, data, custom_link = None):
     bitRateInfo, samplingRateInfo, codec = getAudioInfo(FQFN)
     while bitRateInfo == '0':
         bitRateInfo, samplingRateInfo, codec = getAudioInfo(FQFN)
-    art_path = ART_PATH + DL_FOLDER_NAME + os.sep + artist + os.sep + track
-    os.makedirs(os.path.dirname(art_path), exist_ok=True)
-    art = art_path + '.' + ART_FORMAT
     songData = {
         "FQFN": FQFN,
         "artist": artist,
@@ -315,7 +312,7 @@ def add_downloaded_song(FQFN, data, custom_link = None):
         "bitRateInfo": bitRateInfo,
         "samplingRateInfo": samplingRateInfo,
         "codec": codec,
-        "art": art,
+        "art": DEFAULT_ART,
         "listens": 0
     }
     if not custom_link.song_registered(FQFN):
