@@ -1,6 +1,7 @@
 # support
 import os
 import pathlib
+from time import sleep
 from tkinter import *
 import ttkbootstrap as ttk
 from typing import TypeVar
@@ -30,6 +31,13 @@ def wrap_dots(text) -> str:
 
 def path_exists(path):
     return os.path.exists(os.path.expanduser(path))
+
+def light_wait():
+    sleep(0.001)
+
+def is_netpath(path):
+    return '://' in path[0:13] 
+
 
 
 # typing
