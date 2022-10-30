@@ -46,7 +46,7 @@ DPR = pyautogui.screenshot().size[0]/pyautogui.size().width  # DevicePixelRatio
 
 # called to ensure DPR adjustment for some methods, with whole pixels returned
 def __DPR_ceil(x: int, y):
-    return (_math.ceil(x / DPR), _math.ceil(y / DPR))
+    return (_math.ceil(x * DPR), _math.ceil(y * DPR))
 
 
 def title_bar_height(
