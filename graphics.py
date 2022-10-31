@@ -1085,7 +1085,7 @@ class LeftPane:
         for prefix in LeftPane.PREFIXES:
             index = text.find(prefix)
             if index != -1:
-                text = text[index:]
+                text = text[len(prefix):]
                 break
         if text.endswith('%]'):
             text = text.rsplit(' [')[-1]
