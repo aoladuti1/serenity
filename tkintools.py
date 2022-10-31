@@ -197,18 +197,18 @@ class QueueListbox(Listbox):
         if self.cur_index != self.last_cur_index:
             Aplayer.playlist_move(self.last_cur_index, self.cur_index, True)
 
-    def set_current(self, event):
+    def set_current(self, e: Event):
         ''' gets the current index of the clicked item in the listbox '''
-        self.cur_index = self.nearest(event.y)
+        self.cur_index = self.nearest(e.y)
         self.last_cur_index = self.cur_index
 
-    def get_state(self, event):
+    def get_state(self, e: Event):
         ''' checks if the clicked item in listbox is selected '''
         self.cur_state = 1
 
-    def shift_selection(self, event):
+    def shift_selection(self, e: Event):
         ''' shifts item up or down in listbox '''
-        i = self.nearest(event.y)
+        i = self.nearest(e.y)
         if self.cur_state == 1:
             self.selection_set(self.cur_index)
         else:
@@ -264,7 +264,6 @@ class QueueListbox(Listbox):
         e.widget['foreground'] = e.widget.defaultFG
 
     # event should be from a DarkLabelButton
-
     def playlist_clear(self, e: Event):
         Aplayer.clear_queue()
         e.widget['foreground'] = e.widget.defaultFG
