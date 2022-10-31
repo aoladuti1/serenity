@@ -1,17 +1,14 @@
-from typing import Sequence
-from config import *
-from PIL import Image
-from pathlib import Path
-import emoji
 import math
 import os
-import db
-import time
-import mpv
-import records
 import threading
-import yt_dlp
-import youtube_title_parse as ytp
+import time
+from audiodl import AudioDL
+from pathlib import Path
+
+import emoji
+import mpv
+
+from config import *
 
 PLAYLIST_EXTENSION = '.m3u'
 
@@ -22,160 +19,70 @@ def gen_MPV():
         ytdl_raw_options='yes-playlist=', keep_open=True)
 
 
-def convertImage(filename):
-    while not os.path.exists(filename):
-        time.sleep(0.1)
-    try:
-        if filename.endswith(ART_FORMAT):
-            savepath = filename
-        else:
-            im = Image.open(filename)
-            savepath = filename.rsplit('.', maxsplit=1)[0] + '.' + ART_FORMAT
-            rgb_im = im.convert('RGB')
-            rgb_im.save(savepath)
-            os.remove(filename)
-    except:
-        pass
-
-
-class VoidLogger(object):
-
-    def debug(msg):
-        pass
-
-    def warning(msg):
-        pass
-
-    def error(msg):
-        pass
-
-
-class ThumbnailConverter(object):
-    def debug(msg):
-        fine_msg = msg[7::]
-        if not fine_msg.startswith('Writing video th'):
-            pass
-        else:
-            unconverted_thumb = fine_msg.rpartition('to: ')[2]
-            threading.Thread(
-                target=convertImage, args=(unconverted_thumb,)).start()
-
-    def warning(msg):
-        pass
-
-    def error(msg):
-        pass
-
-
 class Aplayer:
 
     DEFAULT_QUEUE = 'Queue'
-    subqueue_creation_pos = 0
-    subqueue_length = 0
-    MAX_SECONDS_NO_PREV = 3  # If get_time_pos < max, prev() = rewind to 0 secs
-    YT_DLP_OPTIONS = {  # IMPORTANT. No OUTTMPL info.
-        'extractaudio': True,
-        'quiet': True,
-        'format': 'bestaudio/best',
-        'playlist': True,
-        'logger': VoidLogger,
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': DOWNLOADS_CODEC,
-            'preferredquality': '192'
-        }]
-    }
-
+    MAX_SECS_NO_PREV = 3  # If get_time_pos < max, prev() = rewind to 0 secs
     player = gen_MPV()
-    online_queue = False
-    wait_stream_lock = False
-    dl_on_stream = False
-    converting_audio = False
-    downloading_audio = False
-    _download_queue_titles = []
-    _download_index = -1
-    _current_download_percent = 0
-    _current_playlist_title = DEFAULT_QUEUE
-    _loading_list = False
-    _is_shuffling = False
-    _prog_hook_added = False
-    _last_batch_pos = -1
+    __online_queue = False
+    __playlist_title = DEFAULT_QUEUE
+    __loading_list = False
+    __is_shuffling = False
+    __last_batch_pos = -1
     __pl_change_prop = 'brightness'
     __pl_title_prop = 'contrast'
-    
-
-    def _mpv_wait():
-        time.sleep(0.001)
-
-    def _prog_hook(d: dict):
-        # TODO: implement properly
-        # TODO: Reports the progress of the least completed download
-        if d['status'] == 'finished':
-            Aplayer._download_index -= 1
-            if len(Aplayer._download_queue_titles) > 0:
-                Aplayer._download_queue_titles.pop()
-                Aplayer._mpv_wait()
-                Aplayer._current_download_percent = 0
-            else:
-                Aplayer._current_download_percent = 100
-        if d['status'] == 'downloading':
-            p = d['_percent_str']
-            p = math.floor(float(p[0:-1]))
-            if Aplayer._download_index >= len(Aplayer._download_queue_titles) - 1:
-                Aplayer._current_download_percent = p
+    __subqueue_creation_pos = 0
+    __subqueue_length = 0
 
     def kill():
         Aplayer.player.quit(code=0)
 
-    def getFilename() -> dict:
+    def filename() -> str:
         return Aplayer.player._get_property('path')
-
-    def getDownloadingTitle() -> str:
-        if Aplayer._download_index <= -1:
-            return ''
-        else:
-            return Aplayer._download_queue_titles[Aplayer._download_index]
 
     def playlist_filenames():
         return Aplayer.player.playlist_filenames
 
     def next():
         pl_pos = Aplayer.get_playlist_pos()
-        count = Aplayer.get_playlist_count()
+        count = Aplayer.playlist_count()
         if Aplayer.is_looping_track():
             if pl_pos != count - 1:
                 Aplayer.player._set_property('playlist-pos', pl_pos + 1)
             else:
                 Aplayer.player.seek(0, 'absolute')
         elif pl_pos == count - 1:
-            if not math.ceil(100 * Aplayer.get_time_pos() / Aplayer.get_duration()) == 100:
+            if math.ceil(100 * Aplayer.time_pos() / Aplayer.duration()) != 100:
                 Aplayer.player.seek(100, 'absolute-percent')
         else:
             Aplayer.player.playlist_next()
         if Aplayer.get_playlist_pos() == -1:
-            Aplayer.__mark_playlist_change()   
+            Aplayer.__mark_playlist_change()
 
-    def _should_rewind_to_zero() -> bool:
+    def __should_rewind_to_zero() -> bool:
         return (
             Aplayer.get_playlist_pos() == 0
-            or Aplayer.get_time_pos() >= Aplayer.MAX_SECONDS_NO_PREV)
+            or Aplayer.time_pos() >= Aplayer.MAX_SECS_NO_PREV)
 
     def prev():
         if not Aplayer.is_active():
             return
-        if Aplayer._should_rewind_to_zero() is True:
+        if Aplayer.__should_rewind_to_zero() is True:
             Aplayer.player.seek(0, 'absolute')
         else:
             Aplayer.player.playlist_prev('force')
 
+    def is_online():
+        return Aplayer.__online_queue
+
     def clear_subqueue():
-        Aplayer.subqueue_creation_pos = 0
-        Aplayer.subqueue_length = 0
+        Aplayer.__subqueue_creation_pos = 0
+        Aplayer.__subqueue_length = 0
 
     def clear_queue():
         Aplayer.player.playlist_clear()
         Aplayer.clear_subqueue()
-        Aplayer._current_playlist_title = Aplayer.DEFAULT_QUEUE
+        Aplayer.__playlist_title = Aplayer.DEFAULT_QUEUE
         Aplayer.__mark_playlist_change()
         Aplayer.__mark_playlist_title_change()
 
@@ -186,117 +93,30 @@ class Aplayer:
         Aplayer.player.playlist_move(fromIndex, final_index)
         Aplayer.__mark_playlist_change()
 
-    def _get_next_queue_index():
-        return Aplayer.subqueue_creation_pos + Aplayer.subqueue_length
+    def play_index(index):
+        Aplayer.player.playlist_play_index(index)
 
-    def _queue_properly():
-        Aplayer._mpv_wait()
-        Aplayer.subqueue_length += 1
+    def _get_next_queue_index():
+        return Aplayer.__subqueue_creation_pos + Aplayer.__subqueue_length
+
+    def __queue_properly():
+        light_wait()
+        Aplayer.__subqueue_length += 1
         try_queue_insert_pos = Aplayer._get_next_queue_index()
         if try_queue_insert_pos <= Aplayer.get_playlist_pos():
-            Aplayer.subqueue_creation_pos = Aplayer.get_playlist_pos()
-            Aplayer.subqueue_length = 1
-        elif try_queue_insert_pos > Aplayer.get_playlist_count() - 1:
-            Aplayer.subqueue_length = (
-                Aplayer.get_playlist_count() - 1
+            Aplayer.__subqueue_creation_pos = Aplayer.get_playlist_pos()
+            Aplayer.__subqueue_length = 1
+        elif try_queue_insert_pos > Aplayer.playlist_count() - 1:
+            Aplayer.__subqueue_length = (
+                Aplayer.playlist_count() - 1
                 - Aplayer.get_playlist_pos())
-            Aplayer.subqueue_creation_pos = Aplayer.get_playlist_pos()
+            Aplayer.__subqueue_creation_pos = Aplayer.get_playlist_pos()
         final_queue_insert_pos = Aplayer._get_next_queue_index()
         Aplayer.playlist_move(
-            Aplayer.get_playlist_count() - 1,
+            Aplayer.playlist_count() - 1,
             final_queue_insert_pos)
-        if Aplayer.subqueue_length == 1:
-            Aplayer.subqueue_creation_pos = Aplayer.get_playlist_pos()
-
-    def __get_play_type():
-        if (not Aplayer.is_active()
-            or (int(Aplayer.get_time_pos()) == int(Aplayer.get_duration())
-                and Aplayer.get_playlist_pos() == Aplayer.get_playlist_count() - 1
-                and not Aplayer.is_looping_queue()
-                and not Aplayer.is_looping_track())):
-            return 'replace'
-        else:
-            return 'append-play'
-
-
-    def loadfile(filename: str, queue=False, scraped_title='', download=False, force_append_play=False):
-        """Load/play a file. If queue == False, the file is played immediately
-        in a new playlist. If queue == True, the file is appended
-        to the current playlist, or loaded in a paused state if there isn't
-        an active playlist (Aplayer.is_active() == False).
-        A playlist can only be either online or offline.
-
-        The queuing algorithm used will create a subqueue of tracks
-        at the index after whatever the currently playing position is,
-        which clears itself after a user listens past all subqueue tracks.
-        It's essentially Spotify's queuing algorithm,
-        but going to previous tracks doesn't affect the upcoming track order.
-
-        Args:
-            filename (str): the fully qualified filename or URL to play/queue
-            queue (bool, optional): if True, queues file. Defaults to False.
-            online_title: if specified, when streaming music this method
-                will use online_title as an already scraped value for the title
-            download: if True, will download a stream if one is passed
-        """
-        if not queue:
-            Aplayer.seek(0, False)
-        online = filename.startswith('https:') is True
-        if not Aplayer.online_queue is True:
-            Aplayer.online_queue = online
-        if not online and not path_exists(filename):
-            return
-        if not force_append_play:
-            play_type = Aplayer.__get_play_type()
-        else:
-            play_type = 'append'
-        title = Aplayer.get_title_from_file(filename, scraped_title, download)
-        if title is None:
-            return
-        Aplayer.player.loadfile(filename, play_type)
-        if online:
-            Aplayer.online_queue = True
-        data = Aplayer.get_artist_track_trackNum(title)
-        new_playlist_count = Aplayer.get_playlist_count()
-        if Aplayer._last_batch_pos < Aplayer._get_set_batch_pos():
-            Aplayer.clear_subqueue()
-        if queue is True and new_playlist_count > 1:
-            Aplayer._queue_properly()
-        elif new_playlist_count == 1:
-            Aplayer.clear_subqueue()
-            Aplayer.online_queue = online
-            if queue is True:
-                if not Aplayer.is_paused():
-                    Aplayer.pauseplay()
-        elif queue is False and new_playlist_count > 2:
-            pos = Aplayer.get_playlist_pos()
-            pl_count = Aplayer.get_playlist_count()
-            if pos == -1:
-                pos = pl_count - 1
-            Aplayer._mpv_wait()
-            Aplayer.playlist_move(pl_count - 1, pos + 1)
-            Aplayer.next()
-            if pl_count == 2:
-                Aplayer.player.playlist_remove(pos)
-        elif queue is False and new_playlist_count == 2:
-            Aplayer._mpv_wait()
-            Aplayer.player.playlist_next('force')
-            Aplayer.player.playlist_remove(0)
-        if online is True and download is True:
-            if Aplayer.download_thumbnail([filename], data) != '':
-                t = threading.Thread(
-                    target=Aplayer.download_to_audio,
-                    args=([filename], data), daemon=True)
-                t.start()
-        Aplayer._mpv_wait()
-        if not queue:
-            if Aplayer.is_paused() is True or Aplayer.is_active() is False:
-                Aplayer.pauseplay()
-        Aplayer.__mark_playlist_change()
-
-    def download(filename, data):
-        if Aplayer.download_thumbnail([filename], data) != '':
-            Aplayer.download_to_audio([filename], data)
+        if Aplayer.__subqueue_length == 1:
+            Aplayer.__subqueue_creation_pos = Aplayer.get_playlist_pos()
 
     def delete_playlist(title):
         pl_file = Aplayer.playlist_path(title)
@@ -317,199 +137,96 @@ class Aplayer:
         ''' do not use this with an mpv overlay. '''
         Aplayer.__dummy_property_mod(Aplayer.__pl_change_prop)
 
+    # observer functions will have arg1 as property name and arg2 as value
+    # e.g. def path_change_handler(propname, path): ......
     def observe_playlist_changes(observer):
         Aplayer.player.observe_property(Aplayer.__pl_change_prop, observer)
-    
+
     def observe_playlist_pos(observer):
         Aplayer.player.observe_property('playlist-playing-pos', observer)
 
     def observe_playlist_title(observer):
         Aplayer.player.observe_property(Aplayer.__pl_title_prop, observer)
-        
-    def gen_online_song():
-        pass  # TODO: IMPLEMENT
 
-    def _validate_title(title: str) -> str:
-        if title is None:
-            return None
-        txt = title.replace("|", "¦")
-        txt = txt.encode('ascii', 'ignore').decode()
-        return "".join(i for i in txt if i not in r'\/:*?"<>')
+    def observe_path(observer):
+        Aplayer.player.observe_property('path', observer)
 
-
-    def scrape_title(url: str, force_title: str = ''):
-        if force_title != '':
-            return force_title
-        else:
-            return yt_dlp.YoutubeDL(
-                {
-                    'logger': VoidLogger,
-                    'skip_download': True,
-                    'quiet': True
-                }
-            ).extract_info(url, download=False).get('title', None)
-
-    def get_title_from_file(filename: str = '', scraped_title: str = '', downloading=False):
-        try:
-            if filename == '':
-                filename = Aplayer.getFilename()
-            online = filename.startswith('http')
-            if online is True:
-                if downloading is True:
-                    return Aplayer._validate_title(
-                        Aplayer.scrape_title(filename, scraped_title))
-                else:
-                    return Aplayer.scrape_title(filename, scraped_title)
-            else:
-                return Path(filename).stem
-        except Exception:
-            return None
-
-    def get_artist_track_trackNum(valid_title: str):
-        options = {
-            'defaultArtist': UNKNOWN_ARTIST,
-            'defaultTitle': valid_title
-        }
-        artist, track = ytp.get_artist_title(valid_title, options)
-        artist, track, trackNum = records.getTrackAndArtistInfo(valid_title)
-        return [artist, track, trackNum, valid_title]
-
-    def get_site_from_url(url: str):
-        shrunk_url = url.rpartition('://www.')[2]
-        if shrunk_url.startswith('http'):
-            shrunk_url = url.rpartition('://')[2]
-        return shrunk_url.split('/', 1)[0]
-
-    def download_thumbnail(urls: list, data: Sequence = None):
-        """
-        Will download the relevant thumbnail and save it in the
-        format config.ART_FORMAT. The filename will be the video title,
-        with the format as the extension. Returns a the formatted title.
-
-        This usually should not be threaded from an Aplayer function
-        if this art is desired for immediate use.
-
-        Returns:
-            The path to the downloaded thumbnail, or the empty string if
-            it was not downloaded.
-        """
-        if data is None:
-            title = Aplayer.get_title_from_file(urls[0])
-            artist, track, _, _ = Aplayer.get_artist_track_trackNum(title)
-        else:
-            artist, track, _, title = data
-        if title == '':
-            return ''
-        dl_path = ART_PATH + DL_FOLDER_NAME + os.sep + artist + os.sep + track
-        os.makedirs(os.path.dirname(dl_path), exist_ok=True)
-        tdl = yt_dlp.YoutubeDL({
-            'outtmpl': dl_path,  # TODO -> ART_PATH/-Downloads-
-            'writethumbnail': True,
-            "logger": ThumbnailConverter,
-            'skip_download': True
-        })
-        full_path = dl_path + '.' + ART_FORMAT
-        if path_exists(full_path):
-            return
-        try:
-            tdl.download(urls)
-        except Exception:
-            return DEFAULT_ART
-        while not path_exists(full_path):
-            time.sleep(0.1)
-        return full_path
-        # createSongDict(ThumbnailConverter.converted_thumb_paths[index]) thing
-
-    def download_to_audio(urls: list, data: Sequence):
-        # data is a sequence of artist, track, trackNum, title
-        Aplayer._mpv_wait()
-        if data is None:
-            title = Aplayer.get_title_from_file(urls[0])
-            data = Aplayer.get_artist_track_trackNum(title)
-        artist, track, _, title = data
-        if title == '':
-            return
-        options = Aplayer.YT_DLP_OPTIONS.copy()
-        dl_path = DOWNLOAD_PATH + artist + os.sep + track
-        options['outtmpl'] = dl_path + '.%(ext)s'
-        downloader = yt_dlp.YoutubeDL(options)
-        full_path = "{}.{}".format(dl_path, DOWNLOADS_CODEC)
-        if not path_exists(full_path):
-            os.makedirs(os.path.dirname(full_path), exist_ok=True)
-            with downloader as dl:
-                appended = False
-                try:
-                    dl.add_progress_hook(Aplayer._prog_hook)
-                    Aplayer._download_index += 1
-                    Aplayer._download_queue_titles.append(title)
-                    appended = True
-                    Aplayer.converting_audio = True
-                    Aplayer.downloading_audio = True
-                    dl.download(urls)
-                except Exception:
-                    if appended is True:
-                        Aplayer._download_queue_titles.pop()     
-        if len(Aplayer._download_queue_titles) == 0:
-            Aplayer.downloading_audio = False
-        dbLink = db.DBLink()
-        records.add_downloaded_song(full_path, data, dbLink)
-        if len(Aplayer._download_queue_titles) == 0:
-            Aplayer.converting_audio = False
+    def observe_pause(observer):
+        Aplayer.player.observe_property('pause', observer)
 
     def loadlist(
             playlist_title: str, index: int = -1, pause_on_load: bool = False):
-        Aplayer._loading_list = True
+        Aplayer.__loading_list = True
         Aplayer.clear_subqueue()
         index_chosen = index != -1
         playlist_path = PLAYLISTS_PATH + playlist_title + PLAYLIST_EXTENSION
         Aplayer.player.loadlist(playlist_path)
-        Aplayer._loading_list = False
-        Aplayer._current_playlist_title = playlist_title
+        Aplayer.__loading_list = False
+        Aplayer.__playlist_title = playlist_title
         if Aplayer.is_paused() != pause_on_load:
             Aplayer.pauseplay()
-        if Aplayer._is_shuffling is True:
+        if Aplayer.__is_shuffling is True:
             if index_chosen is False:
                 Aplayer.player.playlist_shuffle()
                 Aplayer.player.playlist_play_index(0)
             else:
                 Aplayer.player.playlist_play_index(index)
                 Aplayer.player.playlist_shuffle()
-                Aplayer._mpv_wait()
+                light_wait()
                 Aplayer.playlist_move(Aplayer.get_playlist_pos(), 0)
         elif index_chosen is True:
             Aplayer.player.playlist_play_index(index)
-            Aplayer._mpv_wait()
+            light_wait()
         else:
-            Aplayer._mpv_wait()
-        Aplayer._mpv_wait()
+            light_wait()
+        light_wait()
         Aplayer.__mark_playlist_change()
         Aplayer.__mark_playlist_title_change()
 
-    def _get_set_batch_pos():
+    def __get_set_batch_pos():
         pl_pos = Aplayer.get_playlist_pos()
-        Aplayer._last_batch_pos = pl_pos
+        Aplayer.__last_batch_pos = pl_pos
         return pl_pos
 
-    def __load_one_of_many(filename, play_type, zero_playlist_pos = False, queue = False):
+    def __load_one_of_many(
+            filename, play_type, zero_playlist_pos=False, queue=False):
         Aplayer.player.loadfile(filename, play_type)
+        if not Aplayer.__online_queue:
+            Aplayer.__online_queue = is_netpath(filename)
         if zero_playlist_pos:
             if queue and not Aplayer.is_paused():
                 Aplayer.pauseplay()
             Aplayer.set_playlist_pos(0)
             Aplayer.__mark_playlist_title_change()
-        Aplayer._queue_properly()
+        Aplayer.__queue_properly()
+
+    def get_title_from_file(
+            filename: str = '', scraped_title: str = '', downloading=False):
+        try:
+            file = filename if filename != '' else Aplayer.filename()
+            online = is_netpath(file)
+            if online is True:
+                if downloading is True:
+                    return AudioDL.validate_title(
+                        AudioDL.scrape_title(file, scraped_title))
+                else:
+                    return AudioDL.scrape_title(file, scraped_title)
+            else:
+                return Path(file).stem
+        except Exception:
+            return None
 
     def loadall(filenames: list, queue: bool = False):
-        # offline tracks FOR NOW
         element_count = len(filenames)
         if element_count == 0:
             return
-        if Aplayer._last_batch_pos < Aplayer._get_set_batch_pos():
+        if Aplayer.__last_batch_pos < Aplayer.__get_set_batch_pos():
             Aplayer.clear_subqueue()
-        old_pl_count = Aplayer.get_playlist_count()
-        first_playtype = 'replace' if Aplayer.get_playlist_count() == 0 else 'append'
+        old_pl_count = Aplayer.playlist_count()
+        first_playtype = 'replace' if old_pl_count == 0 else 'append'
         set_to_zero = old_pl_count < 1
-        Aplayer.__load_one_of_many(filenames[0], first_playtype, set_to_zero, queue)
+        Aplayer.__load_one_of_many(
+            filenames[0], first_playtype, set_to_zero, queue)
         if element_count > 1:
             for f in filenames[1:]:
                 Aplayer.__load_one_of_many(f, 'append')
@@ -518,17 +235,16 @@ class Aplayer:
                 Aplayer.pauseplay()
             if old_pl_count > 0:
                 Aplayer.next()
-        Aplayer._mpv_wait()
+        light_wait()
         Aplayer.__mark_playlist_change()
 
-    
     def batch_clear(indices: list[int]):
         for i in indices:
             if i == Aplayer.get_playlist_pos():
                 continue
             else:
                 Aplayer.player.playlist_remove(i)
-                Aplayer._mpv_wait()
+                light_wait()
         Aplayer.__mark_playlist_change()
 
     def savelist(new_playlist_title: str) -> list[tuple[int, PathLike]]:
@@ -539,30 +255,27 @@ class Aplayer:
             playlist_name = new_playlist_title + PLAYLIST_EXTENSION
         dest = PLAYLISTS_PATH + playlist_name
         rejects = []
-        accept_list = []
+        files_accepted = []
         with open(PLAYLISTS_PATH + playlist_name, 'w') as pl:
-            enu_pl_files = enumerate(Aplayer.player.playlist_filenames)
-            for i, filename in enu_pl_files:
+            indexed_files = enumerate(Aplayer.player.playlist_filenames)
+            for i, filename in indexed_files:
                 file = emoji.replace_emoji(filename)
                 if file.startswith('https://'):
                     rejects.append((i, file))
                 else:
-                    accept_list.append(file)
-            if len(accept_list) > 0:
+                    files_accepted.append(file)
+            if files_accepted:
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
-                for good_file in accept_list:
+                for good_file in files_accepted:
                     pl.write(good_file + '\n')
-                Aplayer._current_playlist_title = new_playlist_title
+                Aplayer.__playlist_title = new_playlist_title
                 Aplayer.__mark_playlist_title_change()
         return rejects
-
-    def save_current_playlist():
-        Aplayer.savelist(Aplayer.get_current_playlist_title())
 
     def rename_playlist(old_playlist_title: str, new_playlist_title: str):
         if old_playlist_title == Aplayer.DEFAULT_QUEUE:
             return
-        while Aplayer._loading_list is True:
+        while Aplayer.__loading_list is True:
             time.sleep(0.01)
         os.rename(
             PLAYLISTS_PATH + old_playlist_title + PLAYLIST_EXTENSION,
@@ -572,17 +285,9 @@ class Aplayer:
     def rename_current_playlist(new_playlist_title: str):
         Aplayer.rename_playlist(
             Aplayer.get_current_playlist_title(), new_playlist_title)
-        Aplayer._current_playlist_title = new_playlist_title
+        Aplayer.__playlist_title = new_playlist_title
 
-    # no sort
-    def get_playlist_names() -> list:
-        ret = []
-        for _, _, filenames in os.walk(PLAYLISTS_PATH):
-            for filename in filenames:
-                ret.append(os.path.abspath(PLAYLISTS_PATH + filename))
-        return ret
-
-    def get_playlist_titles() -> list:
+    def titles_of_playlists() -> list:
         ret = []
         for _, _, filenames in os.walk(PLAYLISTS_PATH):
             for filename in filenames:
@@ -592,42 +297,17 @@ class Aplayer:
     def playlist_path(title: str):
         return PLAYLISTS_PATH + title + PLAYLIST_EXTENSION
 
-    def set_dl_on_stream(dl_on_stream=False):
-        Aplayer.dl_on_stream = dl_on_stream
-
     def pauseplay():
         Aplayer.player._set_property('pause', not Aplayer.is_paused())
 
     def is_paused():
         return Aplayer.player._get_property('pause')
 
-    def is_finished_downloading():
-        return Aplayer._download_index < 0
-
     def wait_until_playing():
         Aplayer.player.wait_until_playing()
 
-    def try_wait_until_stream() -> bool:
-        """Tries to wait for an audio stream to start.
-        Fast-returns if the audio is paused, or is_loaded() == True.
-        """
-        if Aplayer.is_loaded() is True:
-            return
-        Aplayer._mpv_wait()
-        if not Aplayer.is_paused():
-            Aplayer.player.wait_until_playing()
-
-    def try_wait_for_playback() -> bool:
-        """Blocks until current title playback is finished
-        if is_loaded() == True.
-        """
-        if not Aplayer.is_loaded():
-            return
-        Aplayer.player.wait_for_playback()
-        return
-
     def seek_percent(percent):
-        duration = Aplayer.get_duration()
+        duration = Aplayer.duration()
         if duration == -1 or not Aplayer.is_active():
             return
         if percent == 100:
@@ -635,16 +315,12 @@ class Aplayer:
         else:
             Aplayer.player.seek(percent, 'absolute-percent')
 
-
     def seek(seconds: float, relative=True):
-        """Seek types are either relative or absolute seconds.
-
-        Args:
-            seconds (int): _description_
-            type (str, optional): _description_. Defaults to ''.
+        """Seeks to seconds.
+        Seek types are either relative or absolute seconds.
         """
-        duration = Aplayer.get_duration()
-        time_pos = Aplayer.get_time_pos()
+        duration = Aplayer.duration()
+        time_pos = Aplayer.time_pos()
         if duration == -1 or not Aplayer.is_active():
             return
         if relative is True:
@@ -662,7 +338,7 @@ class Aplayer:
             else:
                 Aplayer.player.seek(seconds, 'absolute')
 
-    def get_duration() -> float:
+    def duration() -> float:
         """Returns the duration position of the currently playling file,
         or -1 if there is no currently playing file.
 
@@ -674,19 +350,7 @@ class Aplayer:
             ret = -1
         return ret
 
-    def get_current_playlist_title():
-        return Aplayer._current_playlist_title
-
-    def get_current_downloading_title():
-        return Aplayer._download_queue_titles[Aplayer._download_index]
-
-    def get_current_downloading_percentage():
-        return Aplayer._current_download_percent
-
-    def get_playlist_pos() -> float:
-        return Aplayer.player._get_property('playlist-pos')
-
-    def get_time_pos() -> float:
+    def time_pos() -> float:
         """Returns the time position of the currently playling file,
         or -1 if there is no currently playing file.
 
@@ -698,10 +362,13 @@ class Aplayer:
             ret = -1
         return ret
 
-    def get_playlist_count():
+    def playlist_count():
         return Aplayer.player._get_property('playlist-count')
 
-    def get_number_of_playlists():
+    def playlist_title():
+        return Aplayer.__playlist_title
+
+    def number_of_playlists():
         count = 0
         for _, _, filenames in os.walk(PLAYLISTS_PATH):
             for _ in filenames:
@@ -709,12 +376,6 @@ class Aplayer:
         return count
 
     def get_playlist_pos() -> int:
-        """Returns the index loaded for current playback.
-        (This fetches the mpv 'playlist-pos' property.)
-
-        Returns:
-            int: currently playing position
-        """
         return Aplayer.player._get_property('playlist-pos')
 
     def set_playlist_pos(index):
@@ -724,10 +385,10 @@ class Aplayer:
         return not Aplayer.get_playlist_pos() == -1
 
     def is_loaded():
-        return Aplayer.is_active() is True and Aplayer.get_duration() > -1
+        return Aplayer.is_active() is True and Aplayer.duration() > -1
 
     def is_shuffling():
-        return Aplayer._is_shuffling
+        return Aplayer.__is_shuffling
 
     def is_looping_track() -> bool:
         return Aplayer.player._get_property('loop') == 'inf'
@@ -759,13 +420,13 @@ class Aplayer:
             Aplayer.player._set_property('loop-playlist', False)
 
     def shuffle():
-        if Aplayer._is_shuffling is False:
+        if Aplayer.__is_shuffling is False:
             Aplayer.player.playlist_shuffle()
         else:
             Aplayer.player.playlist_unshuffle()
-        Aplayer._is_shuffling = not Aplayer._is_shuffling
+        Aplayer.__is_shuffling = not Aplayer.__is_shuffling
         Aplayer.__mark_playlist_change()
-        return Aplayer._is_shuffling
+        return Aplayer.__is_shuffling
 
     def set_volume(volume: int):
         """

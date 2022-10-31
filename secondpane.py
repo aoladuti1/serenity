@@ -7,7 +7,7 @@ import time
 from aplayer import Aplayer
 from mastertools import Shield
 from tkinter import *
-from config import rellipsis, COLOUR_DICT, DEFAULT_FONT_FAMILY
+from config import rellipsis, light_wait, COLOUR_DICT, DEFAULT_FONT_FAMILY
 
 ENTRY_BG = '#17012e'
 
@@ -76,7 +76,7 @@ class SecondPane:
 
     def update_subheader(self, _, _2):
         self.subheader.configure(
-            text='Currently playing: {}'.format(Aplayer.get_current_playlist_title()))
+            text='Currently playing: {}'.format(Aplayer.playlist_title()))
 
     def __draw_queue_frame(self):
         self.queue_frame.grid(column=0)
@@ -97,7 +97,7 @@ class SecondPane:
     def __highlight_short(self, index):
         self.queue_box.itemconfig(index, {'fg': '#FFD700'})
         time.sleep(2)
-        if not Aplayer.get_playlist_pos() == index:
+        if not Aplayer.playlist_pos() == index:
             revert_colour = self.queue_box['foreground']
         else:
             revert_colour = self.queue_box.current_song_fg
@@ -106,7 +106,7 @@ class SecondPane:
     def __dotdraw_side_label(self, text):
         old_text = self.entry_bar.get_side_label_text()
         new_text = text
-        for i in range(3):
+        for _ in range(3):
             new_text += '.'
             self.entry_bar.show_side_label(new_text)
             time.sleep(0.5)
@@ -117,7 +117,7 @@ class SecondPane:
     def save_playlist(self, e: Event = None):
         if self.saving is True:
             return
-        dest_title = Aplayer._validate_title(self.entry_bar.get())
+        dest_title = Aplayer.validate_title(self.entry_bar.get())
         if dest_title is None:
             return
         temp_text = '{} {}'.format('saving to', dest_title)
@@ -135,7 +135,7 @@ class SecondPane:
                 msg += '\n{} [{}]'.format(self.queue_box.get(i,i)[0], filename)
             messagebox.showinfo(
                 'Files unable to be added to {}'.format(dest_title), msg)
-        Aplayer._mpv_wait()
+        light_wait()
         self.saving = False
 
         

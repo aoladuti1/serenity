@@ -8,6 +8,7 @@ import db
 import ttkbootstrap as ttk
 import records
 import screenery
+from audiodl import AudioDL
 from mastertools import Shield
 from pathlib import Path
 from tkinter.font import BOLD
@@ -18,7 +19,6 @@ from tkinter import filedialog
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledFrame
 from config import *
-from youtubesearchpython.__future__ import VideosSearch
 
 # TODO: Split up generation and drawing because
 # things keep regenerating which glitches the program!!!
@@ -39,13 +39,14 @@ DOWNLOAD_MODE = 3
 CORAL = '#ff4040'
 HIGHLIGHT_HEX = COLOUR_DICT['primary']
 
+
 class LeftPane:
 
     PAUSE_LABELS = ['||', '|>']
     BROWSER_BUTTON_PADX = 4
     BACK_TEXT = '<--'
     NO_BACK_TEXT = '---'
-    
+
     DEFAULT_SUBHEADER = ' More...'
     STARTING_TEXT = ' ..starting..'
     QUEUING_TEXT = ' ..queuing..'
@@ -56,7 +57,7 @@ class LeftPane:
     def __init__(self, root: ttk.Window, status: tkintools.StatusBar):
         global _edge_pad
         self.root = root
-        self.frame = Frame(self.root,width=Shield.max_pane())
+        self.frame = Frame(self.root, width=Shield.max_pane())
         self.browser = None
         self.header = None
         self.subheader = None
@@ -96,13 +97,13 @@ class LeftPane:
         self.__refreshing = False
         self.frame.rowconfigure(5, weight=1)  # browser is stretchy!
         self.frame.columnconfigure(0, weight=1)
-        Aplayer.player.observe_property('path', self.observe_title)
+        Aplayer.observe_path(self.observe_title)
         _edge_pad = Shield.edge_pad()
         self.gen_all()
 
     def undrawAll(self):
         self.frame.grid_remove()
-    
+
     def redrawAll(self):
         self.frame.grid(column=0, row=1, sticky='nsw', columnspan=1)
 
@@ -128,14 +129,12 @@ class LeftPane:
         self.frame.configure(width=Shield.max_pane())
         self.frame.grid(column=0, row=1, sticky='nsw', columnspan=1)
 
-
-
     def gen_subheader(self):
         self.subheader = tkintools.DarkLabelButton(
             self.frame, clickFunc=self.showHideExtras,
             text=LeftPane.DEFAULT_SUBHEADER,
             font=(DEFAULT_FONT_FAMILY, 14))
-    
+
     def drawSubheader(self):
         self.subheader.grid(column=0, row=0, sticky=W)
 
@@ -182,10 +181,11 @@ class LeftPane:
         directory = filedialog.askdirectory()
         if not directory == '':
             self.adding_music_label.configure(text='adding...')
-            self.adding_music_label.grid(row=2, column=2)
+            self.adding_music_label.grid(row=2, column=3)
             self.root.update()
             records.addFolder(directory, AAT_structure)
             threading.Thread(target=self.finish_adding_music).start()
+            self.refresh_page()
 
     def entry_button_command(self, e: Event = None, queue: bool = False):
         threading.Thread(target=self.search_hit, args=(e, queue)).start()
@@ -222,7 +222,6 @@ class LeftPane:
         add_folders.grid(column=1, row=2, sticky=S, padx=padx)
         refresh_button.grid(column=2, row=2, sticky=S, padx=padx)
 
-
     def genEntryBar(self):
         states = ['search', 'stream', 'stream + download', 'download']
         self.entryBar = tkintools.EntryBar(
@@ -231,58 +230,39 @@ class LeftPane:
         self.entryBar.add_button(
             'queue', lambda e, q=True: self.search_hit(e, q))
 
-    async def __search_yt_from_entry(self):
-        try:
-            videosSearch = VideosSearch(self.entryBar.get(), limit=1)
-            videosResult = await videosSearch.next()
-            return [videosResult['result'][0]['link'],
-                    videosResult['result'][0]['title']]
-        except Exception:
-            return [None, None]
-
     def __stream(self, queue: bool = False):
         entry_text = self.entryBar.get()
-        if entry_text.startswith('https://'):
+        if is_netpath(entry_text):
             try:
                 threading.Thread(
-                    target=Aplayer.loadfile,
-                    args=(self.entryBar.get(), queue, '')).start()
-                return Aplayer.scrape_title(entry_text)
+                    target=Aplayer.loadall, args=([entry_text], queue)).start()
+                return AudioDL.scrape_title(entry_text)
             except Exception:
                 return None  # TODO: ERROR MSG
         else:
-            loop = asyncio.new_event_loop()
-            link, title = loop.run_until_complete(
-                self.__search_yt_from_entry())
+            link, title = AudioDL.get_link_and_title(entry_text)
             if link is None:
                 return  # TODO: ERROR MSG
-            threading.Thread(target=Aplayer.loadfile,
-                             args=(link, queue, title)).start()
+            threading.Thread(target=Aplayer.loadall,
+                             args=([link], queue)).start()
             return title
 
-    def __link_downloaded(self, data):
-        artist, track, _, _ = data
-        dl_path = DOWNLOAD_PATH + os.sep + artist + os.sep + track
-        full_path = "{}.{}".format(dl_path, DOWNLOADS_CODEC)
-        return path_exists(full_path)
-
     def __download_and_display(self):
-        link = self.entryBar.get()
-        if link.startswith('https://'):
+        entry_text = self.entryBar.get()
+        if is_netpath(entry_text):
+            link = entry_text
             title = Aplayer.get_title_from_file(link, '', True)
             if title is None:
                 return  # TODO: ERROR MSG
         else:
-            loop = asyncio.new_event_loop()
-            link, title_rough = loop.run_until_complete(
-                self.__search_yt_from_entry())
-            title = Aplayer._validate_title(title_rough)
+            link, title_rough = AudioDL.get_link_and_title(entry_text)
+            title = AudioDL.validate_title(title_rough)
             if title is None:
                 return  # TODO: ERROR MSG
-        data = Aplayer.get_artist_track_trackNum(title)
-        if not self.__link_downloaded(data):
+        data = AudioDL.get_online_data(title)
+        if not AudioDL.data_on_disk(data):
             threading.Thread(target=self.put_dl_percent).start()
-            Aplayer.download(link, data)
+            AudioDL.download([link], data)
         else:
             # TODO: add new label to row saying that the file exists
             pass
@@ -297,21 +277,23 @@ class LeftPane:
         side_label.config(text='...')
         side_label.grid(row=0, column=3, sticky=E)
         self.root.update()
-        while len(Aplayer._download_queue_titles) == 0:
+        while not AudioDL.download_started():
             time.sleep(0.01)
-            if (Aplayer.downloading_audio is True
-                    and len(Aplayer._download_queue_titles) > 0):
+            if AudioDL.is_downloading() and not AudioDL.download_started():
                 break
-        while len(Aplayer._download_queue_titles) > 0:
+        while AudioDL.download_started():
             side_label.config(
-                text='downloading...' + str(Aplayer._current_download_percent) + '%')
+                text='downloading...' + str(AudioDL.download_percent()) + '%')
             self.root.update()
-            time.sleep(0.001)
-            if Aplayer._current_download_percent == 100:
+            time.sleep(0.01)
+            if AudioDL.download_percent() == 100:
                 time.sleep(1)
-                if (Aplayer._current_download_percent == 0
-                        or Aplayer._current_download_percent == 100):
+                end_dl_prcnt = AudioDL.download_percent()
+                if end_dl_prcnt == 0 or end_dl_prcnt == 100:
                     break
+        while not AudioDL.is_finished():
+            side_label.config(text='converting...')
+            time.sleep(2)
         self.downloading = False
         side_label.grid_remove()
         self.root.update()
@@ -346,7 +328,7 @@ class LeftPane:
             font=(DEFAULT_FONT_FAMILY, 14, UNDERLINE)).grid(sticky=W, row=row)
 
     def __search_playlists(self, insert_row, query, browser):
-        pl_titles = Aplayer.get_playlist_titles()
+        pl_titles = Aplayer.titles_of_playlists()
         playlist_results = [
             title for title in pl_titles
             if query.casefold() in title]
@@ -452,9 +434,8 @@ class LeftPane:
 
     def seek(self, e, seconds):
         threading.Thread(target=Aplayer.seek, args=(seconds,)).start()
-        Aplayer._mpv_wait()
+        light_wait()
         self.__update_status_time()
-
 
     def drawControls(self):
         self.controls = Frame(self.frame)
@@ -481,12 +462,12 @@ class LeftPane:
             clickFunc=lambda e: Aplayer.change_loop(), text='{0}',
             unclickFunc=self.highlight_replay)
         self.cgrid([shuffle, prev, seek_neg, pause, seek_pos, next, repeat])
-        self.seekBar = tkintools.SeekBar(self.controls, pady=int(3 * _edge_pad / 8))
+        self.seekBar = tkintools.SeekBar(
+            self.controls, pady=int(3 * _edge_pad / 8))
         self.pauseButton = pause
         self.seekBar.grid(row=1)
         self.seekBar.bind('<Button-1>', lambda e: self.__update_status_time)
         threading.Thread(target=self.monitorPlaystate, daemon=True).start()
-       
 
     def cgrid(self, controls: list):
         i = 0
@@ -497,7 +478,6 @@ class LeftPane:
             self.controls.columnconfigure(i, weight=1)
             i += 1
         return i
-
 
     def monitorPlaystate(self):
         while True:
@@ -515,8 +495,9 @@ class LeftPane:
             self.status.grid_remove()
         else:
 
-            if Aplayer.online_queue is True:
+            if Aplayer.is_online():
                 self.current_file = Aplayer.get_title_from_file(file)
+
                 self.playing_text = 'Now streaming:'
             else:
                 self.current_file = Path(file).name
@@ -530,7 +511,6 @@ class LeftPane:
             if not self.monitoring_time:
                 self.monitoring_time = True
                 threading.Thread(target=self.monitor_pos, daemon=True).start()
-            
 
     def toggle_highlight(self, e: Event):
         states = [COLOUR_DICT['primary'], COLOUR_DICT['info']]
@@ -562,8 +542,8 @@ class LeftPane:
             return time.strftime("%H:%M:%S", time.gmtime(secs))
 
     def __update_status_time(self):
-        duration = math.floor(Aplayer.get_duration())
-        secs = Aplayer.get_time_pos()
+        duration = math.floor(Aplayer.duration())
+        secs = Aplayer.time_pos()
         if duration < 0:
             prcnt = 0
         else:
@@ -574,9 +554,9 @@ class LeftPane:
                 "%H:%M:%S", time.gmtime(duration))
         self.status.time.configure(text=' | [{}/{}]'.format(
             str_pos, self.duration_str))
-        self.seekBar.pos.configure(text = str_pos)
+        self.seekBar.pos.configure(text=str_pos)
         if self.duration_str != '':
-            self.seekBar.duration.configure(text = self.duration_str)
+            self.seekBar.duration.configure(text=self.duration_str)
         else:
             self.seekBar.duration.configure(text='--:--:--')
         self.seekBar.set_position(prcnt)
@@ -636,7 +616,7 @@ class LeftPane:
         else:
             height = int(0.8 * Shield.drawn_height)
         if Shield.small_screen is True:
-            height *=  1.4 * screenery.primary_geometry()[1] / 2160
+            height *= 1.4 * screenery.primary_geometry()[1] / 2160
             if Shield.expanded is True:
                 height *= 1.2
         browser = ScrolledFrame(
@@ -731,7 +711,7 @@ class LeftPane:
     def genPlaylistMenu(self):
         self.playlist_menu = Menu(self.frame, tearoff=0,
                                   font=(DEFAULT_FONT_FAMILY, 12))
-        for title in Aplayer.get_playlist_titles():
+        for title in Aplayer.titles_of_playlists():
             self.playlist_menu.add_command(
                 label=title, command=lambda t=title: self.__add_to_playlist(t))
 
@@ -748,15 +728,16 @@ class LeftPane:
             command=lambda queue=True: self.play_all(queue))
         m.add_separator()
         m.add_cascade(label="Add to playlist...", menu=self.playlist_menu)
-        if self.playlists_in_selection > 0:   
-            m.add_command(label="Delete playlists...", command=self.delete_playlists) 
+        if self.playlists_in_selection > 0:
+            m.add_command(label="Delete playlists...",
+                          command=self.delete_playlists)
         m.add_separator()
         m.add_command(label="Clear selection", command=self.clear_selection)
         return m
 
     def play_all(self, queue_all):
         threading.Thread(target=self.__play_all, args=(queue_all,)).start()
-        
+
     def delete_playlists(self):
         widgets = []
         for data, widget in self.selectedContent.items():
@@ -807,7 +788,6 @@ class LeftPane:
                 args=(widget, queue, prefix), daemon=True).start()
             i += 1
         Aplayer.loadall(songlist, queue_all)
-
 
     def __add_to_playlist(self, playlist_title):
         with open(Aplayer.playlist_path(playlist_title), mode='a') as playlist:
@@ -911,9 +891,8 @@ class LeftPane:
             self.root.update()
         self.__refreshing = False
 
-    def refresh_page(self, e: Event = None, after = 1.15):
+    def refresh_page(self, e: Event = None, after=1.15):
         threading.Thread(target=self.__refresh_page, args=(e, after)).start()
-
 
     def __go_to_playlists(self, e: Event = None):
         if self.loading is True:
@@ -922,7 +901,7 @@ class LeftPane:
         self.updateSubheader(PLAYLISTS)
         i = 0
         self.loading = True
-        playlist_titles = Aplayer.get_playlist_titles()
+        playlist_titles = Aplayer.titles_of_playlists()
         title_count = len(playlist_titles)
         for title in playlist_titles:
             label = self.genBrowserLabel(
@@ -981,7 +960,7 @@ class LeftPane:
         self.goBack()
 
     def __play_track(self, FQFN, queue):
-        threading.Thread(target=Aplayer.loadfile, args=(FQFN, queue)).start()
+        threading.Thread(target=Aplayer.loadall, args=([FQFN], queue)).start()
 
     def __play_playlist_track(self, FQFN_index, queue):
         FQFN, index = FQFN_index.split('|')
@@ -1071,17 +1050,15 @@ class LeftPane:
         widget.configure(foreground=old_fg)
         widget.configure(text=old_text)
 
-
     def loadArtists(self):
         if self.loading is True:
             return
         self.browser.grid_remove()
         self.drawBrowser()
         self.updateSubheader(ARTISTS)
-        if self.fetchedArtists is None:
-            self.fetchedArtists = db.DBLink().get_artists()
+        self.fetchedArtists = db.DBLink().get_artists()
         i = 0
-        if Aplayer.get_number_of_playlists() > 0:
+        if Aplayer.number_of_playlists() > 0:
             pl = self.genBrowserLabel(
                 i, PLAYLISTS_TEXT, None,
                 PLAYLISTS_TEXT, self.__go_to_playlists)
@@ -1099,7 +1076,7 @@ class LeftPane:
             txt = ttk.Text(self.browser, font=(DEFAULT_FONT_FAMILY, 15))
             txt.insert(INSERT, GUIDE_TEXT)
             txt.configure(
-                background=self.background,
+                background=COLOUR_DICT['bg'],
                 highlightbackground=COLOUR_DICT['bg'], wrap=WORD)
             txt.grid(columnspan=2)
 
@@ -1108,7 +1085,7 @@ class LeftPane:
         for prefix in LeftPane.PREFIXES:
             index = text.find(prefix)
             if index != -1:
-                text = text[index:]
+                text = text[len(prefix):]
                 break
         if text.endswith('%]'):
             text = text.rsplit(' [')[-1]
@@ -1164,7 +1141,7 @@ class LeftPane:
             if artist != '':
                 self.chosenArtist = artist
                 album = album.split(' | ')[0]
-            self.chosenAlbum = album 
+            self.chosenAlbum = album
         else:
             artist = self.chosenArtist
             album = self.chosenAlbum

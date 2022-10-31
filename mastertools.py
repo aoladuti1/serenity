@@ -1,6 +1,7 @@
 from config import *
 from tkintools import *
 from aplayer import Aplayer
+from audiodl import AudioDL
 from tkinter import messagebox
 import screenery as scrn
 import math
@@ -59,7 +60,7 @@ class Shield:
         if sw < SMALL_SCREEN_CUTOFF:
             return pw * 2
         else:
-            return math.ceil(pw * 1.5)
+            return math.ceil(3 * pw / 2)
 
     def grid_root(expanded: bool):
         width, height = scrn.widget_monitor_geometry(root)
@@ -100,9 +101,14 @@ class Shield:
         root.attributes('-alpha', 1)
 
     def on_closing():
-        if Aplayer.converting_audio is True:
+        if not AudioDL.is_finished():
+            addendum = '\n______________\n['
+            for t in AudioDL.active_titles():
+                addendum += t + '\n'
+            addendum = addendum[0:-1] + ']'
             res = messagebox.askyesno(
-                CONVERSION_WARNING[0], CONVERSION_WARNING[1])
+                CONVERSION_WARNING[0],
+                CONVERSION_WARNING[1] + addendum)
             if not res:
                 return
         os._exit(0)
