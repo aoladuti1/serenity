@@ -138,6 +138,7 @@ class Aplayer:
         Aplayer.__dummy_property_mod(Aplayer.__pl_change_prop)
 
     # observer functions will have arg1 as property name and arg2 as value
+    # e.g. def path_change_handler(propname, path): ......
     def observe_playlist_changes(observer):
         Aplayer.player.observe_property(Aplayer.__pl_change_prop, observer)
 
@@ -149,6 +150,9 @@ class Aplayer:
 
     def observe_path(observer):
         Aplayer.player.observe_property('path', observer)
+
+    def observe_pause(observer):
+        Aplayer.player.observe_property('pause', observer)
 
     def loadlist(
             playlist_title: str, index: int = -1, pause_on_load: bool = False):
