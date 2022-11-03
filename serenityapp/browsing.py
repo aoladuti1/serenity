@@ -40,6 +40,7 @@ class Browser(ScrolledFrame):
     BUTTON_PADX = 4
 
     def __init__(self, master, **kw):
+
         if not Shield.expanded:
             height = int(2 * Shield.drawn_height / 3)
         else:
@@ -57,12 +58,9 @@ class Browser(ScrolledFrame):
         self.playlist_menu = None
         self.selection = {}
         self.playlists_in_selection = 0
+        self.last_search_query = ''
         global _edge_pad
         _edge_pad = Shield.edge_pad()
-
-    def clear(self):
-        for item in self.winfo_children():
-            item.destroy()
 
     def flip_button(self, e):
         text_states = Browser.BUTTON_TEXT_STATES
@@ -447,6 +445,7 @@ class Librarian:
     back_button = None
     PREFIXES = [ADDING_WDLS, QUEUING_WDLS, STARTING_WDLS]
     __refreshing = False
+    __last_query = ''
 
     def _init(browser, frame, subheader, back_button):
         Librarian.browser = browser
@@ -472,7 +471,7 @@ class Librarian:
             Librarian.browser = browser
         Librarian.loading = False
         Librarian.browser.grid(row=4, sticky=NW, columnspan=1, rowspan=1)
-        Shield.root_update()
+        Shield.root.update()
 
     def strip_widget_text(e: Event):
         text = e.widget.cget('text')
@@ -491,17 +490,22 @@ class Librarian:
         e.widget.configure(text="{} [{:.1f}%]".format(text, 100 * count / max))
         Shield.root_update()
 
-    def search_library(query):
+    def search_library(query: str = None):
         if Librarian.loading is True:
             return
+        if query is None:
+            q = Librarian.__last_query
+        else:
+            q = query
+            Librarian.__last_query = query
         Librarian.update_subheader(
-            SEARCH_RESULTS_ID, ' Search results for: ' + query)
+            SEARCH_RESULTS_ID, ' Search results for: ' + q)
         browser = Browser(Librarian.frame)
         i = 0
-        i = browser._search_playlists(i, query)
-        i = browser._search_artists(i, query)
-        i = browser._search_albums(i, query)
-        i = browser._search_tracks(i, query)
+        i = browser._search_playlists(i, q)
+        i = browser._search_artists(i, q)
+        i = browser._search_albums(i, q)
+        i = browser._search_tracks(i, q)
         Librarian.browser.grid_remove()
         Librarian.draw_browser(browser)
 

@@ -1,17 +1,22 @@
 def rellipsis(text) -> str:
+    '''Return text with three periods appended.'''
     return text + '...'
 
 
 def lspace(text) -> str:
+    '''Returns text with a space prepended.'''
     return ' ' + text
 
 
-def ltab(text) -> str:
-    return '\t' + text
-
-
 def wrap_dots(text) -> str:
+    '''Returns text with two periods appended and prepended.'''
     return '..{}..'.format(text)
+
+
+def wrap_sqb(text) -> str:
+    """ Returns text with an open square bracket prepended and a
+        closed square bracket appended. """
+    return '[{}]'.format(text)
 
 
 def wd_ls(text) -> str:
@@ -39,6 +44,10 @@ LANG = [
         'QUEUE': 'queue',
         'EXPAND': 'expand',
         'CONTRACT': 'contract',
+        'ADD_LIBRARY': 'add library',
+        'ADD_FOLDERS': 'add folders',
+        'REFRESH': 'refresh',
+        'DONE_EXCL': 'done!',
         'CLOSE_WARNING': ['Hold on!',
                           'Files are still converting/downloading. Quit?'],
         'GUIDE': """Click 'More...' to add some music!

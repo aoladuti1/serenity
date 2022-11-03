@@ -1,5 +1,5 @@
 import math
-import threading
+from threading import Thread
 import time
 from pathlib import Path
 from tkinter import *
@@ -26,6 +26,7 @@ STREAM_MODE = 1
 STREAM_DOWNLOAD_MODE = 2
 DOWNLOAD_MODE = 3
 
+
 class FirstPane:
 
     PAUSE_LABELS = ['||', '|>']
@@ -36,21 +37,20 @@ class FirstPane:
         self.frame = Frame(Shield.root, width=Shield.max_pane())
         self.subheader = self.__gen_subheader()
         self.back_button = self.__gen_back_button()
-        self.libTools = None
+        self.libtools = self.__gen_libtools()
         self.controls = None
         self.control_buttons = None
         self.browser = self.__gen_browser()
-        self.pauseButton = None
-        self.entryBar = None
-        self.libToolsVisible = False
-        self.entryBarVisible = False
+        self.pause_button = None
+        self.entrybar = self.__gen_entrybar()
+        self.libtools_visible = False
+        self.entrybar_visible = False
         self.updating_entry_label = False
         self.current_file = ''
         self.duration_str = ''
         self.playing_text = 'Now playing:'
         self.status = status
-        self.adding_music_label = None
-        self.seekBar = None
+        self.seekbar = None
         self.downloading = False
         self.monitoring_time = False
         self.__overriding_status = False
@@ -68,16 +68,11 @@ class FirstPane:
     def undrawAll(self):
         self.frame.grid_remove()
 
-    def redrawAll(self):
-        self.frame.grid(column=0, row=1, sticky='nsw', columnspan=1)
-
     def drawAll(self):
         self.drawFrame()
         self.drawAllExceptFrame()
 
     def drawAllExceptFrame(self):
-        self.genLibTools()
-        self.genEntryBar()
         self.drawControls()
 
     def drawFrame(self):
@@ -90,7 +85,7 @@ class FirstPane:
             font=(DEFAULT_FONT_FAMILY, 15))
         subheader.grid(column=0, row=0, sticky=W)
         return subheader
-        
+
     def __gen_back_button(self):
         ''' Note this returns the actual button not the frame. '''
         bbframe = Frame(self.frame, padx=_edge_pad)
@@ -106,24 +101,24 @@ class FirstPane:
         return back_button
 
     def showHideExtras(self, e: Event = None):
-        self.__showHideLibTools()
-        self.__showHideEntryBar()
+        self.__show_hide_libtools()
+        self.__show_hide_entrybar()
 
-    def __showHideLibTools(self):
-        if self.libToolsVisible is False:
-            self.libTools.grid(row=2, pady=5)
+    def __show_hide_libtools(self):
+        if self.libtools_visible is False:
+            self.libtools.grid(row=2, pady=5)
         else:
-            self.libTools.grid_remove()
-        self.libToolsVisible = not self.libToolsVisible
+            self.libtools.grid_remove()
+        self.libtools_visible = not self.libtools_visible
 
-    def __showHideEntryBar(self):
-        if self.entryBarVisible is False:
-            self.entryBar.grid(row=1, rowspan=1, pady=5)
-            self.entryBar.focus_entry()
+    def __show_hide_entrybar(self):
+        if self.entrybar_visible is False:
+            self.entrybar.grid(row=1, rowspan=1, pady=5)
+            self.entrybar.focus_entry()
         else:
-            self.entryBar.grid_remove()
+            self.entrybar.grid_remove()
             Shield.root.focus_force()
-        self.entryBarVisible = not self.entryBarVisible
+        self.entrybar_visible = not self.entrybar_visible
 
     def finish_adding_music(self):
         self.adding_music_label.configure(text='done!')
@@ -138,57 +133,36 @@ class FirstPane:
             self.adding_music_label.grid(row=2, column=3)
             Shield.root_update()
             records.addFolder(directory, AAT_structure)
-            threading.Thread(target=self.finish_adding_music).start()
+            Thread(target=self.finish_adding_music).start()
             Librarian.refresh_page()
 
     def entry_button_command(self, e: Event = None, queue: bool = False):
-        threading.Thread(target=self.search_hit, args=(e, queue)).start()
+        Thread(target=self.search_hit, args=(e, queue)).start()
 
-    def genLibTools(self):
-        self.libTools = Frame(self.frame)
-        add_library = stk.LabelButton(
-            self.libTools,
-            clickFG=COLOUR_DICT['info'],
-            clickBG=COLOUR_DICT['bg'],
-            clickFunc=lambda e, AAT=True: self.add_folders(e, AAT),
-            text='[add library]',
-            font=(DEFAULT_FONT_FAMILY, 12, BOLD))
-        add_folders = stk.LabelButton(
-            self.libTools,
-            clickFG=COLOUR_DICT['info'],
-            clickBG=COLOUR_DICT['bg'],
-            clickFunc=lambda e, AAT=False: self.add_folders(e, AAT),
-            text='[add songs]',
-            font=(DEFAULT_FONT_FAMILY, 12, BOLD)
-        )
-        refresh_button = stk.LabelButton(
-            self.libTools,
-            clickFG=COLOUR_DICT['info'],
-            clickBG=COLOUR_DICT['bg'],
-            clickFunc=lambda e: Librarian.refresh_page(e),
-            text='[refresh]',
-            font=(DEFAULT_FONT_FAMILY, 12, BOLD)
-        )
-        self.adding_music_label = ttk.Label(self.libTools,
-                                            font=(DEFAULT_FONT_FAMILY, 12))
-        padx = 7
-        add_library.grid(column=0, row=2, sticky=S, padx=padx)
-        add_folders.grid(column=1, row=2, sticky=S, padx=padx)
-        refresh_button.grid(column=2, row=2, sticky=S, padx=padx)
+    def __gen_libtools(self):
+        lt = stk.LibTools(self.frame)
+        lt.add_button(
+            L['ADD_LIBRARY'], lambda e, AAT=True: lt.add_folders(e, AAT))
+        lt.add_button(
+            L['ADD_FOLDERS'], lambda e, AAT=False: lt.add_folders(e, AAT))
+        lt.add_button(
+            L['REFRESH'], lambda e: Librarian.refresh_page(e))
+        return lt
 
-    def genEntryBar(self):
+    def __gen_entrybar(self):
         states = ['search', 'stream', 'stream + download', 'download']
-        self.entryBar = stk.EntryBar(
+        entrybar = stk.EntryBar(
             self.frame, self.search_hit, states,
             entry_placeholder='search...')
-        self.entryBar.add_button(
+        entrybar.add_button(
             'queue', lambda e, q=True: self.search_hit(e, q))
+        return entrybar
 
     def __stream(self, queue: bool = False):
-        entry_text = self.entryBar.get()
+        entry_text = self.entrybar.get()
         if is_netpath(entry_text):
             try:
-                threading.Thread(
+                Thread(
                     target=Aplayer.loadall, args=([entry_text], queue)).start()
                 return AudioDL.scrape_title(entry_text)
             except Exception:
@@ -197,12 +171,12 @@ class FirstPane:
             link, title = AudioDL.get_link_and_title(entry_text)
             if link is None:
                 return  # TODO: ERROR MSG
-            threading.Thread(target=Aplayer.loadall,
-                             args=([link], queue)).start()
+            Thread(target=Aplayer.loadall,
+                   args=([link], queue)).start()
             return title
 
     def __download_and_display(self):
-        entry_text = self.entryBar.get()
+        entry_text = self.entrybar.get()
         if is_netpath(entry_text):
             link = entry_text
             title = Aplayer.get_title_from_file(link, '', True)
@@ -215,7 +189,7 @@ class FirstPane:
                 return  # TODO: ERROR MSG
         data = AudioDL.get_online_data(title)
         if not AudioDL.data_on_disk(data):
-            threading.Thread(target=self.put_dl_percent).start()
+            Thread(target=self.put_dl_percent).start()
             AudioDL.download([link], data)
         else:
             # TODO: add new label to row saying that the file exists
@@ -227,7 +201,7 @@ class FirstPane:
             if self.downloading is True:
                 return
         self.downloading = True
-        side_label = self.entryBar.side_label
+        side_label = self.entrybar.side_label
         side_label.config(text='...')
         side_label.grid(row=0, column=3, sticky=E)
         Shield.root_update()
@@ -253,33 +227,32 @@ class FirstPane:
         Shield.root_update()
 
     def search_hit(self, e: Event = None, queue=False):
-        mode = self.entryBar.state
+        mode = self.entrybar.state
         if mode == SEARCH_MODE:
-            Librarian.search_library(self.entryBar.get())
+            Librarian.search_library(self.entrybar.get())
         elif mode == STREAM_MODE:
             title = self.__stream(queue)
             if self.status.label.cget('text') == '':
-                text = 'queuing... \"' + title + '\"' if queue else 'loading...'
-                self.status.label.configure(text=text)
+                txt = 'queuing... \"' + title + '\"' if queue else 'loading...'
+                self.status.label.configure(text=txt)
             else:
                 if queue is True:
-                    threading.Thread(
+                    Thread(
                         target=self.__override_status,
                         args=('queuing... \"' + title + '\"',)).start()
         elif mode == STREAM_DOWNLOAD_MODE:
-            threading.Thread(target=self.__stream, args=(queue,)).start()
-            threading.Thread(target=self.__download_and_display).start()
+            Thread(target=self.__stream, args=(queue,)).start()
+            Thread(target=self.__download_and_display).start()
             if self.status.label.cget('text') == '':
                 self.status.label.configure(text='loading and downloading...')
         elif mode == DOWNLOAD_MODE:
-            threading.Thread(target=self.__download_and_display).start()
+            Thread(target=self.__download_and_display).start()
         Shield.root_update()
-
 
     def __override_status(self, text):
         """
         Temporarily override the status bar text.
-        Usage: threading.Thread(target=self.__override_status).start()
+        Usage: Thread(target=self.__override_status).start()
         Then update self.status.label.
         """
         self.status.label.configure(text=text)
@@ -288,7 +261,7 @@ class FirstPane:
         Shield.root_update()
 
     def seek(self, e, seconds):
-        threading.Thread(target=Aplayer.seek, args=(seconds,)).start()
+        Thread(target=Aplayer.seek, args=(seconds,)).start()
         light_wait()
         self.__update_status_time()
 
@@ -301,28 +274,25 @@ class FirstPane:
             clickFunc=lambda e: Aplayer.shuffle(), text='¿?',
             unclickFunc=self.toggle_highlight)
         prev = self.genControlButton(
-            clickFunc=lambda e: Aplayer.prev(),
-            text='|<<')
+            clickFunc=lambda e: Aplayer.prev(), text='|<<')
         seek_neg = self.genControlButton(
             clickFunc=lambda e, t=-10: self.seek(e, t), text='<++')
         pause = self.genControlButton(
-            clickFunc=lambda e: self.controlThreader(e, Aplayer.pauseplay),
-            text='|>')
+            clickFunc=lambda e: Aplayer.pauseplay(), text='|>')
         seek_pos = self.genControlButton(
             clickFunc=lambda e, t=10: self.seek(e, t), text='++>')
         next = self.genControlButton(
-            clickFunc=lambda e: Aplayer.next(),
-            text='>>|')
+            clickFunc=lambda e: Aplayer.next(), text='>>|')
         repeat = self.genControlButton(
             clickFunc=lambda e: Aplayer.change_loop(), text='{0}',
             unclickFunc=self.highlight_replay)
         self.cgrid([shuffle, prev, seek_neg, pause, seek_pos, next, repeat])
-        self.seekBar = stk.SeekBar(
+        self.seekbar = stk.SeekBar(
             self.controls, pady=int(3 * _edge_pad / 8))
-        self.pauseButton = pause
-        self.seekBar.grid(row=1)
-        self.seekBar.bind('<Button-1>', lambda e: self.__update_status_time)
-        threading.Thread(target=self.monitorPlaystate, daemon=True).start()
+        self.pause_button = pause
+        self.seekbar.grid(row=1)
+        self.seekbar.bind('<Button-1>', lambda e: self.__update_status_time)
+        Thread(target=self.monitorPlaystate, daemon=True).start()
 
     def cgrid(self, controls: list):
         i = 0
@@ -337,7 +307,7 @@ class FirstPane:
     def monitorPlaystate(self):
         while True:
             try:
-                self.pauseButton.configure(
+                self.pause_button.configure(
                     text=FirstPane.PAUSE_LABELS[int(Aplayer.is_paused())])
             except Exception:
                 pass  # tkinter complains about the threading but i don't care
@@ -365,18 +335,18 @@ class FirstPane:
                 text='{} {}'.format(self.playing_text, self.current_file))
             if not self.monitoring_time:
                 self.monitoring_time = True
-                threading.Thread(target=self.monitor_pos, daemon=True).start()
+                Thread(target=self.monitor_pos, daemon=True).start()
 
     def toggle_highlight(self, e: Event):
         states = [COLOUR_DICT['primary'], COLOUR_DICT['info']]
         e.widget.state = 1 - e.widget.state
-        self.controlRelease(e)
+        self.control_release(e)
         e.widget.configure(foreground=states[e.widget.state])
 
     def highlight_replay(self, e: Event):
         states = [
             COLOUR_DICT['primary'], COLOUR_DICT['light'], COLOUR_DICT['info']]
-        self.controlRelease(e)
+        self.control_release(e)
         e.widget.state += 1
         state = e.widget.state
         if state > len(states) - 1:
@@ -409,19 +379,19 @@ class FirstPane:
                 "%H:%M:%S", time.gmtime(duration))
         self.status.time.configure(text=' | [{}/{}]'.format(
             str_pos, self.duration_str))
-        self.seekBar.pos.configure(text=str_pos)
+        self.seekbar.pos.configure(text=str_pos)
         if self.duration_str != '':
-            self.seekBar.duration.configure(text=self.duration_str)
+            self.seekbar.duration.configure(text=self.duration_str)
         else:
-            self.seekBar.duration.configure(text='--:--:--')
-        self.seekBar.set_position(prcnt)
+            self.seekbar.duration.configure(text='--:--:--')
+        self.seekbar.set_position(prcnt)
         Shield.root_update()
 
     def monitor_pos(self):
         self.status.time.configure(
             text=' | [{}/{}]'.format('00:00:00', '...?'))
-        self.seekBar.pos.configure(text='00:00:00')
-        self.seekBar.duration.configure(text='--:--:--')
+        self.seekbar.pos.configure(text='00:00:00')
+        self.seekbar.duration.configure(text='--:--:--')
         Shield.root_update()
         while not self.current_file == '':
             time.sleep(0.33)
@@ -433,42 +403,30 @@ class FirstPane:
     def genControlButton(self, text: str, clickFunc: Callable,
                          unclickFunc: Callable = None):
         if unclickFunc is None:
-            func = self.controlRelease
+            func = self.control_release
         else:
             func = unclickFunc
         return stk.LabelButton(
             self.control_buttons,
-            onEnterFunc=self.wrapSquares,
-            onLeaveFunc=self.unwrapSquares,
+            onEnterFunc=self.wrap_squares,
+            onLeaveFunc=self.unwrap_squares,
             clickFG=COLOUR_DICT['info'],
             clickBG=COLOUR_DICT['bg'],
             clickFunc=clickFunc,
             unclickFunc=func,
             text=text,
             padx=30,
-            font=(DEFAULT_FONT_FAMILY, 16, BOLD)
-        )
+            font=(DEFAULT_FONT_FAMILY, 16, BOLD))
 
-    def controlThreader(self, e: Event, function):
-        threading.Thread(
-            target=self.controlHandler,
-            args=(function,)
-        ).start()
-
-    def controlHandler(self, function):
-        if (function is not None):
-            function()
-
-    def controlRelease(self, e: Event):
+    def control_release(self, e: Event):
         e.widget.configure(foreground=COLOUR_DICT['primary'])
-        self.unwrapSquares(e)
+        self.unwrap_squares(e)
 
-    def wrapSquares(self, e: Event):
+    def wrap_squares(self, e: Event):
         text = e.widget.cget('text')
         e.widget.configure(text='[' + text + ']')
 
-    def unwrapSquares(self, e: Event):
+    def unwrap_squares(self, e: Event):
         text = e.widget.cget('text')
         if text.startswith('['):
             e.widget.configure(text=text[1:-1])
-    

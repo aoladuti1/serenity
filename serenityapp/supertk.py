@@ -1,12 +1,39 @@
-from math import ceil
-import threading
 import time
+from math import ceil
+from threading import Thread
 from tkinter import *
+from tkinter import filedialog
 from tkinter.font import BOLD
-import ttkbootstrap as ttk
-from serenityapp.aplayer import Aplayer
 from typing import Callable
+
+import ttkbootstrap as ttk
+
+import serenityapp.records as records
+from serenityapp.aplayer import Aplayer
 from serenityapp.config import *
+from serenityapp.lang import L, rellipsis, wrap_sqb
+
+ADDING_REL = rellipsis(L['ADDING'])
+
+root = None
+
+
+class StatusBar(Frame):
+    # THIS DEFINES THE GLOBAL ROOT VARIABLE FOR THIS MODULE
+    def __init__(self, master, **kw):
+        from serenityapp.mastertools import Shield
+        global root
+        Frame.__init__(self, master, **kw)
+        self.configure(width=Shield.base_pane_width())
+        self.columnconfigure(1, weight=0)
+        self.columnconfigure(0, weight=1)
+        self.label = ttk.Label(
+            self, font=(DEFAULT_FONT_FAMILY, 12), padding='4 4 0 4',
+            background=COLOUR_DICT['dark'])
+        self.time = ttk.Label(
+            self, font=(DEFAULT_FONT_FAMILY, 12), padding='0 4 4 4',
+            background=COLOUR_DICT['dark'])
+        root = Shield.root
 
 
 class TypedLabel(ttk.Label):
@@ -87,21 +114,6 @@ class LabelButton(Label):
         self.bind("<ButtonRelease-1>", self.unclickFunc)
 
 
-class StatusBar(Frame):
-    def __init__(self, master, **kw):
-        from serenityapp.mastertools import Shield
-        Frame.__init__(self, master, **kw)
-        self.configure(width=Shield.base_pane_width())
-        self.columnconfigure(1, weight=0)
-        self.columnconfigure(0, weight=1)
-        self.label = ttk.Label(
-            self, font=(DEFAULT_FONT_FAMILY, 12), padding='4 4 0 4',
-            background=COLOUR_DICT['dark'])
-        self.time = ttk.Label(
-            self, font=(DEFAULT_FONT_FAMILY, 12), padding='0 4 4 4',
-            background=COLOUR_DICT['dark'])
-
-
 class SeekBar(Frame):
     def __init__(self, master, **kw):
         from serenityapp.mastertools import Shield
@@ -149,8 +161,7 @@ class SeekBar(Frame):
         sleep_secs = 0.15
         if percent == 100:
             sleep_secs = 1
-        threading.Thread(
-            target=self.unset_sliding, args=(sleep_secs,)).start()
+        Thread(target=self.unset_sliding, args=(sleep_secs,)).start()
 
 
 class DarkLabelButton(LabelButton):
@@ -176,7 +187,6 @@ class QueueListbox(Listbox):
         Listbox.__init__(self, master, **kw)
         kw['foreground'] = set_fg
         self.config(selectforeground=COLOUR_DICT['info'])
-        self.root = Shield.root
         self.cur_index = None
         self.cur_state = None
         self.current_song_fg = current_song_fg
@@ -256,7 +266,7 @@ class QueueListbox(Listbox):
         if count == 1:
             self.__last_playing_pos = 0
         self.update(None, self.__last_playing_pos)
-        self.root.update()
+        root.update()
 
     # event should be from a DarkLabelButton
     def unselect_all(self, e: Event):
@@ -322,12 +332,11 @@ class EntryBar(Frame):
         return [button_frame, button]
 
     def click_sim(self, e: Event = None):
-        from serenityapp.mastertools import Shield
         self.main_button.event_generate('<Button-1>')
-        Shield.root_update()
+        root.update()
         time.sleep(0.08)
         self.main_button.event_generate('<ButtonRelease-1>')
-        Shield.root_update()
+        root.update()
 
     def alter_button(self, e: Event):
         self.state = next_valid_index(self.state, self.states)
@@ -359,3 +368,41 @@ class EntryBar(Frame):
 
     def get(self):
         return self.entry.get()
+
+
+class LibTools(Frame):
+
+    BUTTON_PADX = 7
+
+    def __init__(self, master, **kw):
+        Frame.__init__(self, master, **kw)
+        self.adding_music_label = ttk.Label(
+            self, font=(DEFAULT_FONT_FAMILY, 12))
+        self.lbuttons = []
+
+    def add_button(self, text_nosqb, clickFunc):
+        '''Add a button. Arg text_nosqb will be wrapped in square brackets.'''
+        button = LabelButton(
+            self, clickFG=COLOUR_DICT['info'], clickBG=COLOUR_DICT['bg'],
+            clickFunc=clickFunc,
+            text=wrap_sqb(text_nosqb), font=(DEFAULT_FONT_FAMILY, 12, BOLD))
+        col = len(self.lbuttons)
+        button.grid(column=col, row=0, sticky=S, padx=LibTools.BUTTON_PADX)
+        self.lbuttons.append(button)
+
+    def finish_adding_music(self):
+        self.adding_music_label.configure(text=L['DONE_EXCL'])
+        root.update()
+        time.sleep(1)
+        self.adding_music_label.grid_remove()
+
+    def add_folders(self, e: Event, AAT_structure: bool):
+        from serenityapp.browsing import Librarian
+        directory = filedialog.askdirectory()
+        if not directory == '':
+            self.adding_music_label.configure(text=ADDING_REL)
+            self.adding_music_label.grid(row=0, column=3)
+            root.update()
+            records.addFolder(directory, AAT_structure)
+            Thread(target=self.finish_adding_music).start()
+            Librarian.refresh_page()
