@@ -11,6 +11,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
 import serenityapp.supertk as stk
+import serenityapp.records as records
 from serenityapp.aplayer import Aplayer
 from serenityapp.audiodl import AudioDL
 from serenityapp.browsing import Browser, Librarian
