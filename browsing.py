@@ -8,7 +8,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.scrolled import ScrolledFrame
 
 import screenery
-import tkintools
+import supertk as stk
 from aplayer import Aplayer
 from config import (COLOUR_DICT, DEFAULT_FONT_FAMILY, DELETING_HEX,
                     SELECTED_LABEL_BG_HEX)
@@ -72,7 +72,7 @@ class Browser(ScrolledFrame):
 
     def add_label(self, row: int, text: str, label_type: str,
                   data: str, dblClickFunc=None):
-        b_label = tkintools.TypedLabel(
+        b_label = stk.TypedLabel(
             self, label_type=label_type, text=" " + text, data=data,
             bootstyle='info', width=self.cget('width'))
         b_label.grid(column=0, row=row, rowspan=1, sticky=NW)
@@ -93,7 +93,7 @@ class Browser(ScrolledFrame):
             column=1, row=row, rowspan=1, ipady=0,
             padx=(_edge_pad, _edge_pad), pady=(0, 9), sticky=E
         )
-        button = tkintools.LabelButton(
+        button = stk.LabelButton(
             buttonFrame, text=text, padx=Browser.BUTTON_PADX,
             pady=0, clickFunc=clickFunc
         )
@@ -149,7 +149,7 @@ class Browser(ScrolledFrame):
                 label=title, command=lambda t=title: self.__add_to_playlist(t))
 
     def gen_popup_menu(self):
-        m = ttk.Menu(Pager.frame, tearoff=0)
+        m = ttk.Menu(Librarian.frame, tearoff=0)
         m.configure(background=COLOUR_DICT['dark'],
                     activeforeground=COLOUR_DICT['info'])
         m.configure(font=(DEFAULT_FONT_FAMILY, 12))
@@ -239,11 +239,11 @@ class Browser(ScrolledFrame):
         if len(playlist_results) > 0:
             self.draw_subtitle(L['PLAYLISTS'], i)
             i += 1
-        Pager.loading = True
+        Librarian.loading = True
         for title in playlist_results:
             label = self.add_label(
                 i, title, PLAYLISTS_ID, title,
-                Pager.load_playlist_songs)
+                Librarian.load_playlist_songs)
             self.add_button(
                 i, clickFunc=(lambda e, d=title, l=label:
                               self.play(e, d, l)))
@@ -259,7 +259,7 @@ class Browser(ScrolledFrame):
         for artist_tuple in artist_results:
             name = artist_tuple[0]
             label = self.add_label(
-                i, name, ARTISTS_ID, name, Pager.load_albums)
+                i, name, ARTISTS_ID, name, Librarian.load_albums)
             label_data = artist_tuple[0]
             self.add_button(
                 i, clickFunc=(
@@ -280,7 +280,7 @@ class Browser(ScrolledFrame):
             data = album + '|' + artist  # note the difference 2 lines down
             label = self.add_label(
                 i, album + ' | ' + artist, ALBUMS_ID, data,
-                lambda e, artist=artist: Pager.load_tracks(e, artist))
+                lambda e, artist=artist: Librarian.load_tracks(e, artist))
             self.add_button(
                 i, clickFunc=(
                     lambda e, data=data, label=label:
@@ -314,11 +314,11 @@ class Browser(ScrolledFrame):
         for widget in widgets:
             self.temp_mark_label(
                 widget, False, wrap_dots('deleting'), True, DELETING_HEX)
-        Pager.refresh_page()
+        Librarian.refresh_page()
 
     def delete_playlist(self, e: Event):
-        Aplayer.delete_playlist(Pager.chosen_playlist)
-        Pager.go_back()
+        Aplayer.delete_playlist(Librarian.chosen_playlist)
+        Librarian.go_back()
 
     def __play_track(self, FQFN, queue):
         Thread(target=Aplayer.loadall, args=([FQFN], queue)).start()
@@ -329,7 +329,7 @@ class Browser(ScrolledFrame):
             self.__play_track(FQFN, queue=True)
         else:
             Thread(target=Aplayer.loadlist,
-                   args=(Pager.chosen_playlist, index, queue)).start()
+                   args=(Librarian.chosen_playlist, index, queue)).start()
 
     def __get_album_filenames(self, album_artist: str, custom_dblink=None):
         link = custom_dblink if custom_dblink is not None else DBLink()
@@ -395,10 +395,10 @@ class Browser(ScrolledFrame):
         else:
             Thread(
                 target=Aplayer.loadlist,
-                args=(Pager.chosen_playlist, index, queue)).start()
+                args=(Librarian.chosen_playlist, index, queue)).start()
 
     def is_loading(self):
-        return Pager.loading
+        return Librarian.loading
 
     def page(self):
         return self.current_page
@@ -421,7 +421,7 @@ class Browser(ScrolledFrame):
 
     def clear_selection(self):
         for widget in self.winfo_children():
-            if not isinstance(widget, tkintools.TypedLabel):
+            if not isinstance(widget, stk.TypedLabel):
                 continue
             else:
                 if self.selection.pop(widget.data, None) is not None:
@@ -431,8 +431,10 @@ class Browser(ScrolledFrame):
         self.selection.clear()
         self.playlists_in_selection = 0
 
+##############################################################################
 
-class Pager:
+
+class Librarian:
 
     chosen_artist = None
     chosen_album = None
@@ -447,34 +449,34 @@ class Pager:
     __refreshing = False
 
     def _init(browser, frame, subheader, back_button):
-        Pager.browser = browser
-        Pager.frame = frame
-        Pager.subheader = subheader
-        Pager.back_button = back_button
+        Librarian.browser = browser
+        Librarian.frame = frame
+        Librarian.subheader = subheader
+        Librarian.back_button = back_button
 
     def go_back(e: Event = None):
-        if Pager.current_page == TRACKS_ID:
-            Pager.load_albums()
-        elif (Pager.current_page == ALBUMS_ID
-                or Pager.current_page == PLAYLISTS_ID
-                or Pager.current_page == SEARCH_RESULTS_ID):
-            Pager.load_artists()
-        elif Pager.current_page == PLAYLIST_SONGS_ID:
-            Pager.load_playlists()
+        if Librarian.current_page == TRACKS_ID:
+            Librarian.load_albums()
+        elif (Librarian.current_page == ALBUMS_ID
+                or Librarian.current_page == PLAYLISTS_ID
+                or Librarian.current_page == SEARCH_RESULTS_ID):
+            Librarian.load_artists()
+        elif Librarian.current_page == PLAYLIST_SONGS_ID:
+            Librarian.load_playlists()
 
     def draw_browser(browser=None):
         if browser is None:
-            Pager.browser = Browser(Pager.frame)
+            Librarian.browser = Browser(Librarian.frame)
         else:
-            Pager.browser.grid_remove()
-            Pager.browser = browser
-        Pager.loading = False
-        Pager.browser.grid(row=4, sticky=NW, columnspan=1, rowspan=1)
+            Librarian.browser.grid_remove()
+            Librarian.browser = browser
+        Librarian.loading = False
+        Librarian.browser.grid(row=4, sticky=NW, columnspan=1, rowspan=1)
         Shield.root_update()
 
     def strip_widget_text(e: Event):
         text = e.widget.cget('text')
-        for prefix in Pager.PREFIXES:
+        for prefix in Librarian.PREFIXES:
             index = text.find(prefix)
             if index != -1:
                 text = text[len(prefix):]
@@ -485,49 +487,51 @@ class Pager:
 
     def __show_label_load_stats(e: Event, text: str, count: int, max: int):
         if text == '':
-            Pager.strip_widget_text(e)
+            Librarian.strip_widget_text(e)
         e.widget.configure(text="{} [{:.1f}%]".format(text, 100 * count / max))
         Shield.root_update()
 
     def search_library(query):
-        if Pager.loading is True:
+        if Librarian.loading is True:
             return
-        Pager.update_subheader(
+        Librarian.update_subheader(
             SEARCH_RESULTS_ID, ' Search results for: ' + query)
-        browser = Browser(Pager.frame)
+        browser = Browser(Librarian.frame)
         i = 0
         i = browser._search_playlists(i, query)
         i = browser._search_artists(i, query)
         i = browser._search_albums(i, query)
         i = browser._search_tracks(i, query)
-        Pager.browser.grid_remove()
-        Pager.draw_browser(browser)
+        Librarian.browser.grid_remove()
+        Librarian.draw_browser(browser)
 
     def update_subheader(new_page: str, new_text: str = ''):
-        Pager.browser.clear_selection()
-        if Pager.current_page != new_page:
-            Pager.browser.selection.clear()
-        Pager.current_page = new_page
-        if Pager.current_page != ARTISTS_ID:
-            Pager.back_button.configure(text=BACK_TEXT)
+        Librarian.browser.clear_selection()
+        if Librarian.current_page != new_page:
+            Librarian.browser.selection.clear()
+        Librarian.current_page = new_page
+        if Librarian.current_page != ARTISTS_ID:
+            Librarian.back_button.configure(text=BACK_TEXT)
         else:
-            Pager.back_button.configure(text=NO_BACK_TEXT)
-        if Pager.current_page == ARTISTS_ID:
+            Librarian.back_button.configure(text=NO_BACK_TEXT)
+        if Librarian.current_page == ARTISTS_ID:
             text = FIRST_SUBHEADER_TEXT
-        elif Pager.current_page == ALBUMS_ID:
-            text = ">> {}".format(Pager.chosen_artist)
-        elif Pager.current_page == TRACKS_ID:
-            text = ">> {}\\{}".format(Pager.chosen_artist, Pager.chosen_album)
-        elif Pager.current_page == PLAYLISTS_ID:
+        elif Librarian.current_page == ALBUMS_ID:
+            text = ">> {}".format(Librarian.chosen_artist)
+        elif Librarian.current_page == TRACKS_ID:
+            text = ">> {}\\{}".format(
+                Librarian.chosen_artist, Librarian.chosen_album)
+        elif Librarian.current_page == PLAYLISTS_ID:
             text = ">> {}".format(L['PLAYLISTS'])
-        elif Pager.current_page == PLAYLIST_SONGS_ID:
-            text = ">> {}\\{}".format(L['PLAYLISTS'], Pager.chosen_playlist)
-        elif Pager.current_page == SEARCH_RESULTS_ID:
+        elif Librarian.current_page == PLAYLIST_SONGS_ID:
+            text = ">> {}\\{}".format(
+                L['PLAYLISTS'], Librarian.chosen_playlist)
+        elif Librarian.current_page == SEARCH_RESULTS_ID:
             text = new_text
-        Pager.subheader.configure(text=text)
+        Librarian.subheader.configure(text=text)
 
     def draw_guide():
-        txt = ttk.Text(Pager.browser, font=(DEFAULT_FONT_FAMILY, 15))
+        txt = ttk.Text(Librarian.browser, font=(DEFAULT_FONT_FAMILY, 15))
         txt.insert(INSERT, L['GUIDE'])
         txt.configure(
             state=DISABLED, background=COLOUR_DICT['bg'],
@@ -535,57 +539,57 @@ class Pager:
         txt.grid(columnspan=2)
 
     def load_artists():
-        if Pager.loading is True:
+        if Librarian.loading is True:
             return
-        Pager.browser.grid_remove()
-        Pager.draw_browser()
-        Pager.update_subheader(ARTISTS_ID)
+        Librarian.browser.grid_remove()
+        Librarian.draw_browser()
+        Librarian.update_subheader(ARTISTS_ID)
         artists = DBLink().get_artists()
         i = 0
-        browser = Pager.browser
+        browser = Librarian.browser
         if Aplayer.number_of_playlists() > 0:
             pl = browser.add_label(
                 i, L['PLAYLISTS'], None,
-                L['PLAYLISTS'], Pager.load_playlists)
+                L['PLAYLISTS'], Librarian.load_playlists)
             pl.configure(foreground=COLOUR_DICT['light'])
             browser.add_button(i, text="open", flippable=False)
             i += 1
         for tuple in artists:
             name = tuple[0]
             al = browser.add_label(
-                i, name, ARTISTS_ID, name, Pager.load_albums)
+                i, name, ARTISTS_ID, name, Librarian.load_albums)
             browser.add_button(
                 i, clickFunc=lambda e, d=name, al=al: browser.play(e, d, al))
             i += 1
         if i == 0:
-            Pager.draw_guide()
+            Librarian.draw_guide()
 
     def load_albums(e: Event = None):
-        if Pager.loading is True:
+        if Librarian.loading is True:
             return
         if e is not None:
-            Pager.chosen_artist = Pager.strip_widget_text(e)
-        albums = DBLink().get_albums(Pager.chosen_artist)
-        Pager.update_subheader(ALBUMS_ID)
+            Librarian.chosen_artist = Librarian.strip_widget_text(e)
+        albums = DBLink().get_albums(Librarian.chosen_artist)
+        Librarian.update_subheader(ALBUMS_ID)
         album_count = len(albums)
-        browser = Browser(Pager.frame)
+        browser = Browser(Librarian.frame)
         i = 0
-        text = " " + Pager.chosen_artist
+        text = " " + Librarian.chosen_artist
         for album_tuple in albums:
-            label_data = album_tuple[0] + '|' + Pager.chosen_artist
+            label_data = album_tuple[0] + '|' + Librarian.chosen_artist
             label = browser.add_label(
                 i, album_tuple[0], ALBUMS_ID,
-                label_data, Pager.load_tracks)
+                label_data, Librarian.load_tracks)
             browser.add_button(
                 i, clickFunc=(
                     lambda e, data=label_data, label=label:
                         browser.play(e, data, label)))
             if e is not None:
-                Pager.__show_label_load_stats(
+                Librarian.__show_label_load_stats(
                     e, text, i, album_count)
             i += 1
-        Pager.browser.grid_remove()
-        Pager.draw_browser(browser)
+        Librarian.browser.grid_remove()
+        Librarian.draw_browser(browser)
 
     def load_tracks(e: Event = None, artist: str = ''):
         """Will load tracks into the browser.
@@ -594,33 +598,33 @@ class Pager:
             e (Event, optional): The event that of the calling widget.
                 Defaults to None.
             artist (str, optional): If specified, will set the
-                chosen_artist of this Pager and
+                chosen_artist of this Librarian and
                 set the chosen_album as if it was returned from a search
                 result, taking the first element of a split on the
                 album LabelButton text ' | '. Defaults to ''.
         """
-        if Pager.loading is True:
+        if Librarian.loading is True:
             return
         text = ''
         album = ''
         if e is not None:
             text = e.widget.cget('text')
-            album = Pager.strip_widget_text(e)
+            album = Librarian.strip_widget_text(e)
             if artist != '':
-                Pager.chosen_artist = artist
+                Librarian.chosen_artist = artist
                 album = album.split(' | ')[0]
-            Pager.chosen_album = album
+            Librarian.chosen_album = album
         else:
-            artist = Pager.chosen_artist
-            album = Pager.chosen_album
+            artist = Librarian.chosen_artist
+            album = Librarian.chosen_album
         tracks_paths = DBLink().get_all_tracks_and_paths(
-            Pager.chosen_album, Pager.chosen_artist)
-        Pager.update_subheader(TRACKS_ID)
+            Librarian.chosen_album, Librarian.chosen_artist)
+        Librarian.update_subheader(TRACKS_ID)
         song_count = len(tracks_paths)
-        browser = Browser(Pager.frame)
+        browser = Browser(Librarian.frame)
         i = 0
-        text = ' ' + Pager.chosen_album
-        Pager.loading = True
+        text = ' ' + Librarian.chosen_album
+        Librarian.loading = True
         for tuple in tracks_paths:
             label = browser.add_label(
                 i, tuple[0], TRACKS_ID, tuple[1], browser.play)
@@ -628,45 +632,45 @@ class Pager:
                 i, clickFunc=(lambda e, data=tuple[1], label=label:
                               browser.play(e, data, label)))
             if e is not None:
-                Pager.__show_label_load_stats(
+                Librarian.__show_label_load_stats(
                     e, text, i, song_count)
             i += 1
-        Pager.loading = False
-        Pager.browser.grid_remove()
-        Pager.draw_browser(browser)
+        Librarian.loading = False
+        Librarian.browser.grid_remove()
+        Librarian.draw_browser(browser)
 
     def load_playlists(e: Event = None):
-        if Pager.loading is True:
+        if Librarian.loading is True:
             return
-        browser = Browser(Pager.frame)
-        Pager.update_subheader(PLAYLISTS_ID)
+        browser = Browser(Librarian.frame)
+        Librarian.update_subheader(PLAYLISTS_ID)
         i = 0
-        Pager.loading = True
+        Librarian.loading = True
         playlist_titles = Aplayer.titles_of_playlists()
         title_count = len(playlist_titles)
         for title in playlist_titles:
             label = browser.add_label(
-                i, title, PLAYLISTS_ID, title, Pager.load_playlist_songs)
+                i, title, PLAYLISTS_ID, title, Librarian.load_playlist_songs)
             browser.add_button(
                 i, clickFunc=(lambda e, d=title, l=label:
                               browser.play(e, d, l)))
             if e is not None:
-                Pager.__show_label_load_stats(
+                Librarian.__show_label_load_stats(
                     e, ' ' + L['PLAYLISTS'], i, title_count)
             i += 1
-        Pager.draw_browser(browser)
+        Librarian.draw_browser(browser)
 
     def load_playlist_songs(e: Event):
-        if Pager.loading is True:
+        if Librarian.loading is True:
             return
-        playlist_title = Pager.strip_widget_text(e)
-        Pager.chosen_playlist = playlist_title
-        Pager.update_subheader(PLAYLIST_SONGS_ID)
-        browser = Browser(Pager.frame)
+        playlist_title = Librarian.strip_widget_text(e)
+        Librarian.chosen_playlist = playlist_title
+        Librarian.update_subheader(PLAYLIST_SONGS_ID)
+        browser = Browser(Librarian.frame)
         playlist_file = Aplayer.playlist_path(playlist_title)
         chosen_playlist_files = open(playlist_file, 'r').readlines()
         playlist_length = len(chosen_playlist_files)
-        del_pl_button = tkintools.DarkLabelButton(
+        del_pl_button = stk.DarkLabelButton(
             browser, browser.delete_playlist, text='--delete playlist--',
             font=(DEFAULT_FONT_FAMILY, 14, BOLD),
             defaultFG=DELETING_HEX, pady=10)
@@ -680,42 +684,42 @@ class Pager:
             browser.add_button(
                 i, clickFunc=(lambda e, d=data, l=label:
                               browser.play(e, d, l)))
-            Pager.__show_label_load_stats(
+            Librarian.__show_label_load_stats(
                 e, ' ' + playlist_title, i, playlist_length)
             i += 1
-        Pager.draw_browser(browser)
+        Librarian.draw_browser(browser)
 
     def __refresh_page(lbutton_event: Event, sleep_secs: float):
-        if Pager.__refreshing is True:
+        if Librarian.__refreshing is True:
             return
-        Pager.__refreshing = True
+        Librarian.__refreshing = True
         if lbutton_event is not None:
             widget = lbutton_event.widget
             widget.defaultFG = COLOUR_DICT['light']
             Shield.root_update()
             time.sleep(sleep_secs)
-        page = Pager.current_page
+        page = Librarian.current_page
         time.sleep(sleep_secs)
-        Pager.browser.grid_remove()
-        if Pager.current_page != page:
+        Librarian.browser.grid_remove()
+        if Librarian.current_page != page:
             return
-        elif Pager.current_page == TRACKS_ID:
-            Pager.load_tracks()
-        elif Pager.current_page == ALBUMS_ID:
-            Pager.load_albums()
-        elif Pager.current_page == ARTISTS_ID:
-            Pager.load_artists()
-        elif Pager.current_page == PLAYLIST_SONGS_ID:
-            Pager.load_playlist_songs()
-        elif Pager.current_page == PLAYLISTS_ID:
-            Pager.load_playlists()
-        elif Pager.current_page == SEARCH_RESULTS_ID:
-            Pager.search_library()
+        elif Librarian.current_page == TRACKS_ID:
+            Librarian.load_tracks()
+        elif Librarian.current_page == ALBUMS_ID:
+            Librarian.load_albums()
+        elif Librarian.current_page == ARTISTS_ID:
+            Librarian.load_artists()
+        elif Librarian.current_page == PLAYLIST_SONGS_ID:
+            Librarian.load_playlist_songs()
+        elif Librarian.current_page == PLAYLISTS_ID:
+            Librarian.load_playlists()
+        elif Librarian.current_page == SEARCH_RESULTS_ID:
+            Librarian.search_library()
         if lbutton_event is not None:
             widget.defaultFG = COLOUR_DICT['primary']
             widget['foreground'] = COLOUR_DICT['primary']
             Shield.root_update()
-        Pager.__refreshing = False
+        Librarian.__refreshing = False
 
     def refresh_page(e: Event = None, after=1.15):
-        Thread(target=Pager.__refresh_page, args=(e, after)).start()
+        Thread(target=Librarian.__refresh_page, args=(e, after)).start()
