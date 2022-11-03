@@ -1,10 +1,14 @@
-from config import *
-from tkintools import *
-from aplayer import Aplayer
-from audiodl import AudioDL
-from tkinter import messagebox
-import screenery as scrn
 import math
+import os
+from tkinter import NW, E, Event, Label, messagebox
+
+import screenery as scrn
+import supertk as stk
+from audiodl import AudioDL
+from config import DEFAULT_FONT_FAMILY, SMALL_SCREEN_CUTOFF
+from lang import L
+
+root = None
 
 
 class Shield:
@@ -15,10 +19,12 @@ class Shield:
     small_screen = False
     expanded = None
     welcome_button = None
+    root = None
 
-    def _init(master: Toplevel, expanded: bool):
+    def _init(master, expanded):
         global root
         root = master
+        Shield.root = root
         if not expanded:
             Shield.last_normal_width == root.winfo_width()
         else:
@@ -44,6 +50,9 @@ class Shield:
         else:
             Shield.small_screen = False
             return math.floor(width / 3)
+
+    def root_update():
+        Shield.root.update()
 
     def edge_pad():
         return math.floor(25 * scrn.widget_monitor(root).width / 3840)
@@ -85,11 +94,11 @@ class Shield:
     def flip_screen_fill(e: Event):
         r = root.overrideredirect()
         if r is True:  # we in big mode
-            e.widget.configure(text=EXPAND)
+            e.widget.configure(text=L['EXPAND'])
             i = 1
         else:  # we are in small mode
             Shield.last_normal_width = root.winfo_width()
-            e.widget.configure(text=CONTRACT)
+            e.widget.configure(text=L['CONTRACT'])
             if root.state() == 'zoomed':
                 root.state('normal')
             i = 0
@@ -106,9 +115,8 @@ class Shield:
             for t in AudioDL.active_titles():
                 addendum += t + '\n'
             addendum = addendum[0:-1] + ']'
-            res = messagebox.askyesno(
-                CONVERSION_WARNING[0],
-                CONVERSION_WARNING[1] + addendum)
+            res = messagebox.askyesno(L['CLOSE_WARNING'][0],
+                                      L['CLOSE_WARNING'][1] + addendum)
             if not res:
                 return
         os._exit(0)
@@ -127,9 +135,9 @@ class Sword:
         from graphics import LeftPane
         from secondpane import SecondPane
         global current_pane, pane_index
-        status_bar = StatusBar(root)
-        libPane = LeftPane(root, status_bar)
-        queuePane = SecondPane(root)
+        status_bar = stk.StatusBar(root)
+        libPane = LeftPane(status_bar)
+        queuePane = SecondPane()
         Shield.welcome_button.destroy()
         root.rowconfigure(0, weight=0)
         root.rowconfigure(1, weight=1)
@@ -143,7 +151,7 @@ class Sword:
         current_pane = Sword.__panes[pane_index]
         current_pane.drawAll()
 
-    def switch_page(e: Event = None):
+    def switch_pane(e: Event = None):
         global current_pane, pane_index
         current_pane.undrawAll()
         pane_index += 1
@@ -159,7 +167,7 @@ class Sword:
 
     def draw_header():
         global header
-        header = DarkLabelButton(root, clickFunc=Sword.switch_page)
+        header = stk.DarkLabelButton(root, clickFunc=Sword.switch_pane)
         header.configure(
             font=(DEFAULT_FONT_FAMILY, 34),
             text='serenity /{}/'.format(Sword.__pane_titles[0]))
@@ -167,15 +175,15 @@ class Sword:
         return header
 
     def draw_size_button():
-        expand_button = DarkLabelButton(
-            root, Shield.flip_screen_fill, text=EXPAND)
+        expand_button = stk.DarkLabelButton(
+            root, Shield.flip_screen_fill, text=L['EXPAND'])
         expand_button.configure(font=(DEFAULT_FONT_FAMILY, 13))
         expand_button.grid(
             column=0, row=0, padx=Shield.edge_pad(), sticky=E)
 
 
 ##############################################################################
-def init(root: Toplevel, expanded: bool = False):
+def init(root, expanded=False):
     """Initialises all master tools."""
     if Sword.pane_index != -1:
         return

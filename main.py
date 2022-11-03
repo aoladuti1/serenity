@@ -1,9 +1,7 @@
-from config import *
+from config import configureStyle, configureFont, configureRoot, THEME_NAME
 import records
 import db
-from tkinter import *
 import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
 
 
 def main():

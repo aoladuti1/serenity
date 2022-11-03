@@ -1,13 +1,9 @@
-import asyncio
-from concurrent.futures import thread
 import math
 import threading
 import time
-import tkintools
-import db
+import supertk as stk
 import ttkbootstrap as ttk
 import records
-import screenery
 from browsing import Browser, Librarian
 from audiodl import AudioDL
 from mastertools import Shield
@@ -18,7 +14,6 @@ from typing import Callable
 from aplayer import Aplayer
 from tkinter import filedialog
 from ttkbootstrap.constants import *
-from ttkbootstrap.scrolled import ScrolledFrame
 from config import *
 
 # TODO: Split up generation and drawing because
@@ -33,7 +28,7 @@ class LeftPane:
 
     PAUSE_LABELS = ['||', '|>']
 
-    def __init__(self, status: tkintools.StatusBar):
+    def __init__(self, status: stk.StatusBar):
         global _edge_pad
         _edge_pad = Shield.edge_pad()
         self.frame = Frame(Shield.root, width=Shield.max_pane())
@@ -88,7 +83,7 @@ class LeftPane:
         self.frame.grid(column=0, row=1, sticky='nsw', columnspan=1)
 
     def __gen_subheader(self):
-        subheader = tkintools.DarkLabelButton(
+        subheader = stk.DarkLabelButton(
             self.frame, clickFunc=self.showHideExtras,
             font=(DEFAULT_FONT_FAMILY, 15))
         subheader.grid(column=0, row=0, sticky=W)
@@ -98,7 +93,7 @@ class LeftPane:
         ''' Note this returns the actual button not the frame. '''
         bbframe = Frame(self.frame, padx=_edge_pad)
         bbframe.grid(row=0, rowspan=1, sticky=NE)
-        back_button = tkintools.LabelButton(
+        back_button = stk.LabelButton(
             bbframe,
             clickFG=COLOUR_DICT['info'],
             clickBG=COLOUR_DICT['bg'],
@@ -149,14 +144,14 @@ class LeftPane:
 
     def genLibTools(self):
         self.libTools = Frame(self.frame)
-        add_library = tkintools.LabelButton(
+        add_library = stk.LabelButton(
             self.libTools,
             clickFG=COLOUR_DICT['info'],
             clickBG=COLOUR_DICT['bg'],
             clickFunc=lambda e, AAT=True: self.add_folders(e, AAT),
             text='[add library]',
             font=(DEFAULT_FONT_FAMILY, 12, BOLD))
-        add_folders = tkintools.LabelButton(
+        add_folders = stk.LabelButton(
             self.libTools,
             clickFG=COLOUR_DICT['info'],
             clickBG=COLOUR_DICT['bg'],
@@ -164,7 +159,7 @@ class LeftPane:
             text='[add songs]',
             font=(DEFAULT_FONT_FAMILY, 12, BOLD)
         )
-        refresh_button = tkintools.LabelButton(
+        refresh_button = stk.LabelButton(
             self.libTools,
             clickFG=COLOUR_DICT['info'],
             clickBG=COLOUR_DICT['bg'],
@@ -181,7 +176,7 @@ class LeftPane:
 
     def genEntryBar(self):
         states = ['search', 'stream', 'stream + download', 'download']
-        self.entryBar = tkintools.EntryBar(
+        self.entryBar = stk.EntryBar(
             self.frame, self.search_hit, states,
             entry_placeholder='search...')
         self.entryBar.add_button(
@@ -320,7 +315,7 @@ class LeftPane:
             clickFunc=lambda e: Aplayer.change_loop(), text='{0}',
             unclickFunc=self.highlight_replay)
         self.cgrid([shuffle, prev, seek_neg, pause, seek_pos, next, repeat])
-        self.seekBar = tkintools.SeekBar(
+        self.seekBar = stk.SeekBar(
             self.controls, pady=int(3 * _edge_pad / 8))
         self.pauseButton = pause
         self.seekBar.grid(row=1)
@@ -439,7 +434,7 @@ class LeftPane:
             func = self.controlRelease
         else:
             func = unclickFunc
-        return tkintools.LabelButton(
+        return stk.LabelButton(
             self.control_buttons,
             onEnterFunc=self.wrapSquares,
             onLeaveFunc=self.unwrapSquares,
