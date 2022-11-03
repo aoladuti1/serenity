@@ -69,7 +69,7 @@ if getattr(sys, 'frozen', False):
 else:
     DIR_PATH = os.getcwd() + os.sep
 # should change to os.cwd() + "art" + os.sep in future
-ART_PATH = DIR_PATH + "art" + os.sep
+ART_PATH = DIR_PATH + "art" + os.sep  # TODO: remove
 
 PLAYLIST_FOLDER_NAME = L['PLAYLISTS']
 PLAYLISTS_PATH = DIR_PATH + PLAYLIST_FOLDER_NAME + os.sep
@@ -84,7 +84,7 @@ os.environ['PATH'] = DIR_PATH + 'subprograms' + os.sep + \
     'ffmpeg' + os.sep + 'bin' + os.pathsep + os.environ['PATH']
 
 # file paths
-DEFAULT_ART = 'default_art.jpg'  # to be removed
+DEFAULT_ART = 'default_art.jpg'  # TODO: remove
 DATABASE = DIR_PATH + "databases" + os.sep + "data.sqlite"
 
 # special
