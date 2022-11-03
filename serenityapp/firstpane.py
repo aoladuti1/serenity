@@ -172,7 +172,6 @@ class FirstPane:
         elif not queue and not self.status.grid_info():
             self.status.label.configure(text=LOADING_REL)
 
-
     def __download_and_display(self):
         entry_text = self.entrybar.get()
         if is_netpath(entry_text):

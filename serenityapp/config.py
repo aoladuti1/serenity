@@ -4,7 +4,6 @@ import sys
 import pathlib
 from time import sleep
 from serenityapp.lang import L
-from tkinter import *
 import ttkbootstrap as ttk
 from typing import TypeVar
 from serenityapp.themes import USER_THEMES
