@@ -1,12 +1,11 @@
 import ttkbootstrap as ttk
-
-import serenityapp.db as db
-import serenityapp.records as records
 from serenityapp.config import (THEME_NAME, configureFont, configureRoot,
                                 configureStyle)
 
 
 def main():
+    import serenityapp.db as db
+    import serenityapp.records as records
     db.init()
     records.refresh()
     root = ttk.Window(themename=THEME_NAME)

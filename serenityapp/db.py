@@ -7,13 +7,13 @@ from serenityapp.config import *
 SONG_COLUMNS = (
     'FQFN', 'artist', 'album', 'track', 'trackNum',
     'bitRateInfo', 'samplingRateInfo', 'codec', 'art',
-    'listens'
-)
+    'listens')
 
 SONGS = 'Songs'
 
 
 def init():
+    os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
     cursor.execute(
@@ -52,7 +52,7 @@ def init():
     conn.close()
     try:
         if platform == "linux" or platform == "linux2":
-            if not path_exists(DATABASE):
+            if FIRST_USE:
                 print('Attempting ffmpeg install.')
                 subprocess.run(['sudo', 'apt', 'install', 'ffmpeg'])
     except Exception:
@@ -62,8 +62,12 @@ def init():
 class DBLink:
 
     def __init__(self):
-        self.conn = sqlite3.connect(DATABASE)
-
+        try:
+            self.conn = sqlite3.connect(DATABASE)
+        except Exception:
+            init()
+            self.conn = sqlite3.connect(DATABASE)
+            
     def quick_commit(self, string: str, bindings: Sequence = []):
         with self.conn as conn:
             conn.cursor().execute(string, bindings)
