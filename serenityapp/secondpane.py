@@ -2,14 +2,14 @@ import threading
 from tkinter import messagebox
 from tkinter.font import BOLD
 import ttkbootstrap as ttk
-import supertk as stk
+import serenityapp.supertk as stk
 import time
-from aplayer import Aplayer
-from audiodl import AudioDL
-from mastertools import Shield
+from serenityapp.aplayer import Aplayer
+from serenityapp.audiodl import AudioDL
+from serenityapp.mastertools import Shield
 from tkinter import *
-from lang import rellipsis
-from config import light_wait, COLOUR_DICT, DEFAULT_FONT_FAMILY
+from serenityapp.lang import rellipsis
+from serenityapp.config import light_wait, COLOUR_DICT, DEFAULT_FONT_FAMILY
 
 ENTRY_BG = '#17012e'
 

@@ -1,14 +1,13 @@
 import math
 import os
-import threading
 import time
-from audiodl import AudioDL
+from serenityapp.audiodl import AudioDL
 from pathlib import Path
 
 import emoji
 import mpv
 
-from config import *
+from serenityapp.config import *
 
 PLAYLIST_EXTENSION = '.m3u'
 

@@ -2,7 +2,7 @@
 import os
 import pathlib
 from time import sleep
-from lang import L
+from serenityapp.lang import L
 from tkinter import *
 import ttkbootstrap as ttk
 from typing import TypeVar
@@ -63,7 +63,7 @@ UNKNOWN_ALBUM_ARTIST = "---"
 
 # directories
 # path to config w/ slash appended
-DIR_PATH = os.path.dirname(os.path.realpath(__file__)) + os.sep
+DIR_PATH = os.getcwd() + os.sep
 # should change to os.cwd() + "art" + os.sep in future
 ART_PATH = DIR_PATH + "art" + os.sep
 
@@ -115,7 +115,7 @@ def configureFont():
 
 
 def configureRoot(root: ttk.Window, expanded: bool = False):
-    import mastertools
+    import serenityapp.mastertools as mastertools
     root.attributes('-alpha', 0)
     root.iconbitmap(THEMES_PATH + "icon.ico")
     root.title("serenity")

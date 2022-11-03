@@ -4,9 +4,9 @@ import time
 from tkinter import *
 from tkinter.font import BOLD
 import ttkbootstrap as ttk
-from aplayer import Aplayer
-from typing import Callable, Any
-from config import *
+from serenityapp.aplayer import Aplayer
+from typing import Callable
+from serenityapp.config import *
 
 
 class TypedLabel(ttk.Label):
@@ -89,7 +89,7 @@ class LabelButton(Label):
 
 class StatusBar(Frame):
     def __init__(self, master, **kw):
-        from mastertools import Shield
+        from serenityapp.mastertools import Shield
         Frame.__init__(self, master, **kw)
         self.configure(width=Shield.base_pane_width())
         self.columnconfigure(1, weight=0)
@@ -104,7 +104,7 @@ class StatusBar(Frame):
 
 class SeekBar(Frame):
     def __init__(self, master, **kw):
-        from mastertools import Shield
+        from serenityapp.mastertools import Shield
         Frame.__init__(self, master, **kw)
         self.columnconfigure((1, 2, 3, 4, 5, 6, 7, 8, 9, 10), weight=1)
         self.sliding = False
@@ -171,7 +171,7 @@ class QueueListbox(Listbox):
 
     def __init__(self, master, set_fg=COLOUR_DICT['light'],
                  current_song_fg=COLOUR_DICT['primary'], **kw):
-        from mastertools import Shield
+        from serenityapp.mastertools import Shield
         kw['selectmode'] = MULTIPLE
         Listbox.__init__(self, master, **kw)
         kw['foreground'] = set_fg
@@ -322,7 +322,7 @@ class EntryBar(Frame):
         return [button_frame, button]
 
     def click_sim(self, e: Event = None):
-        from mastertools import Shield
+        from serenityapp.mastertools import Shield
         self.main_button.event_generate('<Button-1>')
         Shield.root_update()
         time.sleep(0.08)

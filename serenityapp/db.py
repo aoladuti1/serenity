@@ -2,7 +2,7 @@ import sqlite3
 import subprocess
 from sys import platform
 from typing import Sequence
-from config import *
+from serenityapp.config import *
 
 SONG_COLUMNS = (
     'FQFN', 'artist', 'album', 'track', 'trackNum',

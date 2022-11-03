@@ -3,10 +3,10 @@ import os
 from tkinter import NW, E, Event, Label, messagebox
 
 import screenery as scrn
-import supertk as stk
-from audiodl import AudioDL
-from config import DEFAULT_FONT_FAMILY, SMALL_SCREEN_CUTOFF
-from lang import L
+import serenityapp.supertk as stk
+from serenityapp.audiodl import AudioDL
+from serenityapp.config import DEFAULT_FONT_FAMILY, SMALL_SCREEN_CUTOFF
+from serenityapp.lang import L
 
 root = None
 
@@ -132,8 +132,8 @@ class Sword:
     header = None
 
     def _init():
-        from graphics import LeftPane
-        from secondpane import SecondPane
+        from serenityapp.graphics import LeftPane
+        from serenityapp.secondpane import SecondPane
         global current_pane, pane_index
         status_bar = stk.StatusBar(root)
         libPane = LeftPane(status_bar)

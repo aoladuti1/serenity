@@ -6,12 +6,12 @@ from typing import Sequence
 
 import youtube_title_parse as ytp
 import yt_dlp
-from PIL import Image
 from youtubesearchpython.__future__ import VideosSearch
 
-import db
-import records
-from config import *
+from serenityapp.db import DBLink
+import serenityapp.records as records
+from serenityapp.config import (DOWNLOAD_PATH, DOWNLOADS_CODEC, UNKNOWN_ARTIST,
+                                light_wait, path_exists)
 
 
 class VoidLogger(object):
@@ -136,7 +136,7 @@ class AudioDL:
                     appended_c = True
                     if not AudioDL.__downloading_titles:
                         AudioDL.__downloading = False
-                    dbLink = db.DBLink()
+                    dbLink = DBLink()
                     records.add_downloaded_song(full_path, data, dbLink)
                     light_wait()
                     if AudioDL.__converting_titles:

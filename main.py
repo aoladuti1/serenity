@@ -1,7 +1,9 @@
-from config import configureStyle, configureFont, configureRoot, THEME_NAME
-import records
-import db
 import ttkbootstrap as ttk
+
+import serenityapp.db as db
+import serenityapp.records as records
+from serenityapp.config import (THEME_NAME, configureFont, configureRoot,
+                                configureStyle)
 
 
 def main():

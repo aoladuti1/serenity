@@ -4,17 +4,17 @@ from tkinter import (DISABLED, INSERT, NW, UNDERLINE, WORD, E, Event, Frame,
                      Menu, W)
 from tkinter.font import BOLD
 
+import screenery
 import ttkbootstrap as ttk
 from ttkbootstrap.scrolled import ScrolledFrame
 
-import screenery
-import supertk as stk
-from aplayer import Aplayer
-from config import (COLOUR_DICT, DEFAULT_FONT_FAMILY, DELETING_HEX,
-                    SELECTED_LABEL_BG_HEX)
-from db import DBLink
-from lang import L, rellipsis, wd_ls, wrap_dots
-from mastertools import Shield
+import serenityapp.supertk as stk
+from serenityapp.aplayer import Aplayer
+from serenityapp.config import (COLOUR_DICT, DEFAULT_FONT_FAMILY, DELETING_HEX,
+                                SELECTED_LABEL_BG_HEX)
+from serenityapp.db import DBLink
+from serenityapp.lang import L, rellipsis, wd_ls, wrap_dots
+from serenityapp.mastertools import Shield
 
 ARTISTS_ID = 0
 ALBUMS_ID = 1

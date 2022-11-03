@@ -2,16 +2,16 @@ import time
 from pymediainfo import MediaInfo
 import os
 import re
-import db
-from config import *
+from serenityapp.db import DBLink
+from serenityapp.config import *
 import requests
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
-import cred
+import serenityapp.cred as cred
 from pathlib import Path
 
 numgex = re.compile("^\d+") #matches leading digits
-dbLink = db.DBLink()
+dbLink = DBLink()
 
 def getAudioInfo(FQFN):
     media_info = MediaInfo.parse(filename=FQFN)

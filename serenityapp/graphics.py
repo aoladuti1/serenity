@@ -1,20 +1,21 @@
 import math
 import threading
 import time
-import supertk as stk
-import ttkbootstrap as ttk
-import records
-from browsing import Browser, Librarian
-from audiodl import AudioDL
-from mastertools import Shield
 from pathlib import Path
-from tkinter.font import BOLD
 from tkinter import *
-from typing import Callable
-from aplayer import Aplayer
 from tkinter import filedialog
+from tkinter.font import BOLD
+from typing import Callable
+
+import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from config import *
+
+import serenityapp.supertk as stk
+from serenityapp.aplayer import Aplayer
+from serenityapp.audiodl import AudioDL
+from serenityapp.browsing import Browser, Librarian
+from serenityapp.config import *
+from serenityapp.mastertools import Shield
 
 # TODO: Split up generation and drawing because
 # things keep regenerating which glitches the program!!!
