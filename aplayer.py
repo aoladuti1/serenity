@@ -256,7 +256,8 @@ class Aplayer:
         dest = PLAYLISTS_PATH + playlist_name
         rejects = []
         files_accepted = []
-        with open(PLAYLISTS_PATH + playlist_name, 'w') as pl:
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        with open(dest, 'w') as pl:
             indexed_files = enumerate(Aplayer.player.playlist_filenames)
             for i, filename in indexed_files:
                 file = emoji.replace_emoji(filename)
@@ -265,7 +266,6 @@ class Aplayer:
                 else:
                     files_accepted.append(file)
             if files_accepted:
-                os.makedirs(os.path.dirname(dest), exist_ok=True)
                 for good_file in files_accepted:
                     pl.write(good_file + '\n')
                 Aplayer.__playlist_title = new_playlist_title

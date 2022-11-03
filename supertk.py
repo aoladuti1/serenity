@@ -169,14 +169,14 @@ class DarkLabelButton(LabelButton):
 class QueueListbox(Listbox):
     """ A tk listbox with drag'n'drop reordering of entries. """
 
-    def __init__(self, master, root, set_fg=COLOUR_DICT['light'],
+    def __init__(self, master, set_fg=COLOUR_DICT['light'],
                  current_song_fg=COLOUR_DICT['primary'], **kw):
         from mastertools import Shield
         kw['selectmode'] = MULTIPLE
         Listbox.__init__(self, master, **kw)
         kw['foreground'] = set_fg
         self.config(selectforeground=COLOUR_DICT['info'])
-        self.root = root
+        self.root = Shield.root
         self.cur_index = None
         self.cur_state = None
         self.current_song_fg = current_song_fg
@@ -197,18 +197,18 @@ class QueueListbox(Listbox):
         if self.cur_index != self.last_cur_index:
             Aplayer.playlist_move(self.last_cur_index, self.cur_index, True)
 
-    def set_current(self, event):
+    def set_current(self, e: Event):
         ''' gets the current index of the clicked item in the listbox '''
-        self.cur_index = self.nearest(event.y)
+        self.cur_index = self.nearest(e.y)
         self.last_cur_index = self.cur_index
 
-    def get_state(self, event):
+    def get_state(self, e: Event):
         ''' checks if the clicked item in listbox is selected '''
         self.cur_state = 1
 
-    def shift_selection(self, event):
+    def shift_selection(self, e: Event):
         ''' shifts item up or down in listbox '''
-        i = self.nearest(event.y)
+        i = self.nearest(e.y)
         if self.cur_state == 1:
             self.selection_set(self.cur_index)
         else:
@@ -264,7 +264,6 @@ class QueueListbox(Listbox):
         e.widget['foreground'] = e.widget.defaultFG
 
     # event should be from a DarkLabelButton
-
     def playlist_clear(self, e: Event):
         Aplayer.clear_queue()
         e.widget['foreground'] = e.widget.defaultFG
@@ -277,10 +276,9 @@ class QueueListbox(Listbox):
 
 class EntryBar(Frame):
 
-    def __init__(self, master, root, main_func, states: list[str],
+    def __init__(self, master, main_func, states: list[str],
                  main_alterable=True, entry_placeholder='', smartxpad=6, **kw):
         Frame.__init__(self, master, **kw)
-        self.root = root
         self.state = 0
         self.states = states
         self.__padx = smartxpad
@@ -289,7 +287,7 @@ class EntryBar(Frame):
             self.states[0], main_func, alterable=main_alterable)
         self.main_button_frame = main_button_widgets[0]
         self.main_button = main_button_widgets[1]
-        self.side_label = ttk.Label(self, font=(DEFAULT_FONT_FAMILY, 12))
+        self.side_label = ttk.Label(self, font=(DEFAULT_FONT_FAMILY, 13, BOLD))
         self.entry = Entry(self, width=27)
         self.entry.grid(row=0, column=0, padx=(0, smartxpad))
         self.entry.configure(
@@ -324,11 +322,12 @@ class EntryBar(Frame):
         return [button_frame, button]
 
     def click_sim(self, e: Event = None):
+        from mastertools import Shield
         self.main_button.event_generate('<Button-1>')
-        self.root.update()
+        Shield.root_update()
         time.sleep(0.08)
         self.main_button.event_generate('<ButtonRelease-1>')
-        self.root.update()
+        Shield.root_update()
 
     def alter_button(self, e: Event):
         self.state = next_valid_index(self.state, self.states)

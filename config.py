@@ -2,6 +2,7 @@
 import os
 import pathlib
 from time import sleep
+from lang import L
 from tkinter import *
 import ttkbootstrap as ttk
 from typing import TypeVar
@@ -23,18 +24,6 @@ def next_valid_index(from_index: int, circular_list: list) -> int:
         return from_index + 1
     else:
         return 0
-
-
-def rellipsis(text) -> str:
-    return text + '...'
-
-
-def lspace(text) -> str:
-    return ' ' + text
-
-
-def wrap_dots(text) -> str:
-    return '..{}..'.format(text)
 
 
 def path_exists(path):
@@ -78,10 +67,10 @@ DIR_PATH = os.path.dirname(os.path.realpath(__file__)) + os.sep
 # should change to os.cwd() + "art" + os.sep in future
 ART_PATH = DIR_PATH + "art" + os.sep
 
-PLAYLIST_FOLDER_NAME = '-playlists-'
+PLAYLIST_FOLDER_NAME = L['PLAYLISTS']
 PLAYLISTS_PATH = DIR_PATH + PLAYLIST_FOLDER_NAME + os.sep
 
-DL_FOLDER_NAME = '-downloads-'
+DL_FOLDER_NAME = L['DOWNLOADS']
 DOWNLOAD_PATH = DIR_PATH + DL_FOLDER_NAME + os.sep
 
 THEMES_PATH = DIR_PATH + 'themes' + os.sep
@@ -102,36 +91,13 @@ FIRST_USE = not path_exists(DATABASE)
 # gui
 THEME_NAME = 'serenity'
 COLOUR_DICT = USER_THEMES['serenity']['colors']
+DELETING_HEX = '#ff4040'
 SELECTED_LABEL_BG_HEX = '#1a1836'
 UNSELECTED_LABEL_BG_HEX = '#000000'
 ACTIVE_BUTTON_BG_HEX = '#0b3740'
 CLICK_BUTTON_BG_HEX = '#2696ad'
 DEFAULT_FONT_FAMILY = 'Cascadia Code Light'
-EXPAND = 'expand'
-CONTRACT = 'contract'
 SMALL_SCREEN_CUTOFF = 2000
-
-# text
-SEARCH_ICON = u"\U0001F50E"
-CONVERSION_WARNING = ['Hold on!',
-                      'Files are still converting/downloading. Quit?']
-GUIDE_TEXT = """Click 'More...' to add some music!
-
-Then, click [add library] if each song file is in an album-named folder, and \
-each album-named folder is inside an artist-named folder.
-For example (assuming you add a directory called "Music") 
-the full directory of the song "Don't" may be 
-"Music/Bryson Tiller/T R A P S O U L/05 - Don't.mp3." 
-
-Otherwise, click [add folders] and we'll try our best to get all your music \
-added and organised nicely :-)
-
-When you choose a directory all music files in its subdirectories will be \
-added to the database.
-
-Don't worry too much about the EXACT file / folder names, Serenity is flexible!
-[Note: Serenity does not use metadata at all. Things like track number can be 
-signalled by being present in the filename like .../01 - Intro.mp3.]"""
 
 
 def configureStyle():

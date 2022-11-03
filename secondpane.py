@@ -2,23 +2,25 @@ import threading
 from tkinter import messagebox
 from tkinter.font import BOLD
 import ttkbootstrap as ttk
-import tkintools
+import supertk as stk
 import time
 from aplayer import Aplayer
+from audiodl import AudioDL
 from mastertools import Shield
 from tkinter import *
-from config import rellipsis, light_wait, COLOUR_DICT, DEFAULT_FONT_FAMILY
+from lang import rellipsis
+from config import light_wait, COLOUR_DICT, DEFAULT_FONT_FAMILY
 
 ENTRY_BG = '#17012e'
 
+
 class SecondPane:
 
-    def __init__(self, root: ttk.Window):
-        self.root = root
-        self.frame = Frame(self.root, width=Shield.max_pane()) 
+    def __init__(self):
+        self.frame = Frame(Shield.root, width=Shield.max_pane())
         self.queue_frame = ttk.Frame(
             self.frame, padding='{0} 0 {0} 0'.format(Shield.edge_pad()))
-        self.queue_frame.columnconfigure(0, weight = 0)
+        self.queue_frame.columnconfigure(0, weight=0)
         self.entry_bar = self.__gen_entry_bar()
         self.queue_box = self.__gen_queue_box()
         self.queue_tools = self.__gen_queue_tools()
@@ -33,16 +35,16 @@ class SecondPane:
     def undrawAll(self):
         self.frame.grid_remove()
 
-    def __gen_queue_box(self):  
-        queue_box = tkintools.QueueListbox(self.queue_frame, self.root)
+    def __gen_queue_box(self):
+        queue_box = stk.QueueListbox(self.queue_frame)
         queue_box.configure(background=COLOUR_DICT['dark'])
         queue_box.grid(column=0, row=4)
         return queue_box
 
     def __gen_entry_bar(self):
         text = 'search'
-        entry_bar = tkintools.EntryBar(
-            self.queue_frame, self.root, self.search_hit,
+        entry_bar = stk.EntryBar(
+            self.queue_frame, self.search_hit,
             [text], entry_placeholder=rellipsis(text),
             pady=Shield.edge_pad())
         entry_bar.set_entry_bg(ENTRY_BG)
@@ -52,13 +54,13 @@ class SecondPane:
 
     def __gen_queue_tools(self):
         queue_tools = Frame(self.queue_frame)
-        clear_playlist_button = tkintools.DarkLabelButton(
+        clear_playlist_button = stk.DarkLabelButton(
             queue_tools, self.queue_box.playlist_clear,
             text='[clear queue]')
-        clear_selection_button = tkintools.DarkLabelButton(
+        clear_selection_button = stk.DarkLabelButton(
             queue_tools, self.queue_box.unselect_all,
             text='[clear selection]')
-        remove_selection_button = tkintools.DarkLabelButton(
+        remove_selection_button = stk.DarkLabelButton(
             queue_tools, self.queue_box.playlist_remove_selection,
             text='[remove selection]')
         clear_playlist_button.grid(column=0, row=0)
@@ -66,7 +68,7 @@ class SecondPane:
         remove_selection_button.grid(column=2, row=0)
         queue_tools.grid(row=1, sticky=W)
         return queue_tools
-                
+
     def __gen_sub_header(self):
         subheader = ttk.Label(
             self.queue_frame, font=(DEFAULT_FONT_FAMILY, 19, BOLD))
@@ -80,7 +82,7 @@ class SecondPane:
 
     def __draw_queue_frame(self):
         self.queue_frame.grid(column=0)
-    
+
     def search_hit(self, e: Event = None):
         query = self.entry_bar.get()
         items = self.queue_box.get(0, END)
@@ -93,11 +95,11 @@ class SecondPane:
             self.queue_box.see(index)
             threading.Thread(
                 target=self.__highlight_short, args=(index,)).start()
-        
+
     def __highlight_short(self, index):
         self.queue_box.itemconfig(index, {'fg': '#FFD700'})
         time.sleep(2)
-        if not Aplayer.playlist_pos() == index:
+        if not Aplayer.get_playlist_pos() == index:
             revert_colour = self.queue_box['foreground']
         else:
             revert_colour = self.queue_box.current_song_fg
@@ -113,11 +115,11 @@ class SecondPane:
         while self.saving is True:
             time.sleep(1)
         self.entry_bar.hide_side_label(old_text)
-    
+
     def save_playlist(self, e: Event = None):
         if self.saving is True:
             return
-        dest_title = Aplayer.validate_title(self.entry_bar.get())
+        dest_title = AudioDL.validate_title(self.entry_bar.get())
         if dest_title is None:
             return
         temp_text = '{} {}'.format('saving to', dest_title)
@@ -132,10 +134,9 @@ class SecondPane:
             in saved playlists:
             """.format(dest_title)
             for i, filename in rejects:
-                msg += '\n{} [{}]'.format(self.queue_box.get(i,i)[0], filename)
+                msg += '\n{} [{}]'.format(
+                    self.queue_box.get(i, i)[0], filename)
             messagebox.showinfo(
                 'Files unable to be added to {}'.format(dest_title), msg)
         light_wait()
         self.saving = False
-
-        
