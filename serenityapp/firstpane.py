@@ -188,7 +188,8 @@ class FirstPane:
             if title is None:
                 return  # TODO: ERROR MSG
         data = AudioDL.get_online_data(title)
-        if not AudioDL.data_on_disk(data):
+        if (not AudioDL.data_on_disk(data) 
+                and title not in AudioDL.active_titles()):
             Thread(target=self.put_dl_percent).start()
             AudioDL.download([link], data)
         else:
