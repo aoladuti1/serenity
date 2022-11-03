@@ -80,7 +80,7 @@ os.environ['PATH'] = DIR_PATH + 'subprograms' + os.sep + \
     'ffmpeg' + os.sep + 'bin' + os.pathsep + os.environ['PATH']
 
 # file paths
-DEFAULT_ART = 'default_art.jpg' # to be removed
+DEFAULT_ART = 'default_art.jpg'  # to be removed
 DATABASE = DIR_PATH + "databases" + os.sep + "data.sqlite"
 
 # special

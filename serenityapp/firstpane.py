@@ -25,7 +25,7 @@ STREAM_MODE = 1
 STREAM_DOWNLOAD_MODE = 2
 DOWNLOAD_MODE = 3
 
-class LeftPane:
+class FirstPane:
 
     PAUSE_LABELS = ['||', '|>']
 
@@ -337,7 +337,7 @@ class LeftPane:
         while True:
             try:
                 self.pauseButton.configure(
-                    text=LeftPane.PAUSE_LABELS[int(Aplayer.is_paused())])
+                    text=FirstPane.PAUSE_LABELS[int(Aplayer.is_paused())])
             except Exception:
                 pass  # tkinter complains about the threading but i don't care
             time.sleep(1)

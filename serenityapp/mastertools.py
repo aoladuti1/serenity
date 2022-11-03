@@ -132,11 +132,11 @@ class Sword:
     header = None
 
     def _init():
-        from serenityapp.graphics import LeftPane
+        from serenityapp.firstpane import FirstPane
         from serenityapp.secondpane import SecondPane
         global current_pane, pane_index
         status_bar = stk.StatusBar(root)
-        libPane = LeftPane(status_bar)
+        libPane = FirstPane(status_bar)
         queuePane = SecondPane()
         Shield.welcome_button.destroy()
         root.rowconfigure(0, weight=0)
