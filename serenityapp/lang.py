@@ -29,6 +29,8 @@ EN = 0
 
 REGION = EN
 
+# _EXCL = ends with exclamation mark
+# _COL = ends with colon
 LANG = [
     {
         'STARTING': 'starting',
@@ -48,6 +50,17 @@ LANG = [
         'ADD_FOLDERS': 'add folders',
         'REFRESH': 'refresh',
         'DONE_EXCL': 'done!',
+        'SEARCH': 'search',
+        'STREAM': 'stream',
+        'STREAM+DOWNLOAD': 'stream + download',
+        'DOWNLOAD': 'download',
+        'LOADING': 'loading',
+        'DOWNLOADING': 'downloading',
+        'LOADING_AND_DOWNLOADING': 'loading and downloading',
+        'NOW_PLAYING_COL': 'Now playing:',
+        'NOW_STREAMING_COL': 'Now streaming:',
+        'CONVERTING': 'converting',
+        'CURRENTLY_PLAYING_COL': 'Currently playing:',
         'CLOSE_WARNING': ['Hold on!',
                           'Files are still converting/downloading. Quit?'],
         'GUIDE': """Click 'More...' to add some music!

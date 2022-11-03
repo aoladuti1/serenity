@@ -9,6 +9,7 @@ from typing import Callable
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
+from serenityapp.lang import rellipsis
 
 import serenityapp.supertk as stk
 import serenityapp.records as records
@@ -25,6 +26,11 @@ SEARCH_MODE = 0
 STREAM_MODE = 1
 STREAM_DOWNLOAD_MODE = 2
 DOWNLOAD_MODE = 3
+QUEUING_REL = rellipsis(L['QUEUING'])
+LOADING_REL = rellipsis(L['LOADING'])
+DOWNLOADING_REL = rellipsis(L['DOWNLOADING'])
+LOADING_AND_DOWNLOADING_REL = rellipsis(L['LOADING_AND_DOWNLOADING'])
+CONVERTING_REL = rellipsis(L['CONVERTING'])
 
 
 class FirstPane:
@@ -46,7 +52,7 @@ class FirstPane:
         self.updating_entry_label = False
         self.current_file = ''
         self.duration_str = ''
-        self.playing_text = 'Now playing:'
+        self.playing_text = L['NOW_PLAYING_COL']
         self.status = status
         self.seekbar = None
         self.downloading = False
@@ -116,22 +122,6 @@ class FirstPane:
             self.entrybar.grid_remove()
             Shield.root.focus_force()
 
-    def finish_adding_music(self):
-        self.adding_music_label.configure(text='done!')
-        Shield.root_update()
-        time.sleep(1)
-        self.adding_music_label.grid_remove()
-
-    def add_folders(self, e: Event, AAT_structure: bool):
-        directory = filedialog.askdirectory()
-        if not directory == '':
-            self.adding_music_label.configure(text='adding...')
-            self.adding_music_label.grid(row=2, column=3)
-            Shield.root_update()
-            records.addFolder(directory, AAT_structure)
-            Thread(target=self.finish_adding_music).start()
-            Librarian.refresh_page()
-
     def entry_button_command(self, e: Event = None, queue: bool = False):
         Thread(target=self.search_hit, args=(e, queue)).start()
 
@@ -146,30 +136,42 @@ class FirstPane:
         return lt
 
     def __gen_entrybar(self):
-        states = ['search', 'stream', 'stream + download', 'download']
+        states = [
+            L['SEARCH'], L['STREAM'], L['STREAM+DOWNLOAD'], L['DOWNLOAD']]
         entrybar = stk.EntryBar(
             self.frame, self.search_hit, states,
-            entry_placeholder='search...')
+            entry_placeholder=rellipsis(L['SEARCH']))
         entrybar.add_button(
-            'queue', lambda e, q=True: self.search_hit(e, q))
+            L['QUEUE'], lambda e, q=True: self.search_hit(e, q))
         return entrybar
 
     def __stream(self, queue: bool = False):
         entry_text = self.entrybar.get()
+        title = ''
         if is_netpath(entry_text):
             try:
                 Thread(
                     target=Aplayer.loadall, args=([entry_text], queue)).start()
-                return AudioDL.scrape_title(entry_text)
+
+                if queue:
+                    title = AudioDL.scrape_title(entry_text)
             except Exception:
-                return None  # TODO: ERROR MSG
+                return  # TODO: ERROR MSG
         else:
             link, title = AudioDL.get_link_and_title(entry_text)
             if link is None:
                 return  # TODO: ERROR MSG
             Thread(target=Aplayer.loadall,
                    args=([link], queue)).start()
-            return title
+        if not self.status.grid_info():
+            self.status.grid(row=5)
+            self.status.label.grid(column=0, row=0)
+        if queue is True:
+            queue_text = '{} \"{}\"'.format(QUEUING_REL, title)
+            Thread(target=self.__override_status, args=(queue_text,)).start()
+        elif not queue and not self.status.grid_info():
+            self.status.label.configure(text=LOADING_REL)
+
 
     def __download_and_display(self):
         entry_text = self.entrybar.get()
@@ -184,7 +186,7 @@ class FirstPane:
             if title is None:
                 return  # TODO: ERROR MSG
         data = AudioDL.get_online_data(title)
-        if (not AudioDL.data_on_disk(data) 
+        if (not AudioDL.data_on_disk(data)
                 and title not in AudioDL.active_titles()):
             Thread(target=self.put_dl_percent).start()
             AudioDL.download([link], data)
@@ -208,7 +210,8 @@ class FirstPane:
                 break
         while AudioDL.download_started():
             side_label.config(
-                text=' \u2913' + str(AudioDL.download_percent()) + '%...')
+                text=' {}{}{}'.format(
+                    '\u2913', AudioDL.download_percent(), '%...'))
             Shield.root_update()
             time.sleep(0.01)
             if AudioDL.download_percent() == 100:
@@ -217,7 +220,7 @@ class FirstPane:
                 if end_dl_prcnt == 0 or end_dl_prcnt == 100:
                     break
         while not AudioDL.is_finished():
-            side_label.config(text='converting...')
+            side_label.config(text=CONVERTING_REL)
             time.sleep(2)
         self.downloading = False
         side_label.grid_remove()
@@ -228,23 +231,14 @@ class FirstPane:
         if mode == SEARCH_MODE:
             Librarian.search_library(self.entrybar.get())
         elif mode == STREAM_MODE:
-            title = self.__stream(queue)
-            if self.status.label.cget('text') == '':
-                txt = 'queuing... \"' + title + '\"' if queue else 'loading...'
-                self.status.label.configure(text=txt)
-            else:
-                if queue is True:
-                    Thread(
-                        target=self.__override_status,
-                        args=('queuing... \"' + title + '\"',)).start()
+            Thread(target=self.__stream, args=(queue,)).start()
         elif mode == STREAM_DOWNLOAD_MODE:
             Thread(target=self.__stream, args=(queue,)).start()
             Thread(target=self.__download_and_display).start()
             if self.status.label.cget('text') == '':
-                self.status.label.configure(text='loading and downloading...')
+                self.status.label.configure(text=LOADING_AND_DOWNLOADING_REL)
         elif mode == DOWNLOAD_MODE:
             Thread(target=self.__download_and_display).start()
-        Shield.root_update()
 
     def __override_status(self, text):
         """
@@ -320,10 +314,10 @@ class FirstPane:
             if Aplayer.is_online():
                 self.current_file = Aplayer.get_title_from_file(file)
 
-                self.playing_text = 'Now streaming:'
+                self.playing_text = L['NOW_STREAMING_COL']
             else:
                 self.current_file = Path(file).name
-                self.playing_text = 'Now playing:'
+                self.playing_text = L['NOW_PLAYING_COL']
             self.status.grid(row=5)
             self.status.label.grid(column=0, row=0)
             self.status.time.grid(column=1, row=0)
