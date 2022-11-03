@@ -1,8 +1,8 @@
 import time
 from math import ceil
 from threading import Thread
-from tkinter import *
-from tkinter import filedialog
+from tkinter import (CENTER, END, HORIZONTAL, LEFT, MULTIPLE, DoubleVar, E,
+                     Entry, Event, Frame, Label, Listbox, S, X, filedialog)
 from tkinter.font import BOLD
 from typing import Callable
 
@@ -10,10 +10,13 @@ import ttkbootstrap as ttk
 
 import serenityapp.records as records
 from serenityapp.aplayer import Aplayer
-from serenityapp.config import *
+from serenityapp.config import (COLOUR_DICT, DEFAULT_FONT_FAMILY, light_wait,
+                                next_valid_index)
 from serenityapp.lang import L, rellipsis, wrap_sqb
 
 ADDING_REL = rellipsis(L['ADDING'])
+ACTIVE_BUTTON_BG_HEX = '#0b3740'
+CLICK_BUTTON_BG_HEX = '#2696ad'
 
 root = None
 

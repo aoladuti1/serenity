@@ -135,7 +135,7 @@ class Sword:
         from serenityapp.firstpane import FirstPane
         from serenityapp.secondpane import SecondPane
         global current_pane, pane_index
-        status_bar = stk.StatusBar(root)
+        status_bar = stk.StatusBar(root)  # THIS DEFINES SUPERTK'S GLOBAL ROOT
         libPane = FirstPane(status_bar)
         queuePane = SecondPane()
         Shield.welcome_button.destroy()
