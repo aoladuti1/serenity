@@ -10,8 +10,7 @@ from ttkbootstrap.scrolled import ScrolledFrame
 
 import serenityapp.supertk as stk
 from serenityapp.aplayer import Aplayer
-from serenityapp.config import (COLOUR_DICT, DEFAULT_FONT_FAMILY, DELETING_HEX,
-                                SELECTED_LABEL_BG_HEX)
+from serenityapp.config import COLOUR_DICT, DEFAULT_FONT_FAMILY
 from serenityapp.db import DBLink
 from serenityapp.lang import L, rellipsis, wd_ls, wrap_dots
 from serenityapp.mastertools import Shield
@@ -31,6 +30,9 @@ HIGHLIGHT_HEX = COLOUR_DICT['primary']
 FIRST_SUBHEADER_TEXT = ' -> ' + rellipsis(L['MORE'])
 BACK_TEXT = '<--'
 NO_BACK_TEXT = '---'
+
+DELETING_HEX = '#ff4040'
+SELECTED_LABEL_BG_HEX = '#1a1836'
 
 
 class Browser(ScrolledFrame):
@@ -85,16 +87,13 @@ class Browser(ScrolledFrame):
         buttonFrame.configure(
             highlightcolor=COLOUR_DICT['primary'],
             highlightbackground=COLOUR_DICT['primary'],
-            highlightthickness=1
-        )
+            highlightthickness=1)
         buttonFrame.grid(
             column=1, row=row, rowspan=1, ipady=0,
-            padx=(_edge_pad, _edge_pad), pady=(0, 9), sticky=E
-        )
+            padx=(_edge_pad, _edge_pad), pady=(0, 9), sticky=E)
         button = stk.LabelButton(
             buttonFrame, text=text, padx=Browser.BUTTON_PADX,
-            pady=0, clickFunc=clickFunc
-        )
+            pady=0, clickFunc=clickFunc)
         if flippable is True:
             button.bind('<Button-3>', self.flip_button)
             button.configure(width=Browser.BUTTON_WIDTH)
