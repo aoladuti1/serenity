@@ -52,7 +52,7 @@ def init():
     conn.close()
     try:
         if platform == "linux" or platform == "linux2":
-            if FIRST_USE:
+            if not path_exists(DATABASE):
                 print('Attempting ffmpeg install.')
                 subprocess.run(['sudo', 'apt', 'install', 'ffmpeg'])
     except Exception:
@@ -67,7 +67,7 @@ class DBLink:
         except Exception:
             init()
             self.conn = sqlite3.connect(DATABASE)
-            
+
     def quick_commit(self, string: str, bindings: Sequence = []):
         with self.conn as conn:
             conn.cursor().execute(string, bindings)
@@ -82,7 +82,7 @@ class DBLink:
                 LIMIT 1
                 """.format(table), [FQFN]
             )
-            return cursor.fetchone() != None
+            return cursor.fetchone() is not None
 
     def del_all_absent_songs(self, table: str = SONGS):
         fetch = []
@@ -111,7 +111,7 @@ class DBLink:
                 LIMIT 1
                 """, [path]
             )
-            return cursor.fetchone() != None
+            return cursor.fetchone() is not None
 
     def get_artists(self, table: str = SONGS) -> list[tuple[str]]:
         """
@@ -213,11 +213,12 @@ class DBLink:
                 ret[i][SONG_COLUMNS[j]] = fetchedRows[i][j]
         return ret
 
-    def get_songs_by_artist(self, artist: str, table: str = SONGS) -> list[dict]:
+    def get_songs_by_artist(
+            self, artist: str, table: str = SONGS) -> list[dict]:
         """
         Returns:
             a list of dicts, each containing a column name
-            from the specified table ('Songs' is the default) 
+            from the specified table ('Songs' is the default)
             and value key-value pairing
             for a registered song by the specified artist, or
             an empty list if there are no registered songs
@@ -295,44 +296,6 @@ class DBLink:
             """, [artist])
             return [t[0] for t in cursor.fetchall()]
 
-    def del_song_if(self, conditions: dict,
-                    negate_all: bool = False, conjunction: bool = True,
-                    table: str = SONGS):
-        """
-        Deletes records from the database of Songs based off a dictionary of conditions.
-        e.g. del_song_if( {'artist' : 'Drake'} ) deletes all rows where Drake is the artist.
-        (equiv. sql: "WHERE artist = 'Drake'").
-        The NOT operator puts NOT in front of every boolean operator (AND / OR etc.)
-        like in the following example: if negateConditions == True and
-        conditions = {'artist' : 'Bryson Tiller', 'album' : 'T R A P S O U L'}
-        then the corresponding SQL would be: 
-        "WHERE NOT artist = 'Bryson Tiller' AND NOT album = 'T R A P S O U L'"
-
-        Parameters:
-
-        conditions: the dictionary of conditions
-        negateConditions: if True then NOT is prepended to each boolean operator
-        conjunction: if True, the main boolean operator between conditions is "AND", otherwise it is "OR"
-
-        Returns:
-        True if something was deleted
-        """
-        body = ''
-        if negate_all == True:
-            negationText = 'NOT '
-        else:
-            negationText = ''
-        spacedAndOr = ' and '
-        walk = -5
-        if conjunction == False:
-            spacedAndOr = ' or '
-            walk = -4
-        for key, val in conditions.items():
-            body += negationText + key + ' = :' + key + spacedAndOr
-        body = body[0:walk]
-        self.quick_commit(
-            "DELETE FROM {} WHERE {}".format(table, body), conditions)
-
     def del_directory(self, path: str):
         self.quick_commit(
             "DELETE FROM Directories " +
@@ -360,24 +323,6 @@ class DBLink:
         )
         return True
 
-    def del_directory_if_absent(self, path: PathLike) -> bool:
-        """
-        Deletes directories from the database that do not exist
-        based off their primary key 'path'
-
-        Parameters:
-
-        path: the full path to the directory in question
-
-        Returns:
-            True if there was a record deleted from the database,
-            meaning the path was absent, and False otherwise
-        """
-        if path_exists(path) is True:
-            return False
-        self.del_directory(path)
-        return True
-
     def del_song(self, FQFN: str, table: str = SONGS):
         """
         Deletes a song from the database
@@ -399,21 +344,18 @@ class DBLink:
             cursor.execute("SELECT COUNT(*) FROM {}".format(table))
             return cursor.fetchall()[0][0]
 
-    def table_is_empty(self, table: str = SONGS):
-        return self.get_row_count() == 0
-
-    def update_song(self, newData: dict, table: str = SONGS):
+    def update_song(self, new_data: dict, table: str = SONGS):
         """
         Updates a song record.
 
         Parameters:
 
-        newData: a dict containing key-value pairings 
+        new_data: a dict containing key-value pairings
         in which the key corresponds directly to a column name
         in Songs. FQFN must be a present key.
         """
         body = ''
-        for key, val in newData.items():
+        for key, val in new_data.items():
             body += key + ' = :' + key + ',\n'
         body = body[0:-2]
         fullSQL = (
@@ -421,18 +363,18 @@ class DBLink:
             + body + "\n"
             + "WHERE FQFN = :FQFN\n"
         )
-        self.quick_commit(fullSQL, newData)
+        self.quick_commit(fullSQL, new_data)
 
-    def add_song(self, songData: dict, table: str = SONGS):
+    def add_song(self, song_data: dict, table: str = SONGS):
         """
         Adds a song to the database.
 
-        Parameters:
-
-        songData: a dict where each key corresponds to a Song table column
+        Args:
+            song_data: a dict where each key corresponds
+            to a Song table column
 
         """
-        if songData == None:
+        if song_data is None:
             return
         self.quick_commit(
             """
@@ -449,7 +391,7 @@ class DBLink:
                 :listens
             )
             """.format(table),
-            songData
+            song_data
         )
 
     def add_directory(
@@ -460,10 +402,9 @@ class DBLink:
             i = 0
         """
         Adds a directory to the database to scan for music
-        
-        Parameters:
-        
-        path: directory to add (ensure it ends with os.sep)
+
+        Args:
+            path: directory to add (ensure it ends with os.sep)
         """
         self.quick_commit(
             "INSERT INTO Directories VALUES (?,?)",

@@ -226,7 +226,7 @@ def __fileProcessing(
             else:
                 musicChoice = track
             art = dlArt(musicChoice, artist, album, hasAlbum)
-        songData = {
+        song_data = {
             "FQFN": FQFN,
             "artist": artist, 
             "album": album,
@@ -238,7 +238,7 @@ def __fileProcessing(
             "art": art, 
             "listens": 0
         }
-        return songData
+        return song_data
 
 
 def addFiles(FQFNs: list[str], AAT_structure = False,
@@ -280,15 +280,15 @@ def addFiles(FQFNs: list[str], AAT_structure = False,
         pathAndName = FQFN.rpartition(os.sep)
         fileDir=pathAndName[0] + os.sep
         fileName=pathAndName[2]
-        songData = __fileProcessing(
+        song_data = __fileProcessing(
             fileDir=fileDir,
             fileName=fileName,
             AAT_structure=AAT_structure,
             findArt=findArt
         )
-        if songData==None:
+        if song_data==None:
             return
-        dbLink.add_song(songData)
+        dbLink.add_song(song_data)
         if dbLink.directory_registered(fileDir) == False:
             dbLink.add_directory(fileDir, AAT_structure=AAT_structure)
 
@@ -303,7 +303,7 @@ def add_downloaded_song(FQFN, data, custom_link = None):
     bitRateInfo, samplingRateInfo, codec = getAudioInfo(FQFN)
     while bitRateInfo == '0':
         bitRateInfo, samplingRateInfo, codec = getAudioInfo(FQFN)
-    songData = {
+    song_data = {
         "FQFN": FQFN,
         "artist": artist,
         "album": UNKNOWN_ALBUM,
@@ -316,7 +316,7 @@ def add_downloaded_song(FQFN, data, custom_link = None):
         "listens": 0
     }
     if not custom_link.song_registered(FQFN):
-        custom_link.add_song(songData)
+        custom_link.add_song(song_data)
     # next two lines are unnecessary until DOWNLOAD_PATH can be changed
     if custom_link.directory_registered(DOWNLOAD_PATH) == False:
         custom_link.add_directory(DOWNLOAD_PATH, AAT_structure=AAT_structure)
@@ -362,13 +362,13 @@ def addFolder(directory: str, AAT_structure = False,
         absdir = os.path.abspath(dir) # no appended slash
         fileDir = absdir + os.sep # full directory with an appended slash
         for fileName in files: 
-            songData = __fileProcessing(
+            song_data = __fileProcessing(
                 fileDir, fileName, AAT_structure,
                 findArt
             )
-            if songData == None:
+            if song_data == None:
                 continue
-            dbLink.add_song(songData)
+            dbLink.add_song(song_data)
         if i == 0:
             if dbLink.directory_registered(fileDir) == False:
                 dbLink.add_directory(fileDir, AAT_structure=AAT_structure)
