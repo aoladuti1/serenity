@@ -85,7 +85,7 @@ class FirstPane:
 
     def __gen_subheader(self):
         subheader = stk.DarkLabelButton(
-            self.frame, clickFunc=self.showHideExtras,
+            self.frame, clickFunc=self.show_hide_extras,
             font=(DEFAULT_FONT_FAMILY, 15))
         subheader.grid(column=0, row=0, sticky=W)
         return subheader
@@ -104,7 +104,7 @@ class FirstPane:
         back_button.grid()
         return back_button
 
-    def showHideExtras(self, e: Event = None):
+    def show_hide_extras(self, e: Event = None):
         self.__show_hide_libtools()
         self.__show_hide_entrybar()
 
@@ -163,13 +163,15 @@ class FirstPane:
                 return  # TODO: ERROR MSG
             Thread(target=Aplayer.loadall,
                    args=([link], queue)).start()
-        if not self.status.grid_info():
+
+        status_visible = self.status.grid_info()
+        if not status_visible:
             self.status.grid(row=5)
             self.status.label.grid(column=0, row=0)
         if queue is True:
             queue_text = '{} \"{}\"'.format(QUEUING_REL, title)
             Thread(target=self.__override_status, args=(queue_text,)).start()
-        elif not queue and not self.status.grid_info():
+        elif not queue and not status_visible:
             self.status.label.configure(text=LOADING_REL)
 
     def __download_and_display(self):
