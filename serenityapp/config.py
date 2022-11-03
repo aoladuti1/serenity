@@ -1,5 +1,6 @@
 # support
 import os
+import sys
 import pathlib
 from time import sleep
 from serenityapp.lang import L
@@ -63,7 +64,10 @@ UNKNOWN_ALBUM_ARTIST = "---"
 
 # directories
 # path to config w/ slash appended
-DIR_PATH = os.getcwd() + os.sep
+if getattr(sys, 'frozen', False):
+    DIR_PATH = os.path.dirname(sys.executable) + os.sep
+else:
+    DIR_PATH = os.getcwd() + os.sep
 # should change to os.cwd() + "art" + os.sep in future
 ART_PATH = DIR_PATH + "art" + os.sep
 
