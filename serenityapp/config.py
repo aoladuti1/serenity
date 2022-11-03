@@ -6,7 +6,7 @@ from serenityapp.lang import L
 from tkinter import *
 import ttkbootstrap as ttk
 from typing import TypeVar
-from themes.user import USER_THEMES
+from serenityapp.themes import USER_THEMES
 
 # useful functions
 
@@ -73,8 +73,6 @@ PLAYLISTS_PATH = DIR_PATH + PLAYLIST_FOLDER_NAME + os.sep
 DL_FOLDER_NAME = L['DOWNLOADS']
 DOWNLOAD_PATH = DIR_PATH + DL_FOLDER_NAME + os.sep
 
-THEMES_PATH = DIR_PATH + 'themes' + os.sep
-
 # modifying PATH
 os.environ['PATH'] = DIR_PATH + 'subprograms' + \
     os.sep + 'libmpv' + os.pathsep + os.environ['PATH']
@@ -82,7 +80,7 @@ os.environ['PATH'] = DIR_PATH + 'subprograms' + os.sep + \
     'ffmpeg' + os.sep + 'bin' + os.pathsep + os.environ['PATH']
 
 # file paths
-DEFAULT_ART = THEMES_PATH + 'default_art.jpg'
+DEFAULT_ART = 'default_art.jpg' # to be removed
 DATABASE = DIR_PATH + "databases" + os.sep + "data.sqlite"
 
 # special
@@ -117,7 +115,7 @@ def configureFont():
 def configureRoot(root: ttk.Window, expanded: bool = False):
     import serenityapp.mastertools as mastertools
     root.attributes('-alpha', 0)
-    root.iconbitmap(THEMES_PATH + "icon.ico")
+    root.iconbitmap(DIR_PATH + 'icon.ico')
     root.title("serenity")
     root.configure(background=COLOUR_DICT['bg'])
     root.columnconfigure(0, weight=1)
