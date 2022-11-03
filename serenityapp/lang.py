@@ -61,8 +61,8 @@ LANG = [
         'NOW_STREAMING_COL': 'Now streaming:',
         'CONVERTING': 'converting',
         'CURRENTLY_PLAYING_COL': 'Currently playing:',
-        'CLOSE_WARNING': ['Hold on!',
-                          'Files are still converting/downloading. Quit?'],
+        'CLOSE_WARNING_LIST': [
+            'Hold on!', 'Files are still converting/downloading. Quit?'],
         'GUIDE': """Click 'More...' to add some music!
 
 Then, click [add library] if each song file is in an album-named folder, and \
