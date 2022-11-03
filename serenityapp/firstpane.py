@@ -43,8 +43,6 @@ class FirstPane:
         self.browser = self.__gen_browser()
         self.pause_button = None
         self.entrybar = self.__gen_entrybar()
-        self.libtools_visible = False
-        self.entrybar_visible = False
         self.updating_entry_label = False
         self.current_file = ''
         self.duration_str = ''
@@ -105,20 +103,18 @@ class FirstPane:
         self.__show_hide_entrybar()
 
     def __show_hide_libtools(self):
-        if self.libtools_visible is False:
+        if not self.libtools.grid_info():
             self.libtools.grid(row=2, pady=5)
         else:
             self.libtools.grid_remove()
-        self.libtools_visible = not self.libtools_visible
 
     def __show_hide_entrybar(self):
-        if self.entrybar_visible is False:
+        if not self.entrybar.grid_info():
             self.entrybar.grid(row=1, rowspan=1, pady=5)
             self.entrybar.focus_entry()
         else:
             self.entrybar.grid_remove()
             Shield.root.focus_force()
-        self.entrybar_visible = not self.entrybar_visible
 
     def finish_adding_music(self):
         self.adding_music_label.configure(text='done!')
