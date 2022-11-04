@@ -8,10 +8,14 @@ from serenityapp.aplayer import Aplayer
 from serenityapp.audiodl import AudioDL
 from serenityapp.mastertools import Shield
 from tkinter import *
-from serenityapp.lang import rellipsis
+from serenityapp.lang import L, rellipsis, wrap_sqb
 from serenityapp.config import light_wait, COLOUR_DICT, DEFAULT_FONT_FAMILY
 
 ENTRY_BG = '#17012e'
+SONG_FOUND_HEX = '#FFD700'
+CLEAR_QUEUE_WSQB = wrap_sqb(L['CLEAR_QUEUE'])
+CLEAR_SELECTION_WSQB = wrap_sqb(L['CLEAR_SELECTION'])
+REMOVE_SELECTION_WSQB = wrap_sqb(L['REMOVE_SELECTION'])
 
 
 class SecondPane:
@@ -42,13 +46,13 @@ class SecondPane:
         return queue_box
 
     def __gen_entry_bar(self):
-        text = 'search'
+        text = L['SEARCH']
         entry_bar = stk.EntryBar(
             self.queue_frame, self.search_hit,
             [text], entry_placeholder=rellipsis(text),
             pady=Shield.edge_pad())
         entry_bar.set_entry_bg(ENTRY_BG)
-        entry_bar.add_button('save', self.save_playlist)
+        entry_bar.add_button(L['SAVE'], self.save_playlist)
         entry_bar.grid(column=0, row=3, sticky=W)
         return entry_bar
 
@@ -56,13 +60,13 @@ class SecondPane:
         queue_tools = Frame(self.queue_frame)
         clear_playlist_button = stk.DarkLabelButton(
             queue_tools, self.queue_box.playlist_clear,
-            text='[clear queue]')
+            text=CLEAR_QUEUE_WSQB)
         clear_selection_button = stk.DarkLabelButton(
             queue_tools, self.queue_box.unselect_all,
-            text='[clear selection]')
+            text=CLEAR_SELECTION_WSQB)
         remove_selection_button = stk.DarkLabelButton(
             queue_tools, self.queue_box.playlist_remove_selection,
-            text='[remove selection]')
+            text=REMOVE_SELECTION_WSQB)
         clear_playlist_button.grid(column=0, row=0)
         clear_selection_button.grid(column=1, row=0)
         remove_selection_button.grid(column=2, row=0)
@@ -77,8 +81,9 @@ class SecondPane:
         return subheader
 
     def update_subheader(self, _, _2):
+        pl_title = Aplayer.playlist_title()
         self.subheader.configure(
-            text='Currently playing: {}'.format(Aplayer.playlist_title()))
+            text=L['CURRENTLY_PLAYING_COL_CAP'] + ' {}'.format(pl_title))
 
     def __draw_queue_frame(self):
         self.queue_frame.grid(column=0)
@@ -97,7 +102,7 @@ class SecondPane:
                 target=self.__highlight_short, args=(index,)).start()
 
     def __highlight_short(self, index):
-        self.queue_box.itemconfig(index, {'fg': '#FFD700'})
+        self.queue_box.itemconfig(index, {'fg': SONG_FOUND_HEX})
         time.sleep(2)
         if not Aplayer.get_playlist_pos() == index:
             revert_colour = self.queue_box['foreground']
@@ -122,21 +127,17 @@ class SecondPane:
         dest_title = AudioDL.validate_title(self.entry_bar.get())
         if dest_title is None:
             return
-        temp_text = '{} {}'.format('saving to', dest_title)
+        temp_text = '{} {}'.format(L['SAVING_TO'], dest_title)
         self.saving = True
         threading.Thread(
             target=self.__dotdraw_side_label, args=(temp_text,)).start()
         rejects = Aplayer.savelist(dest_title)
         if rejects:
-            msg = """
-            The following titles could not be added to '{}'
-            (titles may be wrong) likely because streams are not permitted
-            in saved playlists:
-            """.format(dest_title)
+            msg = L['SAVELIST_REJECTS_MSG_F'].format(dest_title)
             for i, filename in rejects:
                 msg += '\n{} [{}]'.format(
                     self.queue_box.get(i, i)[0], filename)
             messagebox.showinfo(
-                'Files unable to be added to {}'.format(dest_title), msg)
+                L['SAVELIST_REJECTS_WINTITLE_F'].format(dest_title), msg)
         light_wait()
         self.saving = False

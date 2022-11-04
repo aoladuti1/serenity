@@ -31,8 +31,13 @@ REGION = EN
 
 # _EXCL = ends with exclamation mark
 # _COL = ends with colon
+# _CAP = starts with a capital
+# _REL = ends with ellipsis
+# _F = contains a pair of format braces {}
+
 LANG = [
     {
+        'UNKNOWN_ARTIST': 'Unknown Artist',
         'STARTING': 'starting',
         'ADDING': 'adding',
         'QUEUING': 'queuing',
@@ -43,11 +48,19 @@ LANG = [
         'PLAYLISTS': 'playlists',
         'DOWNLOADS': 'downloads',
         'PLAY': 'play',
+        'PLAY_ALL': 'play all',
         'QUEUE': 'queue',
+        'QUEUE_ALL': 'queue all',
         'EXPAND': 'expand',
         'CONTRACT': 'contract',
+        'WELCOME': 'welcome',
+        'LIBRARY': 'library',
         'ADD_LIBRARY': 'add library',
         'ADD_FOLDERS': 'add folders',
+        'ADD_TO_PLAYLIST_CAP_REL': 'Add to playlist...',
+        'DELETE_PLAYLISTS_CAP_REL': 'Delete playlists...',
+        'DELETE_PLAYLIST': 'delete playlist',
+        'DELETING': 'deleting',
         'REFRESH': 'refresh',
         'DONE_EXCL': 'done!',
         'SEARCH': 'search',
@@ -57,12 +70,23 @@ LANG = [
         'LOADING': 'loading',
         'DOWNLOADING': 'downloading',
         'LOADING_AND_DOWNLOADING': 'loading and downloading',
-        'NOW_PLAYING_COL': 'Now playing:',
-        'NOW_STREAMING_COL': 'Now streaming:',
+        'NOW_PLAYING_COL_CAP': 'Now playing:',
+        'NOW_STREAMING_COL_CAP': 'Now streaming:',
         'CONVERTING': 'converting',
-        'CURRENTLY_PLAYING_COL': 'Currently playing:',
-        'CLOSE_WARNING_LIST': [
-            'Hold on!', 'Files are still converting/downloading. Quit?'],
+        'CURRENTLY_PLAYING_COL_CAP': 'Currently playing:',
+        'CLEAR_QUEUE': 'clear queue',
+        'CLEAR_SELECTION': 'clear selection',
+        'REMOVE_SELECTION': 'remove selection',
+        'CLOSE_WARNING_WINTITLE': 'Hold on!',
+        'CLOSE_WARNING_MSG': 'Files are still converting/downloading. Quit?',
+        'SAVE': 'save',
+        'SAVING_TO': 'saving to',
+        'SAVELIST_REJECTS_MSG_F': """
+The following titles could not be added to '{}' \
+likely because streams are not permitted \
+in saved playlists:
+            """,
+        'SAVELIST_REJECTS_WINTITLE_F': 'Files unable to be added to {}',
         'GUIDE': """Click 'More...' to add some music!
 
 Then, click [add library] if each song file is in an album-named folder, and \
