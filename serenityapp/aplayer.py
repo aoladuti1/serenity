@@ -20,7 +20,7 @@ def gen_MPV():
 
 class Aplayer:
 
-    DEFAULT_QUEUE = 'Queue'
+    DEFAULT_QUEUE = L['QUEUE'].capitalize()
     MAX_SECS_NO_PREV = 3  # If get_time_pos < max, prev() = rewind to 0 secs
     player = gen_MPV()
     __online_queue = False
