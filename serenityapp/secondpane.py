@@ -1,15 +1,16 @@
 import threading
-from tkinter import messagebox
-from tkinter.font import BOLD
-import ttkbootstrap as ttk
-import serenityapp.supertk as stk
 import time
+from tkinter import END, Event, Frame, W, messagebox
+from tkinter.font import BOLD
+
+import ttkbootstrap as ttk
+
+import serenityapp.supertk as stk
 from serenityapp.aplayer import Aplayer
 from serenityapp.audiodl import AudioDL
-from serenityapp.mastertools import Shield
-from tkinter import *
+from serenityapp.config import COLOUR_DICT, DEFAULT_FONT_FAMILY, light_wait
 from serenityapp.lang import L, rellipsis, wrap_sqb
-from serenityapp.config import light_wait, COLOUR_DICT, DEFAULT_FONT_FAMILY
+from serenityapp.mastertools import Shield
 
 ENTRY_BG = '#17012e'
 SONG_FOUND_HEX = '#FFD700'
