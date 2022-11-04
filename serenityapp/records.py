@@ -5,9 +5,8 @@ from pathlib import Path
 
 from pymediainfo import MediaInfo
 
-from serenityapp.config import (DOWNLOAD_PATH, SPLITTER, SPLITTER_CHAR,
-                                SUPPORTED_EXTENSIONS, UNKNOWN_ALBUM,
-                                UNKNOWN_ARTIST, path_exists)
+from serenityapp.config import (SPLITTER, SPLITTER_CHAR, SUPPORTED_EXTENSIONS,
+                                UNKNOWN_ALBUM, UNKNOWN_ARTIST, path_exists)
 from serenityapp.db import DBLink
 
 numgex = re.compile(r"^\d+")  # matches leading digits
