@@ -12,3 +12,7 @@ playlists/
 -playlists-/
 
 downloads/
+
+.vscode/
+
+.cache
