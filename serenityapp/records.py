@@ -58,7 +58,7 @@ def get_track_info(song):
     return ["", track, str(trackNum)]
 
 
-def get_song_info(song, folder_name: str = ''):
+def get_song_info(song, folder_name):
     """
     Returns an array of [artist, track, trackNumber]
     """
@@ -72,11 +72,11 @@ def get_song_info(song, folder_name: str = ''):
         artist = UNKNOWN_ARTIST
     if (match := numgex.search(track)) is not None:
         trackNum = int(match.group())
-    if artist == UNKNOWN_ARTIST and folder_name != '':
+    if artist == UNKNOWN_ARTIST or artist.isnumeric():
         try:
             artist = folder_name.split(SPLITTER)[-2]
         except Exception:
-            ""
+            pass
     if artist[0].isnumeric() is True and trackNum == 0:
         try:
             artist_attempt = re.search(
@@ -86,7 +86,7 @@ def get_song_info(song, folder_name: str = ''):
                 artist = UNKNOWN_ARTIST
             trackNum = int(numgex.search(song).group())
         except Exception:
-            ""
+            pass
     return [artist, track, str(trackNum)]
 
 
@@ -109,7 +109,7 @@ def __get_song_nostructure(song, folder_name):
     return [artist, album, track, trackNum]
 
 
-def get_song(song, file_dir, AAT_structure=True):
+def get_song(song, file_dir, AAT_structure):
     """
     Get the artist and track from a song.
     A song may be within an AAT_structure structure.
