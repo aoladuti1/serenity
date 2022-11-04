@@ -1,15 +1,16 @@
 import threading
-from tkinter import messagebox
-from tkinter.font import BOLD
-import ttkbootstrap as ttk
-import serenityapp.supertk as stk
 import time
+from tkinter import END, Event, Frame, W, messagebox
+from tkinter.font import BOLD
+
+import ttkbootstrap as ttk
+
+import serenityapp.supertk as stk
 from serenityapp.aplayer import Aplayer
 from serenityapp.audiodl import AudioDL
-from serenityapp.mastertools import Shield
-from tkinter import *
+from serenityapp.config import COLOUR_DICT, DEFAULT_FONT_FAMILY, light_wait
 from serenityapp.lang import L, rellipsis, wrap_sqb
-from serenityapp.config import light_wait, COLOUR_DICT, DEFAULT_FONT_FAMILY
+from serenityapp.mastertools import Shield
 
 ENTRY_BG = '#17012e'
 SONG_FOUND_HEX = '#FFD700'
@@ -22,8 +23,7 @@ class SecondPane:
 
     def __init__(self):
         self.frame = Frame(Shield.root, width=Shield.max_pane())
-        self.queue_frame = ttk.Frame(
-            self.frame, padding='{0} 0 {0} 0'.format(Shield.edge_pad()))
+        self.queue_frame = self.__gen_queue_frame()
         self.queue_frame.columnconfigure(0, weight=0)
         self.entry_bar = self.__gen_entry_bar()
         self.queue_box = self.__gen_queue_box()
@@ -31,12 +31,11 @@ class SecondPane:
         self.subheader = self.__gen_sub_header()
         self.saving = False
 
-    def drawAll(self):
+    def draw(self):
         self.frame.grid(column=0, row=1, sticky='nsw', columnspan=1)
-        self.__draw_queue_frame()
         self.entry_bar.focus_entry()
 
-    def undrawAll(self):
+    def undraw(self):
         self.frame.grid_remove()
 
     def __gen_queue_box(self):
@@ -83,10 +82,13 @@ class SecondPane:
     def update_subheader(self, _, _2):
         pl_title = Aplayer.playlist_title()
         self.subheader.configure(
-            text=L['CURRENTLY_PLAYING_COL_CAP'] + ' {}'.format(pl_title))
+            text=L['CURRENTLY_PLAYING_CAP_COL'] + ' {}'.format(pl_title))
 
-    def __draw_queue_frame(self):
-        self.queue_frame.grid(column=0)
+    def __gen_queue_frame(self):
+        queue_frame = ttk.Frame(
+            self.frame, padding='{0} 0 {0} 0'.format(Shield.edge_pad()))
+        queue_frame.grid(column=0)
+        return queue_frame
 
     def search_hit(self, e: Event = None):
         query = self.entry_bar.get()

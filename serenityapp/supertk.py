@@ -49,72 +49,72 @@ class TypedLabel(ttk.Label):
 class LabelButton(Label):
 
     def default_on_enter(self, e):
-        self['background'] = self.activeBG
-        self['foreground'] = self.activeFG
+        self['background'] = self.active_bg
+        self['foreground'] = self.active_fg
 
     def default_on_leave(self, e):
-        self['background'] = self.defaultBG
-        self['foreground'] = self.defaultFG
+        self['background'] = self.default_bg
+        self['foreground'] = self.default_fg
 
     def on_click(self, e: Event = None):
-        self['background'] = self.clickBG
-        self['foreground'] = self.clickFG
+        self['background'] = self.click_bg
+        self['foreground'] = self.click_fg
         if e is None:
-            if self.clickFunc is not None:
-                self.clickFunc()
+            if self.click_func is not None:
+                self.click_func()
         else:
-            if self.clickFunc is not None:
-                self.clickFunc(e)
+            if self.click_func is not None:
+                self.click_func(e)
 
     def __init__(
-        self, master, clickFunc: Callable = None,
-        onClickFunc: Callable = None,
-        activeBG=ACTIVE_BUTTON_BG_HEX,
-        activeFG=COLOUR_DICT['info'],
-        clickBG=CLICK_BUTTON_BG_HEX,
-        clickFG=COLOUR_DICT['bg'],
-        defaultBG=COLOUR_DICT['bg'],
-        defaultFG=COLOUR_DICT['primary'],
-        onEnterFunc=None,
-        onLeaveFunc=None,
-        unclickFunc=None,
+        self, master, click_func: Callable = None,
+        onclick_func: Callable = None,
+        active_bg=ACTIVE_BUTTON_BG_HEX,
+        active_fg=COLOUR_DICT['info'],
+        click_bg=CLICK_BUTTON_BG_HEX,
+        click_fg=COLOUR_DICT['bg'],
+        default_bg=COLOUR_DICT['bg'],
+        default_fg=COLOUR_DICT['primary'],
+        enter_func=None,
+        leave_func=None,
+        unclick_func=None,
         **kw
     ):
-        # onClickFunc totally overrides clickFunc
-        # arguments which start with "on" require an event to be passed to them
-        # usually achieved with lambda e: functionName
+        # onclick_func totally overrides click_func
+        # onclick_func, unclick_fun, enter_func, and leave_func require
+        # Event arguments to be passed to them
         Label.__init__(self, master=master, **kw)
-        self.onClickFunc = onClickFunc
-        self.clickFunc = clickFunc
-        self.defaultBG = defaultBG
-        self.defaultFG = defaultFG
-        self.activeBG = activeBG
-        self.activeFG = activeFG
-        self.clickBG = clickBG
-        self.clickFG = clickFG
-        self.onEnterFunc = onEnterFunc
-        self.onLeaveFunc = onLeaveFunc
-        self.unclickFunc = unclickFunc
+        self.onclick_func = onclick_func
+        self.click_func = click_func
+        self.default_bg = default_bg
+        self.default_fg = default_fg
+        self.active_bg = active_bg
+        self.active_fg = active_fg
+        self.click_bg = click_bg
+        self.click_fg = click_fg
+        self.enter_func = enter_func
+        self.leave_func = leave_func
+        self.unclick_func = unclick_func
         self.state = 0
         self.configure(cursor='hand2')
-        if onClickFunc is None:
-            self.onClickFunc = self.on_click
-        if defaultBG is None:
-            self.defaultBG = self['background']
-        if defaultFG is None:
-            self.defaultFG = self['foreground']
-        if onEnterFunc is None:
-            self.onEnterFunc = self.default_on_enter
-        if onLeaveFunc is None:
-            self.onLeaveFunc = self.default_on_leave
-        if unclickFunc is None:
-            self.unclickFunc = self.onLeaveFunc
-        self['background'] = defaultBG
-        self['foreground'] = defaultFG
-        self.bind("<Enter>", self.onEnterFunc)
-        self.bind("<Leave>", self.onLeaveFunc)
-        self.bind("<Button-1>", self.onClickFunc)
-        self.bind("<ButtonRelease-1>", self.unclickFunc)
+        if onclick_func is None:
+            self.onclick_func = self.on_click
+        if default_bg is None:
+            self.default_bg = self['background']
+        if default_fg is None:
+            self.default_fg = self['foreground']
+        if enter_func is None:
+            self.enter_func = self.default_on_enter
+        if leave_func is None:
+            self.leave_func = self.default_on_leave
+        if unclick_func is None:
+            self.unclick_func = self.leave_func
+        self['background'] = default_bg
+        self['foreground'] = default_fg
+        self.bind("<Enter>", self.enter_func)
+        self.bind("<Leave>", self.leave_func)
+        self.bind("<Button-1>", self.onclick_func)
+        self.bind("<ButtonRelease-1>", self.unclick_func)
 
 
 class SeekBar(Frame):
@@ -156,7 +156,7 @@ class SeekBar(Frame):
         if self.sliding is True:
             return
         self.sliding = True
-        time.sleep(0.09)
+        time.sleep(0.15)
         self.slider.update()
         self.new_position.set(self.slider.get())
         percent = ceil(float(self.new_position.get()))
@@ -168,20 +168,20 @@ class SeekBar(Frame):
 
 
 class DarkLabelButton(LabelButton):
-    def __init__(self, master, clickFunc=None,
-                 defaultFG=COLOUR_DICT['primary'], **kw):
+    def __init__(self, master, click_func=None,
+                 default_fg=COLOUR_DICT['primary'], **kw):
         LabelButton.__init__(
             self, master=master,
-            unclickFunc=clickFunc,
-            defaultFG=defaultFG,
-            activeFG=COLOUR_DICT['info'],
-            activeBG=COLOUR_DICT['bg'],
-            clickFG=COLOUR_DICT['info'],
-            clickBG=COLOUR_DICT['bg'], **kw)
+            unclick_func=click_func,
+            default_fg=default_fg,
+            active_fg=COLOUR_DICT['info'],
+            active_bg=COLOUR_DICT['bg'],
+            click_fg=COLOUR_DICT['info'],
+            click_bg=COLOUR_DICT['bg'], **kw)
 
 
 class QueueListbox(Listbox):
-    """ A tk listbox with drag'n'drop reordering of entries. """
+    """ A tkinter listbox with drag'n'drop reordering of entries. """
 
     def __init__(self, master, set_fg=COLOUR_DICT['light'],
                  current_song_fg=COLOUR_DICT['primary'], **kw):
@@ -274,12 +274,12 @@ class QueueListbox(Listbox):
     # event should be from a DarkLabelButton
     def unselect_all(self, e: Event):
         self.selection_clear(0, END)
-        e.widget['foreground'] = e.widget.defaultFG
+        e.widget['foreground'] = e.widget.default_fg
 
     # event should be from a DarkLabelButton
     def playlist_clear(self, e: Event):
         Aplayer.clear_queue()
-        e.widget['foreground'] = e.widget.defaultFG
+        e.widget['foreground'] = e.widget.default_fg
         self.update(None, None)
 
     # event should be from a DarkLabelButton
@@ -317,7 +317,7 @@ class EntryBar(Frame):
         else:
             button_frame.grid(row=0, column=i, sticky=S, padx=self.__padx)
 
-    def add_button(self, text, clickFunc=None, alterable=False):
+    def add_button(self, text, click_func=None, alterable=False):
         button_frame = Frame(self)
         button_frame.configure(
             highlightcolor=COLOUR_DICT['light'],
@@ -325,7 +325,7 @@ class EntryBar(Frame):
             highlightthickness=1)
         button = LabelButton(
             button_frame, text=text,
-            clickFunc=clickFunc,
+            click_func=click_func,
             font=(DEFAULT_FONT_FAMILY, 13, BOLD))
         if alterable:
             button.bind('<Button-3>', self.alter_button)
@@ -383,11 +383,11 @@ class LibTools(Frame):
             self, font=(DEFAULT_FONT_FAMILY, 12))
         self.lbuttons = []
 
-    def add_button(self, text_nosqb, clickFunc):
+    def add_button(self, text_nosqb, click_func):
         '''Add a button. Arg text_nosqb will be wrapped in square brackets.'''
         button = LabelButton(
-            self, clickFG=COLOUR_DICT['info'], clickBG=COLOUR_DICT['bg'],
-            clickFunc=clickFunc,
+            self, click_fg=COLOUR_DICT['info'], click_bg=COLOUR_DICT['bg'],
+            click_func=click_func,
             text=wrap_sqb(text_nosqb), font=(DEFAULT_FONT_FAMILY, 12, BOLD))
         col = len(self.lbuttons)
         button.grid(column=col, row=0, sticky=S, padx=LibTools.BUTTON_PADX)
@@ -406,6 +406,118 @@ class LibTools(Frame):
             self.adding_music_label.configure(text=ADDING_REL)
             self.adding_music_label.grid(row=0, column=3)
             root.update()
-            records.addFolder(directory, AAT_structure)
+            records.add_folder(directory, AAT_structure)
             Thread(target=self.finish_adding_music).start()
             Librarian.refresh_page()
+
+
+class Controls(Frame):
+
+    PAUSE_LABELS = ['||', '|>']
+
+    def __init__(self, master, update_time_func, **kw):
+        Frame.__init__(self, master, **kw)
+        self.grid(row=3, pady=5, rowspan=1)
+        self.buttons_frame = Frame(self)
+        self.buttons_frame.grid(row=0)
+        self.buttons = []
+        self.pause_button = None
+        self.paused = True
+        self.__init_playstate = False
+        self.__update_status_time = update_time_func
+        self.add_button(
+            click_func=lambda e: Aplayer.shuffle(), text='¿?',
+            unclick_func=self.toggle_highlight)
+        self.add_button(
+            click_func=lambda e: Aplayer.prev(), text='|<<')
+        self.add_button(
+            click_func=lambda e, t=-10: self.seek(e, t), text='<++')
+        self.add_pause_button()
+        self.add_button(
+            click_func=lambda e, t=10: self.seek(e, t), text='++>')
+        self.add_button(
+            click_func=lambda e: Aplayer.next(), text='>>|')
+        self.add_button(
+            click_func=lambda e: Aplayer.change_loop(), text='{0}',
+            unclick_func=self.highlight_replay)
+
+    def add_button(self, text: str, click_func: Callable,
+                   unclick_func: Callable = None):
+        if unclick_func is None:
+            func = self.control_release
+        else:
+            func = unclick_func
+        button = LabelButton(
+            self.buttons_frame,
+            enter_func=self.wrap_squares, leave_func=self.unwrap_squares,
+            click_fg=COLOUR_DICT['info'], click_bg=COLOUR_DICT['bg'],
+            click_func=click_func, unclick_func=func,
+            text=text, font=(DEFAULT_FONT_FAMILY, 16, BOLD),
+            padx=30)
+        i = len(self.buttons)
+        button.grid(
+            column=i, row=0, sticky=S, pady=5, rowspan=1, columnspan=1)
+        self.buttons.append(button)
+        self.buttons_frame.columnconfigure(i, weight=1)
+        self.columnconfigure(i, weight=1)
+
+    def add_pause_button(self):
+        self.add_button(
+            click_func=lambda e: Aplayer.pauseplay(), text='|>')
+        self.pause_button = self.buttons[len(self.buttons) - 1]
+        Aplayer.observe_pause(self.monitor_playstate)
+        Aplayer.observe_path(self.__check_file)
+
+    def seek(self, e, seconds):
+        Thread(target=Aplayer.seek, args=(seconds,)).start()
+        light_wait()
+        self.__update_status_time()
+
+    def __check_file(self, _, file):
+        if self.paused is True:
+            if not Aplayer.is_paused() and file is not None:
+                self.monitor_playstate(_, False)
+
+    def monitor_playstate(self, _, paused):
+        if self.__init_playstate is True:
+            state = int(paused)
+            self.paused = paused
+            self.pause_button.configure(text=Controls.PAUSE_LABELS[state])
+        else:
+            self.__init_playstate = True
+
+    def control_release(self, e: Event):
+        e.widget.configure(foreground=COLOUR_DICT['primary'])
+        self.unwrap_squares(e)
+
+    def wrap_squares(self, e: Event):
+        text = e.widget.cget('text')
+        e.widget.configure(text='[' + text + ']')
+
+    def unwrap_squares(self, e: Event):
+        text = e.widget.cget('text')
+        if text.startswith('['):
+            e.widget.configure(text=text[1:-1])
+
+    def highlight_replay(self, e: Event):
+        states = [
+            COLOUR_DICT['primary'], COLOUR_DICT['light'], COLOUR_DICT['info']]
+        self.control_release(e)
+        e.widget.state += 1
+        state = e.widget.state
+        if state > len(states) - 1:
+            e.widget.state = 0
+            state = 0
+        if state == 1:
+            e.widget.configure(text='{1}')
+        elif state == 2:
+            e.widget.configure(text='{+}')
+        else:
+            e.widget.configure(text='{0}')
+        e.widget.configure(foreground=states[state])
+
+    def toggle_highlight(self, e: Event):
+        states = [COLOUR_DICT['primary'], COLOUR_DICT['info']]
+        e.widget.state = 1 - e.widget.state
+        self.control_release(e)
+        e.widget.configure(foreground=states[e.widget.state])

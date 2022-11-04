@@ -75,18 +75,18 @@ class Browser(ScrolledFrame):
         button.state = int(not button.state)
 
     def add_label(self, row: int, text: str, label_type: str,
-                  data: str, dblClickFunc=None):
+                  data: str, dblclick_func=None):
         b_label = stk.TypedLabel(
             self, label_type=label_type, text=" " + text, data=data,
             bootstyle='info', width=self.cget('width'))
         b_label.grid(column=0, row=row, rowspan=1, sticky=NW)
         b_label.bind('<Button-1>', self.select)
-        b_label.bind('<Double-Button-1>', dblClickFunc)
+        b_label.bind('<Double-Button-1>', dblclick_func)
         b_label.bind('<Button-3>', self.do_popup)
         return b_label
 
     def add_button(self, row: int, text: str = L['PLAY'],
-                   clickFunc=None, flippable=True):
+                   click_func=None, flippable=True):
         buttonFrame = Frame(self)
         buttonFrame.configure(
             highlightcolor=COLOUR_DICT['primary'],
@@ -97,7 +97,7 @@ class Browser(ScrolledFrame):
             padx=(_edge_pad, _edge_pad), pady=(0, 9), sticky=E)
         button = stk.LabelButton(
             buttonFrame, text=text, padx=Browser.BUTTON_PADX,
-            pady=0, clickFunc=clickFunc)
+            pady=0, click_func=click_func)
         if flippable is True:
             button.bind('<Button-3>', self.flip_button)
             button.configure(width=Browser.BUTTON_WIDTH)
@@ -247,8 +247,8 @@ class Browser(ScrolledFrame):
                 i, title, PLAYLISTS_ID, title,
                 Librarian.load_playlist_songs)
             self.add_button(
-                i, clickFunc=(lambda e, d=title, l=label:
-                              self.play(e, d, l)))
+                i, click_func=(lambda e, d=title, l=label:
+                               self.play(e, d, l)))
             i += 1
         return i
 
@@ -264,7 +264,7 @@ class Browser(ScrolledFrame):
                 i, name, ARTISTS_ID, name, Librarian.load_albums)
             label_data = artist_tuple[0]
             self.add_button(
-                i, clickFunc=(
+                i, click_func=(
                     lambda e, data=label_data, label=label:
                         self.play(e, data, label)))
             i += 1
@@ -284,7 +284,7 @@ class Browser(ScrolledFrame):
                 i, album + ' | ' + artist, ALBUMS_ID, data,
                 lambda e, artist=artist: Librarian.load_tracks(e, artist))
             self.add_button(
-                i, clickFunc=(
+                i, click_func=(
                     lambda e, data=data, label=label:
                         self.play(e, data, label)))
             i += 1
@@ -300,7 +300,7 @@ class Browser(ScrolledFrame):
             label = self.add_label(
                 i, tuple[0], TRACKS_ID, tuple[1], self.play)
             self.add_button(
-                i, clickFunc=(
+                i, click_func=(
                     lambda e, data=tuple[1], label=label:
                         self.play(e, data, label)))
             i += 1
@@ -503,7 +503,8 @@ class Librarian:
             q = query
             Librarian.__last_query = query
         Librarian.update_subheader(
-            SEARCH_RESULTS_ID, ' Search results for: ' + q)
+            SEARCH_RESULTS_ID, ' {} {}'.format(
+                L['SEARCH_RESULTS_FOR_CAP_COL'], q))
         browser = Browser(Librarian.frame)
         i = 0
         i = browser._search_playlists(i, q)
@@ -567,7 +568,7 @@ class Librarian:
             al = browser.add_label(
                 i, name, ARTISTS_ID, name, Librarian.load_albums)
             browser.add_button(
-                i, clickFunc=lambda e, d=name, al=al: browser.play(e, d, al))
+                i, click_func=lambda e, d=name, al=al: browser.play(e, d, al))
             i += 1
         if i == 0:
             Librarian.draw_guide()
@@ -589,7 +590,7 @@ class Librarian:
                 i, album_tuple[0], ALBUMS_ID,
                 label_data, Librarian.load_tracks)
             browser.add_button(
-                i, clickFunc=(
+                i, click_func=(
                     lambda e, data=label_data, label=label:
                         browser.play(e, data, label)))
             if e is not None:
@@ -637,8 +638,8 @@ class Librarian:
             label = browser.add_label(
                 i, tuple[0], TRACKS_ID, tuple[1], browser.play)
             browser.add_button(
-                i, clickFunc=(lambda e, data=tuple[1], label=label:
-                              browser.play(e, data, label)))
+                i, click_func=(lambda e, data=tuple[1], label=label:
+                               browser.play(e, data, label)))
             if e is not None:
                 Librarian.__show_label_load_stats(
                     e, text, i, song_count)
@@ -660,8 +661,8 @@ class Librarian:
             label = browser.add_label(
                 i, title, PLAYLISTS_ID, title, Librarian.load_playlist_songs)
             browser.add_button(
-                i, clickFunc=(lambda e, d=title, l=label:
-                              browser.play(e, d, l)))
+                i, click_func=(lambda e, d=title, l=label:
+                               browser.play(e, d, l)))
             if e is not None:
                 Librarian.__show_label_load_stats(
                     e, ' ' + L['PLAYLISTS'], i, title_count)
@@ -682,7 +683,7 @@ class Librarian:
             browser, browser.delete_playlist,
             text='--{}--'.format(L['DELETE_PLAYLIST']),
             font=(DEFAULT_FONT_FAMILY, 14, BOLD),
-            defaultFG=DELETING_HEX, pady=10)
+            default_fg=DELETING_HEX, pady=10)
         del_pl_button.grid(row=0)
         i = 1
         for path in chosen_playlist_files:
@@ -691,8 +692,8 @@ class Librarian:
                 i, Aplayer.get_title_from_file(path),
                 PLAYLIST_SONGS_ID, data, browser.play)
             browser.add_button(
-                i, clickFunc=(lambda e, d=data, l=label:
-                              browser.play(e, d, l)))
+                i, click_func=(lambda e, d=data, l=label:
+                               browser.play(e, d, l)))
             Librarian.__show_label_load_stats(
                 e, ' ' + playlist_title, i, playlist_length)
             i += 1
@@ -704,7 +705,7 @@ class Librarian:
         Librarian.__refreshing = True
         if lbutton_event is not None:
             widget = lbutton_event.widget
-            widget.defaultFG = COLOUR_DICT['light']
+            widget.default_fg = COLOUR_DICT['light']
             Shield.root_update()
             time.sleep(sleep_secs)
         page = Librarian.current_page
@@ -725,7 +726,7 @@ class Librarian:
         elif Librarian.current_page == SEARCH_RESULTS_ID:
             Librarian.search_library()
         if lbutton_event is not None:
-            widget.defaultFG = COLOUR_DICT['primary']
+            widget.default_fg = COLOUR_DICT['primary']
             widget['foreground'] = COLOUR_DICT['primary']
             Shield.root_update()
         Librarian.__refreshing = False

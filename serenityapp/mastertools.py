@@ -149,25 +149,25 @@ class Sword:
         Sword.__panes.append(queuePane)
         pane_index = 0
         current_pane = Sword.__panes[pane_index]
-        current_pane.drawAll()
+        current_pane.draw()
 
     def switch_pane(e: Event = None):
         global current_pane, pane_index
-        current_pane.undrawAll()
+        current_pane.undraw()
         pane_index += 1
         if pane_index > len(Sword.__panes) - 1:
             pane_index = 0
         current_pane = Sword.__panes[pane_index]
         header.configure(
             text='serenity /{}/'.format(Sword.__pane_titles[pane_index]))
-        current_pane.drawAll()
+        current_pane.draw()
 
     def pane(index):
         return Sword.__panes[index]
 
     def draw_header():
         global header
-        header = stk.DarkLabelButton(root, clickFunc=Sword.switch_pane)
+        header = stk.DarkLabelButton(root, click_func=Sword.switch_pane)
         header.configure(
             font=(DEFAULT_FONT_FAMILY, 34),
             text='serenity /{}/'.format(Sword.__pane_titles[0]))

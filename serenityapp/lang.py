@@ -1,3 +1,6 @@
+from enum import Enum
+
+
 def rellipsis(text) -> str:
     '''Return text with three periods appended.'''
     return text + '...'
@@ -25,9 +28,11 @@ def wd_ls(text) -> str:
     return ' ..{}..'.format(text)
 
 
-EN = 0
+class Region(Enum):
+    EN = 0
 
-REGION = EN
+
+REGION = Region(0).value
 
 # _EXCL = ends with exclamation mark
 # _COL = ends with colon
@@ -64,16 +69,17 @@ LANG = [
         'REFRESH': 'refresh',
         'DONE_EXCL': 'done!',
         'SEARCH': 'search',
+        'SEARCH_RESULTS_FOR_CAP_COL': 'Search results for:',
         'STREAM': 'stream',
         'STREAM+DOWNLOAD': 'stream + download',
         'DOWNLOAD': 'download',
         'LOADING': 'loading',
         'DOWNLOADING': 'downloading',
         'LOADING_AND_DOWNLOADING': 'loading and downloading',
-        'NOW_PLAYING_COL_CAP': 'Now playing:',
-        'NOW_STREAMING_COL_CAP': 'Now streaming:',
+        'NOW_PLAYING_CAP_COL': 'Now playing:',
+        'NOW_STREAMING_CAP_COL': 'Now streaming:',
         'CONVERTING': 'converting',
-        'CURRENTLY_PLAYING_COL_CAP': 'Currently playing:',
+        'CURRENTLY_PLAYING_CAP_COL': 'Currently playing:',
         'CLEAR_QUEUE': 'clear queue',
         'CLEAR_SELECTION': 'clear selection',
         'REMOVE_SELECTION': 'remove selection',

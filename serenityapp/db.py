@@ -6,7 +6,7 @@ from serenityapp.config import *
 
 SONG_COLUMNS = (
     'FQFN', 'artist', 'album', 'track', 'trackNum',
-    'bitRateInfo', 'samplingRateInfo', 'codec', 'art',
+    'bitRateInfo', 'samplingRateInfo', 'codec',
     'listens')
 
 SONGS = 'Songs'
@@ -27,7 +27,6 @@ def init():
             bitRateInfo text,
             samplingRateInfo text,
             codec text,
-            art text COLLATE NOCASE,
             listens integer,
             PRIMARY KEY(FQFN)
         )
@@ -387,7 +386,6 @@ class DBLink:
                 :bitRateInfo,
                 :samplingRateInfo,
                 :codec,
-                :art,
                 :listens
             )
             """.format(table),
