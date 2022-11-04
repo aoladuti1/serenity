@@ -1,22 +1,17 @@
 import math
-from threading import Thread
 import time
 from pathlib import Path
-from tkinter import *
-from tkinter import filedialog
+from threading import Thread
+from tkinter import NE, E, Event, Frame, W
 from tkinter.font import BOLD
-from typing import Callable
-
-import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
-from serenityapp.lang import rellipsis
 
 import serenityapp.supertk as stk
-import serenityapp.records as records
 from serenityapp.aplayer import Aplayer
 from serenityapp.audiodl import AudioDL
 from serenityapp.browsing import Browser, Librarian
-from serenityapp.config import *
+from serenityapp.config import (COLOUR_DICT, DEFAULT_FONT_FAMILY, is_netpath,
+                                light_wait)
+from serenityapp.lang import L, rellipsis
 from serenityapp.mastertools import Shield
 
 # TODO: Split up generation and drawing because
@@ -35,8 +30,6 @@ CONVERTING_REL = rellipsis(L['CONVERTING'])
 
 class FirstPane:
 
-    PAUSE_LABELS = ['||', '|>']
-
     def __init__(self, status: stk.StatusBar):
         global _edge_pad
         _edge_pad = Shield.edge_pad()
@@ -44,17 +37,15 @@ class FirstPane:
         self.subheader = self.__gen_subheader()
         self.back_button = self.__gen_back_button()
         self.libtools = self.__gen_libtools()
-        self.controls = None
-        self.control_buttons = None
+        self.controls = self.__gen_controls()
         self.browser = self.__gen_browser()
-        self.pause_button = None
         self.entrybar = self.__gen_entrybar()
         self.updating_entry_label = False
         self.current_file = ''
         self.duration_str = ''
-        self.playing_text = L['NOW_PLAYING_COL_CAP']
+        self.playing_text = L['NOW_PLAYING_CAP_COL']
         self.status = status
-        self.seekbar = None
+        self.seekbar = self.__gen_seekbar()
         self.downloading = False
         self.monitoring_time = False
         self.__overriding_status = False
@@ -69,23 +60,16 @@ class FirstPane:
         Librarian.load_artists()
         return browser
 
-    def undrawAll(self):
+    def undraw(self):
         self.frame.grid_remove()
 
-    def drawAll(self):
-        self.drawFrame()
-        self.drawAllExceptFrame()
-
-    def drawAllExceptFrame(self):
-        self.drawControls()
-
-    def drawFrame(self):
+    def draw(self):
         self.frame.configure(width=Shield.max_pane())
         self.frame.grid(column=0, row=1, sticky='nsw', columnspan=1)
 
     def __gen_subheader(self):
         subheader = stk.DarkLabelButton(
-            self.frame, clickFunc=self.show_hide_extras,
+            self.frame, click_func=self.show_hide_extras,
             font=(DEFAULT_FONT_FAMILY, 15))
         subheader.grid(column=0, row=0, sticky=W)
         return subheader
@@ -96,9 +80,9 @@ class FirstPane:
         bbframe.grid(row=0, rowspan=1, sticky=NE)
         back_button = stk.LabelButton(
             bbframe,
-            clickFG=COLOUR_DICT['info'],
-            clickBG=COLOUR_DICT['bg'],
-            clickFunc=Librarian.go_back,
+            click_fg=COLOUR_DICT['info'],
+            click_bg=COLOUR_DICT['bg'],
+            click_func=Librarian.go_back,
             font=(DEFAULT_FONT_FAMILY, 16, BOLD)
         )
         back_button.grid()
@@ -255,58 +239,16 @@ class FirstPane:
         self.status.label.configure(text=self.current_file)
         Shield.root_update()
 
-    def seek(self, e, seconds):
-        Thread(target=Aplayer.seek, args=(seconds,)).start()
-        light_wait()
-        self.__update_status_time()
+    def __gen_controls(self):
+        controls = stk.Controls(self.frame, self.__update_status_time)
+        controls.grid(row=3, pady=5, rowspan=1)
+        return controls
 
-    def drawControls(self):
-        self.controls = Frame(self.frame)
-        self.controls.grid(row=3, pady=5, rowspan=1)
-        self.control_buttons = Frame(self.controls)
-        self.control_buttons.grid(row=0)
-        shuffle = self.genControlButton(
-            clickFunc=lambda e: Aplayer.shuffle(), text='¿?',
-            unclickFunc=self.toggle_highlight)
-        prev = self.genControlButton(
-            clickFunc=lambda e: Aplayer.prev(), text='|<<')
-        seek_neg = self.genControlButton(
-            clickFunc=lambda e, t=-10: self.seek(e, t), text='<++')
-        pause = self.genControlButton(
-            clickFunc=lambda e: Aplayer.pauseplay(), text='|>')
-        seek_pos = self.genControlButton(
-            clickFunc=lambda e, t=10: self.seek(e, t), text='++>')
-        next = self.genControlButton(
-            clickFunc=lambda e: Aplayer.next(), text='>>|')
-        repeat = self.genControlButton(
-            clickFunc=lambda e: Aplayer.change_loop(), text='{0}',
-            unclickFunc=self.highlight_replay)
-        self.cgrid([shuffle, prev, seek_neg, pause, seek_pos, next, repeat])
-        self.seekbar = stk.SeekBar(
-            self.controls, pady=int(3 * _edge_pad / 8))
-        self.pause_button = pause
-        self.seekbar.grid(row=1)
-        self.seekbar.bind('<Button-1>', lambda e: self.__update_status_time)
-        Thread(target=self.monitorPlaystate, daemon=True).start()
-
-    def cgrid(self, controls: list):
-        i = 0
-        for control in controls:
-            control.grid(
-                column=i, row=0, sticky=S, pady=5, rowspan=1, columnspan=1)
-            self.control_buttons.columnconfigure(i, weight=1)
-            self.controls.columnconfigure(i, weight=1)
-            i += 1
-        return i
-
-    def monitorPlaystate(self):
-        while True:
-            try:
-                self.pause_button.configure(
-                    text=FirstPane.PAUSE_LABELS[int(Aplayer.is_paused())])
-            except Exception:
-                pass  # tkinter complains about the threading but i don't care
-            time.sleep(1)
+    def __gen_seekbar(self):
+        seekbar = stk.SeekBar(self.controls, pady=int(3 * _edge_pad / 8))
+        seekbar.grid(row=1)
+        seekbar.bind('<Button-1>', lambda e: self.__update_status_time)
+        return seekbar
 
     def observe_title(self, path, file):
         if file is None:
@@ -318,10 +260,10 @@ class FirstPane:
             if Aplayer.is_online():
                 self.current_file = Aplayer.get_title_from_file(file)
 
-                self.playing_text = L['NOW_STREAMING_COL_CAP']
+                self.playing_text = L['NOW_STREAMING_CAP_COL']
             else:
                 self.current_file = Path(file).name
-                self.playing_text = L['NOW_PLAYING_COL_CAP']
+                self.playing_text = L['NOW_PLAYING_CAP_COL']
             self.status.grid(row=5)
             self.status.label.grid(column=0, row=0)
             self.status.time.grid(column=1, row=0)
@@ -331,29 +273,6 @@ class FirstPane:
             if not self.monitoring_time:
                 self.monitoring_time = True
                 Thread(target=self.monitor_pos, daemon=True).start()
-
-    def toggle_highlight(self, e: Event):
-        states = [COLOUR_DICT['primary'], COLOUR_DICT['info']]
-        e.widget.state = 1 - e.widget.state
-        self.control_release(e)
-        e.widget.configure(foreground=states[e.widget.state])
-
-    def highlight_replay(self, e: Event):
-        states = [
-            COLOUR_DICT['primary'], COLOUR_DICT['light'], COLOUR_DICT['info']]
-        self.control_release(e)
-        e.widget.state += 1
-        state = e.widget.state
-        if state > len(states) - 1:
-            e.widget.state = 0
-            state = 0
-        if state == 1:
-            e.widget.configure(text='{1}')
-        elif state == 2:
-            e.widget.configure(text='{+}')
-        else:
-            e.widget.configure(text='{0}')
-        e.widget.configure(foreground=states[state])
 
     def str_pos(self, secs: float):
         if secs < 0 or secs is None:
@@ -394,34 +313,3 @@ class FirstPane:
                 self.__update_status_time()
             self.monitoring_time = False
         Shield.root_update()
-
-    def genControlButton(self, text: str, clickFunc: Callable,
-                         unclickFunc: Callable = None):
-        if unclickFunc is None:
-            func = self.control_release
-        else:
-            func = unclickFunc
-        return stk.LabelButton(
-            self.control_buttons,
-            onEnterFunc=self.wrap_squares,
-            onLeaveFunc=self.unwrap_squares,
-            clickFG=COLOUR_DICT['info'],
-            clickBG=COLOUR_DICT['bg'],
-            clickFunc=clickFunc,
-            unclickFunc=func,
-            text=text,
-            padx=30,
-            font=(DEFAULT_FONT_FAMILY, 16, BOLD))
-
-    def control_release(self, e: Event):
-        e.widget.configure(foreground=COLOUR_DICT['primary'])
-        self.unwrap_squares(e)
-
-    def wrap_squares(self, e: Event):
-        text = e.widget.cget('text')
-        e.widget.configure(text='[' + text + ']')
-
-    def unwrap_squares(self, e: Event):
-        text = e.widget.cget('text')
-        if text.startswith('['):
-            e.widget.configure(text=text[1:-1])
