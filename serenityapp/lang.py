@@ -1,3 +1,6 @@
+from enum import Enum
+
+
 def rellipsis(text) -> str:
     '''Return text with three periods appended.'''
     return text + '...'
@@ -25,9 +28,11 @@ def wd_ls(text) -> str:
     return ' ..{}..'.format(text)
 
 
-EN = 0
+class Region(Enum):
+    EN = 0
 
-REGION = EN
+
+REGION = Region(0).value
 
 # _EXCL = ends with exclamation mark
 # _COL = ends with colon
