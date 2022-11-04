@@ -1,6 +1,6 @@
 import ttkbootstrap as ttk
-from serenityapp.config import (THEME_NAME, configureFont, configureRoot,
-                                configureStyle)
+from serenityapp.config import (THEME_NAME, configure_font, configure_root,
+                                configure_style)
 
 
 def main():
@@ -9,9 +9,9 @@ def main():
     db.init()
     records.refresh()
     root = ttk.Window(themename=THEME_NAME)
-    configureStyle()
-    configureFont()
-    configureRoot(root, False)
+    configure_style()
+    configure_font()
+    configure_root(root, False)
     root.mainloop()
 
 

@@ -52,7 +52,7 @@ class FirstPane:
         self.updating_entry_label = False
         self.current_file = ''
         self.duration_str = ''
-        self.playing_text = L['NOW_PLAYING_COL']
+        self.playing_text = L['NOW_PLAYING_COL_CAP']
         self.status = status
         self.seekbar = None
         self.downloading = False
@@ -165,14 +165,17 @@ class FirstPane:
                    args=([link], queue)).start()
 
         status_visible = self.status.grid_info()
+        text = ''
+        if queue:
+            text = '{} \"{}\"'.format(QUEUING_REL, title)
         if not status_visible:
             self.status.grid(row=5)
             self.status.label.grid(column=0, row=0)
-        if queue is True:
-            queue_text = '{} \"{}\"'.format(QUEUING_REL, title)
-            Thread(target=self.__override_status, args=(queue_text,)).start()
-        elif not queue and not status_visible:
-            self.status.label.configure(text=LOADING_REL)
+            if not queue:
+                text = LOADING_REL
+            self.status.label.configure(text=text)
+        elif queue is True:
+            Thread(target=self.__override_status, args=(text,)).start()
 
     def __download_and_display(self):
         entry_text = self.entrybar.get()
@@ -229,9 +232,9 @@ class FirstPane:
 
     def search_hit(self, e: Event = None, queue=False):
         mode = self.entrybar.state
-        if mode == SEARCH_MODE:
+        if mode == SEARCH_MODE and not queue:
             Librarian.search_library(self.entrybar.get())
-        elif mode == STREAM_MODE:
+        elif mode == STREAM_MODE or (mode == SEARCH_MODE and queue):
             Thread(target=self.__stream, args=(queue,)).start()
         elif mode == STREAM_DOWNLOAD_MODE:
             Thread(target=self.__stream, args=(queue,)).start()
@@ -315,10 +318,10 @@ class FirstPane:
             if Aplayer.is_online():
                 self.current_file = Aplayer.get_title_from_file(file)
 
-                self.playing_text = L['NOW_STREAMING_COL']
+                self.playing_text = L['NOW_STREAMING_COL_CAP']
             else:
                 self.current_file = Path(file).name
-                self.playing_text = L['NOW_PLAYING_COL']
+                self.playing_text = L['NOW_PLAYING_COL_CAP']
             self.status.grid(row=5)
             self.status.label.grid(column=0, row=0)
             self.status.time.grid(column=1, row=0)

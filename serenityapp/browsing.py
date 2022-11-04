@@ -28,6 +28,10 @@ QUEUING_WDLS = wd_ls(L['QUEUING'])
 STARTING_WDLS = wd_ls(L['STARTING'])
 HIGHLIGHT_HEX = COLOUR_DICT['primary']
 FIRST_SUBHEADER_TEXT = ' -> ' + rellipsis(L['MORE'])
+DELETING_WD = wrap_dots(L['DELETING'])
+PLAY_ALL_CAP = L['PLAY_ALL'].capitalize()
+QUEUE_ALL_CAP = L['QUEUE_ALL'].capitalize()
+CLEAR_SELECTION_CAP = L['CLEAR_SELECTION'].capitalize()
 BACK_TEXT = '<--'
 NO_BACK_TEXT = '---'
 
@@ -151,18 +155,19 @@ class Browser(ScrolledFrame):
                     activeforeground=COLOUR_DICT['info'])
         m.configure(font=(DEFAULT_FONT_FAMILY, 12))
         m.add_command(
-            label="Play all",
+            label=PLAY_ALL_CAP,
             command=lambda queue=False: self.play_all(queue))
         m.add_command(
-            label="Queue all",
+            label=QUEUE_ALL_CAP,
             command=lambda queue=True: self.play_all(queue))
         m.add_separator()
-        m.add_cascade(label="Add to playlist...", menu=self.playlist_menu)
+        m.add_cascade(
+            label=L['ADD_TO_PLAYLIST_CAP_REL'], menu=self.playlist_menu)
         if self.playlists_in_selection > 0:
-            m.add_command(label="Delete playlists...",
+            m.add_command(label=L['DELETE_PLAYLISTS_CAP_REL'],
                           command=self.delete_playlists)
         m.add_separator()
-        m.add_command(label="Clear selection", command=self.clear_selection)
+        m.add_command(label=CLEAR_SELECTION_CAP, command=self.clear_selection)
         return m
 
     def __add_to_playlist(self, playlist_title):
@@ -310,7 +315,7 @@ class Browser(ScrolledFrame):
             Aplayer.delete_playlist(data)
         for widget in widgets:
             self.temp_mark_label(
-                widget, False, wrap_dots('deleting'), True, DELETING_HEX)
+                widget, False, DELETING_WD, True, DELETING_HEX)
         Librarian.refresh_page()
 
     def delete_playlist(self, e: Event):
@@ -674,7 +679,8 @@ class Librarian:
         chosen_playlist_files = open(playlist_file, 'r').readlines()
         playlist_length = len(chosen_playlist_files)
         del_pl_button = stk.DarkLabelButton(
-            browser, browser.delete_playlist, text='--delete playlist--',
+            browser, browser.delete_playlist,
+            text='--{}--'.format(L['DELETE_PLAYLIST']),
             font=(DEFAULT_FONT_FAMILY, 14, BOLD),
             defaultFG=DELETING_HEX, pady=10)
         del_pl_button.grid(row=0)

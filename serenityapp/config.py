@@ -57,7 +57,7 @@ SPLITTER_CHAR = '-'
 SPLITTER = " " + SPLITTER_CHAR + " "
 
 # placeholders
-UNKNOWN_ARTIST = "Unknown Artist"
+UNKNOWN_ARTIST = L['UNKNOWN_ARTIST']
 UNKNOWN_ALBUM = "---"
 UNKNOWN_ALBUM_ARTIST = "---"
 
@@ -97,7 +97,7 @@ DEFAULT_FONT_FAMILY = 'Cascadia Code Light'
 SMALL_SCREEN_CUTOFF = 2000
 
 
-def configureStyle():
+def configure_style():
     style = ttk.Style(THEME_NAME)
     # the following line stops annoying highlight lines on button click
     style.configure('TButton', focuscolor=style.configure(
@@ -105,13 +105,13 @@ def configureStyle():
     style.configure('TFrame', background='black')
 
 
-def configureFont():
+def configure_font():
     DEFAULT_FONT = ttk.font.nametofont("TkDefaultFont")
     DEFAULT_FONT_SIZE = 14
     DEFAULT_FONT.configure(family=DEFAULT_FONT_FAMILY, size=DEFAULT_FONT_SIZE)
 
 
-def configureRoot(root: ttk.Window, expanded: bool = False):
+def configure_root(root: ttk.Window, expanded: bool = False):
     import serenityapp.mastertools as mastertools
     root.attributes('-alpha', 0)
     root.iconbitmap(DIR_PATH + 'icon.ico')

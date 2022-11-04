@@ -32,7 +32,7 @@ class Shield:
         root.rowconfigure(0, weight=1)
         root.update()
         Shield.welcome_button = Label(
-            root, text='welcome', font=(DEFAULT_FONT_FAMILY, 20))
+            root, text=L['WELCOME'], font=(DEFAULT_FONT_FAMILY, 20))
         Shield.welcome_button.grid(row=0)
         Shield.grid_root(expanded)
         root.update()
@@ -115,8 +115,8 @@ class Shield:
             for t in AudioDL.active_titles():
                 addendum += t + '\n'
             addendum = addendum[0:-1] + ']'
-            res = messagebox.askyesno(L['CLOSE_WARNING'][0],
-                                      L['CLOSE_WARNING'][1] + addendum)
+            res = messagebox.askyesno(L['CLOSE_WARNING_WINTITLE'],
+                                      L['CLOSE_WARNING_MSG'] + addendum)
             if not res:
                 return
         os._exit(0)
@@ -126,7 +126,7 @@ class Sword:
     """Manages the panes. Call mastertools.init() once before use."""
 
     __panes = []
-    __pane_titles = ['library', 'queue']
+    __pane_titles = [L['LIBRARY'], L['QUEUE']]
     pane_index = -1
     current_pane = None
     header = None
