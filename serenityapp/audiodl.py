@@ -94,8 +94,7 @@ class AudioDL:
             'defaultTitle': valid_title
         }
         artist, track = ytp.get_artist_title(valid_title, options)
-        artist, track, trackNum = records.get_song_info(valid_title)
-        return [artist, track, trackNum, valid_title]
+        return [artist, track, 0, valid_title]
 
     async def __search_youtube(query):
         try:
