@@ -242,8 +242,12 @@ class Aplayer:
             if i == Aplayer.get_playlist_pos():
                 continue
             else:
-                Aplayer.player.playlist_remove(i)
+                if i < Aplayer.playlist_count():
+                    Aplayer.player.playlist_remove(i)
+                else:
+                    Aplayer.__mark_playlist_change()
                 light_wait()
+        Aplayer.clear_subqueue()
         Aplayer.__mark_playlist_change()
 
     def savelist(new_playlist_title: str) -> list[tuple[int, PathLike]]:
