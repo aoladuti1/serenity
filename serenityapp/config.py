@@ -81,6 +81,11 @@ os.environ['PATH'] = DIR_PATH + 'subprograms' + \
     os.sep + 'libmpv' + os.pathsep + os.environ['PATH']
 os.environ['PATH'] = DIR_PATH + 'subprograms' + os.sep + \
     'ffmpeg' + os.sep + 'bin' + os.pathsep + os.environ['PATH']
+os.environ['PATH'] = DIR_PATH + 'subprograms' + os.sep + \
+    'ffmpeg' + os.pathsep + os.environ['PATH']
+os.environ['PATH'] = DIR_PATH + 'subprograms' + \
+    os.pathsep + os.environ['PATH']
+
 
 # file paths
 DEFAULT_ART = 'default_art.jpg'  # TODO: remove
