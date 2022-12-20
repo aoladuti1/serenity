@@ -8,6 +8,7 @@ import ttkbootstrap as ttk
 from typing import TypeVar
 from serenityapp.themes import USER_THEMES
 
+
 # useful functions
 
 
@@ -100,6 +101,19 @@ THEME_NAME = 'serenity'
 COLOUR_DICT = USER_THEMES['serenity']['colors']
 DEFAULT_FONT_FAMILY = 'Cascadia Code Light'
 SMALL_SCREEN_CUTOFF = 2000
+
+
+def preconfigure_style():
+    from ttkbootstrap.style import ThemeDefinition
+    style = ttk.Style()
+    for name, definition in USER_THEMES.items():
+        style.register_theme(
+            ThemeDefinition(
+                name=name,
+                themetype=definition["type"],
+                colors=definition["colors"],
+            )
+        )
 
 
 def configure_style():
