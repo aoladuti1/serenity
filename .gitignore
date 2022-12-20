@@ -18,3 +18,5 @@ downloads/
 .cache
 
 subprograms/
+
+venv/
