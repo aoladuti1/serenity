@@ -247,8 +247,8 @@ class Browser(ScrolledFrame):
                 i, title, PLAYLISTS_ID, title,
                 Librarian.load_playlist_songs)
             self.add_button(
-                i, click_func=(lambda e, d=title, l=label:
-                               self.play(e, d, l)))
+                i, click_func=(lambda e, d=title, el=label:
+                               self.play(e, d, el)))
             i += 1
         return i
 
@@ -661,8 +661,8 @@ class Librarian:
             label = browser.add_label(
                 i, title, PLAYLISTS_ID, title, Librarian.load_playlist_songs)
             browser.add_button(
-                i, click_func=(lambda e, d=title, l=label:
-                               browser.play(e, d, l)))
+                i, click_func=(lambda e, d=title, el=label:
+                               browser.play(e, d, el)))
             if e is not None:
                 Librarian.__show_label_load_stats(
                     e, ' ' + L['PLAYLISTS'], i, title_count)
@@ -692,8 +692,8 @@ class Librarian:
                 i, Aplayer.get_title_from_file(path),
                 PLAYLIST_SONGS_ID, data, browser.play)
             browser.add_button(
-                i, click_func=(lambda e, d=data, l=label:
-                               browser.play(e, d, l)))
+                i, click_func=(lambda e, d=data, el=label:
+                               browser.play(e, d, el)))
             Librarian.__show_label_load_stats(
                 e, ' ' + playlist_title, i, playlist_length)
             i += 1
